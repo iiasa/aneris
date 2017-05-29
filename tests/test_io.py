@@ -1,3 +1,4 @@
+import pytest
 
 from aneris import io
 
@@ -15,6 +16,12 @@ def test_default_rc():
     for k in exp.keys():
         assert k in obs
         assert exp[k] == obs[k]
+
+
+def test_mutable():
+    obs = io.RunControl()
+    with pytest.raises(TypeError):
+        obs['foo'] = 'bar'
 
 
 def test_nondefault_rc():
