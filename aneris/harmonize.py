@@ -1,9 +1,12 @@
 import os
 import argparse
 import warnings
+import logging
+
 
 import numpy as np
 import pandas as pd
+
 
 from aneris import utils
 from aneris.methods import harmonize_factors, constant_offset, reduce_offset, \
@@ -15,7 +18,6 @@ _global_region = {
     'Country': 'World',
     'Native Region Code': 'World',
 }
-
 
 
 def read_data(indfs):
@@ -310,22 +312,72 @@ def harmonize_global_total(model, hist, overrides):
     return m, metadata
 
 
+class HarmonizationDriver(object):
+
+    def __init__(self, rc,
+                 model, hist, overrides,
+                 regions, add_5region=True):
+
+        self.prefix = rc['prefix']
+        self.suffix = rc['suffix']
+        self.config = rc['config']
+        self.model = model
+        self.hist = hist
+        self.overrides = overrides
+        self.regions = regions
+        self.add_5region = add_5region
+
+        self._xlator = utils.FormatTranslator()
+
+        self._model_dfs = []
+        self._metadata_dfs = []
+
+    def models_and_scenarios(self):
+        x = (
+            self.model[['Model', 'Scenario']]
+            .set_index('Model')
+            .drop_duplicates()
+        ).to_dict(orient='index')
+        return {k: v['Scenario'] for k, v in x.items()}
+
+    def _downselect_scen(self, model_name, scenario):
+        ismodel = lambda df: df.Model == model_name
+        isscen = lambda df: df.Scenario == scenario
+        subset = lambda df: df[ismodel(df) & isscen(df)]
+
+        self._model = subset(self._model)
+        self._overrides = subset(self._overrides)
+        self._overrides = None if self._overrides.empty else self._overrides
+
+    def _downselect_var(self):
+        # separate data
+        print('Downselecting CEDS+|9+ variables')
+
+        hasprefix = lambda df: df.Variable.str.startswith(self.prefix)
+        hassuffix = lambda df: df.Variable.str.startswith(self.suffix)
+        subset = lambda df: df[hasprefix(df) & hassuffix(df)]
+
+        self._model = subset(self._model)
+        self._hist = subset(self._hist)
+
+        if len(self._model) == 0:
+            msg = 'No CEDS Variables found for harmonization. Searched for CEDS+|9+*|Unharmonized'
+            raise ValueError(msg)
+        assert(len(self._hist) > 0)
+
+    def harmonize(self, model_name, scenario):
+        # need to specify model and scenario in xlator to template
+        self._hist = self.hist.copy()
+        self._model = self.model.copy()
+        self._overrides = self.overrides.copy()
+
+        self._downselect_scen(model_name, scenario)
+        self._downselect_var()
+
+
 def harmonize_scenario(model, hist, regions, overrides, config, add_5region=True):
     model_name = model.Model.iloc[0]
     scenario = model.Scenario.iloc[0]
-
-    # separate data
-    print('Downselecting CEDS+|9+ variables')
-    rows = lambda df: (
-        (df.Variable.str.startswith('CEDS+|9+')) &
-        (df.Variable.str.endswith('Unharmonized'))
-    )
-    model = model[rows(model)]
-    if len(model) == 0:
-        msg = 'No CEDS Variables found for harmonization. Searched for CEDS+|9+*|Unharmonized'
-        raise ValueError(msg)
-    hist = hist[rows(hist)]
-    assert(len(hist) > 0)
 
     # translate data to calculation format
     xlator = utils.FormatTranslator()
