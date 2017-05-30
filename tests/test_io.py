@@ -1,7 +1,7 @@
 import pytest
 import tempfile
 
-from aneris import io
+from aneris import _io
 
 _defaults = {
     'config': {
@@ -14,12 +14,12 @@ _defaults = {
 
 def test_default_rc():
     exp = _defaults
-    obs = io.RunControl()
-    assert exp == obs
+    obs = _io.RunControl()
+    assert obs == exp
 
 
 def test_mutable():
-    obs = io.RunControl()
+    obs = _io.RunControl()
     with pytest.raises(TypeError):
         obs['foo'] = 'bar'
 
@@ -30,21 +30,21 @@ def test_nondefault_rc():
         cov_threshold: 42
     """
 
-    obs = io.RunControl(rcstr)
+    obs = _io.RunControl(rcstr)
     exp = _defaults
     exp['config']['cov_threshold'] = 42
     assert exp == obs
 
 
-def test_nondefault_rc_file():
+def test_nondefault_rc_file_read():
     rcstr = """
     config:
         cov_threshold: 42
     """
-    with tempfile.TemporaryFile() as f:
-        print(f)
+    with tempfile.NamedTemporaryFile(delete=False) as f:
         f.write(rcstr)
-        obs = io.RunControl(f)
+        f.flush()
+        obs = _io.RunControl(f.name)
         exp = _defaults
         exp['config']['cov_threshold'] = 42
         assert exp == obs

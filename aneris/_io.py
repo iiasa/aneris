@@ -2,7 +2,7 @@ import collections
 import os
 import yaml
 
-from .utils import isstr
+from aneris.utils import isstr
 
 _rc_defaults = """
 config:
@@ -10,6 +10,7 @@ config:
     cov_threshold: 20
     harmonize_year: 2015
 """
+
 
 def _recursive_update(d, u):
     for k, v in u.items():
@@ -20,20 +21,21 @@ def _recursive_update(d, u):
             d[k] = u[k]
     return d
 
+
 class RunControl(collections.Mapping):
 
-    def __init__(self, io=None):
+    def __init__(self, rc=None):
         self.store = dict()
-        io = io or {}
-        print(io)
-        if isinstance(io, file):
-            io = io.read()           
-        print(io)
-        if not isinstance(io, dict):
-            io = yaml.load(io)
+        rc = rc or {}
+        if isinstance(rc, file):
+            rc = rc.read()
+        if isstr(rc) and os.path.exists(rc):
+            with open(rc) as f:
+                rc = f.read()
+        if not isinstance(rc, dict):
+            rc = yaml.load(rc)
         defaults = yaml.safe_load(_rc_defaults)
-        print(io)
-        opts = _recursive_update(defaults, io)
+        opts = _recursive_update(defaults, rc)
         self.store.update(opts)
 
     def __getitem__(self, k):
@@ -44,3 +46,6 @@ class RunControl(collections.Mapping):
 
     def __len__(self):
         return len(self.store)
+
+    def __repr__(self):
+        return self.store.__repr__()
