@@ -9,8 +9,9 @@ config:
     default_luc_method: reduce_ratio_2150_cov
     cov_threshold: 20
     harmonize_year: 2015
-prefix: CEDS+|9+
+prefix: CEDS+|9+ Sectors
 suffix: Unharmonized
+add_5regions: true
 """
 
 

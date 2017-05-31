@@ -13,31 +13,6 @@ from aneris.methods import harmonize_factors, constant_offset, reduce_offset, \
     constant_ratio, reduce_ratio, linear_interpolate, model_zero, hist_zero, \
     coeff_of_var, default_methods
 
-_global_region = {
-    'ISO Code': 'World',
-    'Country': 'World',
-    'Native Region Code': 'World',
-}
-
-
-def read_data(indfs):
-    datakeys = sorted([x for x in indfs if x.startswith('data')])
-    df = pd.concat([indfs[k] for k in datakeys])
-    # don't know why reading from excel changes dtype and column types
-    # but I have to reset them manually
-    df.columns = df.columns.astype(str)
-    numcols = [x for x in df.columns if x.startswith('2')]
-    df[numcols] = df[numcols].astype(float)
-
-    if '2015' not in df.columns:
-        msg = 'Base year not found in model data. Existing columns are {}.'
-        raise ValueError(msg.format(df.columns))
-
-    # some teams also don't provide standardized column names and styles
-    df.columns = df.columns.str.capitalize()
-
-    return df
-
 
 class Harmonizer(object):
 
@@ -259,15 +234,259 @@ class Harmonizer(object):
         return df
 
 
-def check_null(df, name, fail=False):
-    anynull = df.isnull().values.any()
-    if fail:
-        assert(not anynull)
-    if anynull:
-        msg = 'Null (missing) values found for {} indicies: \n{}'
-        _df = df[df.isnull().any(axis=1)].reset_index()[utils.df_idx]
-        warnings.warn(msg.format(name, _df))
-        df.dropna(inplace=True)
+class HarmonizationDriver(object):
+
+    def __init__(self, rc, model, hist, overrides, regions):
+        self.prefix = rc['prefix']
+        self.suffix = rc['suffix']
+        self.config = rc['config']
+        self.exog_files = rc['exogenous'] if 'exogenous' in rc else []
+        self.model = model
+        self.hist = hist
+        self.overrides = overrides
+        self.regions = regions
+
+        model_names = self.model.Model.unique()
+        if len(model_names) > 1:
+            raise ValueError('Can not have more than one model to harmonize')
+        self.model_name = model_names[0]
+
+        self._aggregate_history()
+        self.exogenous_trajectories = self._exogenous_trajectories()
+
+        self._xlator = utils.FormatTranslator()
+
+        self._model_dfs = []
+        self._metadata_dfs = []
+
+    def _exogenous_trajectories(self):
+        # add exogenous variables
+        dfs = []
+        for fname in self.exog_files:
+            exog = utils.pd_read(fname, sheetname='data')
+            exog.columns = [str(x) for x in exog.columns]
+            exog['Model'] = self.model_name
+            exog['Scenario'] = ''
+            cols = [c for c in model.columns if c in exog.columns]
+            exog = exog[cols]
+            dfs.append(exog)
+        return pd.concat(dfs)
+
+    def _aggregate_history(self):
+        # check if global region exists, otherwise add it
+        if not self.regions['ISO Code'].isin(['World']).any():
+            glb = {
+                'ISO Code': 'World',
+                'Country': 'World',
+                'Native Region Code': 'World',
+            }
+            print('Manually adding global regional definition: {}'.format(glb))
+            self.regions = self.regions.append(glb, ignore_index=True)
+        # aggregate historical to native regions
+        print('Aggregating historical values to native regions')
+        # must set verify to false for now because some isos aren't included!
+        self.hist = utils.regionISOtoNative(
+            self.hist, mapping=self.regions, verify=False)
+
+    def _downselect_scen(self, model_name, scenario):
+        ismodel = lambda df: df.Model == model_name
+        isscen = lambda df: df.Scenario == scenario
+        subset = lambda df: df[ismodel(df) & isscen(df)]
+
+        self._model = subset(self._model)
+        self._overrides = subset(self._overrides)
+
+    def _downselect_var(self):
+        # separate data
+        print('Downselecting CEDS+|9+ variables')
+
+        hasprefix = lambda df: df.Variable.str.startswith(self.prefix)
+        hassuffix = lambda df: df.Variable.str.startswith(self.suffix)
+        subset = lambda df: df[hasprefix(df) & hassuffix(df)]
+
+        self._model = subset(self._model)
+        self._hist = subset(self._hist)
+        self._overrides = subset(self._overrides)
+
+        if len(self._model) == 0:
+            msg = 'No CEDS Variables found for harmonization. '
+            'Searched for CEDS+|9+*|Unharmonized'
+            raise ValueError(msg)
+        assert(len(self._hist) > 0)
+
+    def _to_std(self):
+        print('Translating to standard format')
+        self._model = (
+            self.xlator.to_std(df=self._model.copy(), set_metadata=True)
+            .set_index(utils.df_idx)
+            .sort_index()
+        )
+
+        self._hist = (
+            self._xlator.to_std(df=self._hist.copy(), set_metadata=False)
+            .set_index(utils.df_idx)
+            .sort_index()
+        )
+        # override CEDS with special cases (e.g. primap)
+        self._hist = self._hist[~self._hist.index.duplicated(keep='last')]
+
+        # hackery required because unit needed for df_idx
+        if 'Unit' not in self._overrides:
+            overrides['Unit'] = 'kt'
+        self._overrides = (
+            xlator.to_std(df=self._overrides.copy(), set_metadata=False)
+            .set_index(utils.df_idx)
+            .sort_index()
+            .rename(str.lower)
+        )['method']
+
+    def _fill_model_trajectories(self):
+            # add zeros to model values if not covered
+        idx = self._hist.index
+        notin = ~idx.isin(self._model.index)
+        if notin.any():
+            msg = 'Not all of self._history is covered by self._model: \n{}'
+            _df = self._hist.loc[notin].reset_index()[utils.df_idx]
+            warnings.warn(msg.format(_df.head()))
+            zeros = pd.DataFrame(0, index=idx, columns=self._model.columns)
+            self._model = self._model.combine_first(zeros)
+        self._model = self._model.loc[idx]
+
+    def _preprocess_trajectories(self):
+        self._downselect_scen(model_name, scenario)  # only model and scen
+        self._downselect_var()  # only prefix|*|suffix
+        self._to_std()
+        self._fill_model_trajectories()
+        # TODO: check if overrides is empty!
+
+    def _harmonize_global(self):
+        self._glb_only, self._glb_meta = harmonize_global_total(
+            self._glb_only, self._hist, self._overrides)
+
+    def _harmonize_regional(self):
+        # clean model
+        self._model = subtract_regions_from_world(self._model, 'model')
+        self._model = remove_recalculated_sectors(self._model)
+        # remove rows with all 0s
+        self._model = self._model[(self._model.T > 0).any()]
+
+        # clean hist
+        self._hist = subtract_regions_from_world(self._hist, 'hist')
+        self._hist = remove_recalculated_sectors(self._hist)
+        # remove rows with all 0s
+        self._hist = self._hist[(self._hist.T > 0).any()]
+
+    def _postprocess_trajectories(self):
+        print('Translating to IAMC template')
+        # update variable name
+        self._model = self._model.reset_index()
+        self._model.sector = self._model.sector.str.replace(
+            self.suffix, 'Harmonized-DB')
+        self._model = self._model.set_index(utils.df_idx)
+        # from native to iamc format
+        self._model = (
+            xlator.to_template(self._model)
+            .sort_index()
+            .reset_index()
+        )
+
+        # add exogenous trajectories
+        exog = self.exogenous_trajectories.copy()
+        exog['Scenario'] = scenario
+        self._model = pd.concat([self._model, exog])
+
+    def harmonize(self, scenario):
+        # need to specify model and scenario in xlator to template
+        self._hist = self.hist.copy()
+        self._model = self.model.copy()
+        self._overrides = self.overrides.copy()
+
+        self._preprocess_trajectories()
+        self._split_global_only()
+        self._harmonize_global()
+        self._harmonize_regional()
+
+        # combine special case results with harmonized results
+        self._model = self._glb_only.combine_first(self._model)
+        self._meta = self._glb_meta.combine_first(self._meta)
+
+        # perform any automated diagnostics/analysis
+        diagnostics(self._model, self._meta)
+
+        # collect metadata
+        self._meta = self._meta.reset_index()
+        self._meta['model'] = self.model_name
+        self._meta['scenario'] = scenario
+        self._meta = self._meta.set_index(['model', 'scenario'])
+
+        self._postprocess_trajectories()
+
+        # store results
+        self._model_dfs.append(self._model)
+        self._metadata_dfs.append(self._meta)
+
+    def scenarios(self):
+        return self.model['Scenario'].unique()
+
+    def harmonized_results(self):
+        return (
+            pd.concat(self._model_dfs),
+            pd.concat(self._metadata_dfs),
+        )
+
+
+def harmonize_regional():
+
+    # harmonize
+    check_null(model, 'model')
+    check_null(hist, 'hist', fail=True)
+    harmonizer = Harmonizer(model, hist, config=config)
+    print('Harmonizing (with example methods):')
+    print(harmonizer.methods(overrides=overrides).head())
+
+    if overrides is not None:
+        print('and override methods:')
+        print(overrides.head())
+    model = harmonizer.harmonize(overrides=overrides)
+    check_null(model, 'model')
+    metadata = harmonizer.metadata()
+
+    # add aggregate variables
+    totals = 'CEDS+|9+ Sectors|Unharmonized'
+    if model.index.get_level_values('sector').isin([totals]).any():
+        msg = 'Removing sector aggregates. Recalculating with harmonized totals.'
+        warnings.warn(msg)
+        model.drop(totals, level='sector', inplace=True)
+    model = (
+        utils.EmissionsAggregator(model)
+        .add_variables(totals=totals, aggregates=False)
+        .df
+        .set_index(utils.df_idx)
+    )
+    check_null(model, 'model')
+
+    # combine regional values to send back into template form
+    model.reset_index(inplace=True)
+    model = model.set_index(utils.df_idx).sort_index()
+    glb = utils.combine_rows(model, 'region', 'World',
+                             sumall=True, rowsonly=True)
+    model = glb.combine_first(model)
+
+    # add 5regions
+    if self.config['add_5regions']:
+        print('Adding 5region values')
+        # explicitly don't add World, it already exists from aggregation
+        mapping = regions[regions['Native Region Code'] != 'World'].copy()
+        model = model.append(utils.regionNativeto5(model, mapping=mapping))
+        assert(not model.isnull().values.any())
+
+    # duplicates come in from World and World being translated
+    duplicates = model.index.duplicated(keep='first')
+    if duplicates.any():
+        regions = model[duplicates].index.get_level_values('region').unique()
+        msg = 'Dropping duplicate rows found for regions: {}'.format(regions)
+        warnings.warn(msg)
+        model = model[~duplicates]
 
 
 def harmonize_global_total(model, hist, overrides):
@@ -312,258 +531,6 @@ def harmonize_global_total(model, hist, overrides):
     return m, metadata
 
 
-class HarmonizationDriver(object):
-
-    def __init__(self, rc,
-                 model, hist, overrides,
-                 regions, add_5region=True):
-
-        self.prefix = rc['prefix']
-        self.suffix = rc['suffix']
-        self.config = rc['config']
-        self.model = model
-        self.hist = hist
-        self.overrides = overrides
-        self.regions = regions
-        self.add_5region = add_5region
-
-        self._xlator = utils.FormatTranslator()
-
-        self._model_dfs = []
-        self._metadata_dfs = []
-
-    def models_and_scenarios(self):
-        x = (
-            self.model[['Model', 'Scenario']]
-            .set_index('Model')
-            .drop_duplicates()
-        ).to_dict(orient='index')
-        return {k: v['Scenario'] for k, v in x.items()}
-
-    def _downselect_scen(self, model_name, scenario):
-        ismodel = lambda df: df.Model == model_name
-        isscen = lambda df: df.Scenario == scenario
-        subset = lambda df: df[ismodel(df) & isscen(df)]
-
-        self._model = subset(self._model)
-        self._overrides = subset(self._overrides)
-        self._overrides = None if self._overrides.empty else self._overrides
-
-    def _downselect_var(self):
-        # separate data
-        print('Downselecting CEDS+|9+ variables')
-
-        hasprefix = lambda df: df.Variable.str.startswith(self.prefix)
-        hassuffix = lambda df: df.Variable.str.startswith(self.suffix)
-        subset = lambda df: df[hasprefix(df) & hassuffix(df)]
-
-        self._model = subset(self._model)
-        self._hist = subset(self._hist)
-
-        if len(self._model) == 0:
-            msg = 'No CEDS Variables found for harmonization. Searched for CEDS+|9+*|Unharmonized'
-            raise ValueError(msg)
-        assert(len(self._hist) > 0)
-
-    def harmonize(self, model_name, scenario):
-        # need to specify model and scenario in xlator to template
-        self._hist = self.hist.copy()
-        self._model = self.model.copy()
-        self._overrides = self.overrides.copy()
-
-        self._downselect_scen(model_name, scenario)
-        self._downselect_var()
-
-
-def harmonize_scenario(model, hist, regions, overrides, config, add_5region=True):
-    model_name = model.Model.iloc[0]
-    scenario = model.Scenario.iloc[0]
-
-    # translate data to calculation format
-    xlator = utils.FormatTranslator()
-
-    print('Translating to standard format')
-    model = (
-        xlator.to_std(df=model.copy(), set_metadata=True)
-        .set_index(utils.df_idx)
-        .sort_index()
-    )
-
-    hist = (
-        xlator.to_std(df=hist.copy(), set_metadata=False)
-        .set_index(utils.df_idx)
-        .sort_index()
-    )
-    # override CEDS with special cases (e.g. primap)
-    hist = hist[~hist.index.duplicated(keep='last')]
-
-    if overrides is not None:
-        overrides = overrides[rows(overrides)]
-        # hackery required because unit needed for df_idx
-        overrides['Unit'] = 'kt'
-        overrides = (
-            xlator.to_std(df=overrides.copy(), set_metadata=False)
-            .set_index(utils.df_idx)
-            .sort_index()
-        )
-        overrides.columns = overrides.columns.str.lower()
-        overrides = overrides['method']
-
-    # aggregate historical to native regions
-    # check if global region exists, otherwise add it
-    if not regions['ISO Code'].isin(['World']).any():
-        print('Manually adding global regional definition: {}'.format(
-            _global_region))
-        regions = regions.append(_global_region, ignore_index=True)
-    # must set verify to false for now because some isos aren't included!
-    print('Aggregating historical values to native regions')
-    hist = utils.regionISOtoNative(hist, mapping=regions, verify=False)
-
-    # add zeros to model values if not covered
-    idx = hist.index
-    notin = ~idx.isin(model.index)
-    if notin.any():
-        msg = 'Not all of history is covered by model: \n{}'
-        _df = hist.loc[notin].reset_index()[utils.df_idx]
-        warnings.warn(msg.format(_df.head()))
-        zeros = pd.DataFrame(0, index=idx, columns=model.columns)
-        model = model.combine_first(zeros)
-    model = model.loc[idx]
-
-    # Harmonize special cases (for now this is N2O, which should be
-    # harmonized only on global values)
-    xtramodel, xtrameta = harmonize_global_total(model.copy(), hist, overrides)
-
-    # make global only global (not global + sum of regions)
-    def subtract_regions_from_world(df, name):
-        check_null(df, name)
-        if (df.loc['World']['2015'] == 0).all():
-            # some models (gcam) are not reporting any values in World
-            # without this, you get `0 - sum(other regions)`
-            warnings.warn('Empty global region found in ' + name)
-            return df
-
-        # sum all rows where region == World
-        total = utils.combine_rows(df, 'region', 'World', sumall=True,
-                                   others=[], rowsonly=True)
-        # sum all rows where region != World
-        nonglb = utils.combine_rows(df, 'region', 'World', sumall=False,
-                                    others=None, rowsonly=True)
-        glb = total.subtract(nonglb, fill_value=0)
-        # pick up some precision issues
-        # TODO: this precision is large because I have seen model results
-        # be reported with this large of difference due to round off and values
-        # approaching 0
-        glb[(glb / total).abs() < 5e-2] = 0.
-        df = glb.combine_first(df)
-        check_null(df, name)
-        return df
-
-    # remove sectoral totals which will need to be recalculated after
-    # harmonization
-    def remove_recalculated_sectors(df):
-        df = df.reset_index()
-        # TODO: THIS IS A HACK, CURRENT GASES DEFINITION ASSUME IAMC NAMES
-        gases = df.gas.isin(utils.sector_gases + ['SO2', 'NOX'])
-        sectors = df.sector.apply(lambda x: len(x.split('|')) == 3)
-        keep = ~(gases & sectors)
-        return df[keep].set_index(utils.df_idx)
-
-    # clean model
-    model = subtract_regions_from_world(model, 'model')
-    model = remove_recalculated_sectors(model)
-    model = model[(model.T > 0).any()]  # remove rows with all 0s
-
-    # clean hist
-    hist = subtract_regions_from_world(hist, 'hist')
-    hist = remove_recalculated_sectors(hist)
-    hist = hist[(hist.T > 0).any()]  # remove rows with all 0s
-
-    # harmonize
-    check_null(model, 'model')
-    check_null(hist, 'hist', fail=True)
-    harmonizer = Harmonizer(model, hist, config=config)
-    print('Harmonizing (with example methods):')
-    print(harmonizer.methods(overrides=overrides).head())
-
-    if overrides is not None:
-        print('and override methods:')
-        print(overrides.head())
-    model = harmonizer.harmonize(overrides=overrides)
-    check_null(model, 'model')
-    metadata = harmonizer.metadata()
-
-    # add aggregate variables
-    totals = 'CEDS+|9+ Sectors|Unharmonized'
-    if model.index.get_level_values('sector').isin([totals]).any():
-        msg = 'Removing sector aggregates. Recalculating with harmonized totals.'
-        warnings.warn(msg)
-        model.drop(totals, level='sector', inplace=True)
-    model = (
-        utils.EmissionsAggregator(model)
-        .add_variables(totals=totals, aggregates=False)
-        .df
-        .set_index(utils.df_idx)
-    )
-    check_null(model, 'model')
-
-    # combine regional values to send back into template form
-    model.reset_index(inplace=True)
-    model = model.set_index(utils.df_idx).sort_index()
-    glb = utils.combine_rows(model, 'region', 'World',
-                             sumall=True, rowsonly=True)
-    model = glb.combine_first(model)
-
-    # add 5regions
-    if add_5region:
-        print('Adding 5region values')
-        # explicitly don't add World, it already exists from aggregation
-        mapping = regions[regions['Native Region Code'] != 'World'].copy()
-        model = model.append(utils.regionNativeto5(model, mapping=mapping))
-        assert(not model.isnull().values.any())
-
-    # duplicates come in from World and World being translated
-    duplicates = model.index.duplicated(keep='first')
-    if duplicates.any():
-        regions = model[duplicates].index.get_level_values('region').unique()
-        msg = 'Dropping duplicate rows found for regions: {}'.format(regions)
-        warnings.warn(msg)
-        model = model[~duplicates]
-
-    # combine special case results with harmonized results
-    model = xtramodel.combine_first(model)
-    metadata = xtrameta.combine_first(metadata)
-
-    # perform any automated diagnostics/analysis
-    diagnostics(model, metadata)
-
-    print('Translating to IAMC template')
-    # update variable name
-    model = model.reset_index()
-    model.sector = model.sector.str.replace('Unharmonized', 'Harmonized-DB')
-    model = model.set_index(utils.df_idx)
-    # from native to iamc format
-    model = xlator.to_template(model).sort_index().reset_index()
-
-    # add exogenous variables
-    f = os.path.join(utils.here, 'exogenous', 'ODS_future.xlsx')
-    exog = utils.pd_read(f, sheetname='data')
-    exog.columns = [str(x) for x in exog.columns]
-    exog['Model'] = model_name
-    exog['Scenario'] = scenario
-    cols = [c for c in model.columns if c in exog.columns]
-    exog = exog[cols]
-    model = pd.concat([model, exog])
-
-    # collect metadta
-    metadata = metadata.reset_index()
-    metadata['model'] = model_name
-    metadata['scenario'] = scenario
-    metadata = metadata.set_index(['model', 'scenario'])
-
-    return model, metadata
-
-
 def diagnostics(model, metadata):
     #
     # Detect Large Missing Values
@@ -599,94 +566,3 @@ def diagnostics(model, metadata):
         warnings.warn(
             'Negative Emissions found for non-CO2 gases:\n {}'.format(neg))
         raise ValueError('Harmonization failed due to negative non-CO2 gases')
-
-
-def main(inf, history=None, regions=None, output_prefix=None, add_5region=True):
-    # default files
-    history = history or utils.hist_path('history.csv')
-    regions = regions or utils.region_path('message.csv')
-
-    # read input
-    hist = utils.pd_read(history)
-    if 'github' in hist.columns[0]:
-        raise ValueError('Git LFS file not updated.')
-
-    regions = utils.pd_read(regions)
-    indfs = utils.pd_read(inf, sheetname=None, encoding='utf-8')
-    # make an empty df which will be caught later
-    overrides = indfs['harmonization'] if 'harmonization' in indfs \
-        else pd.DataFrame([], columns=['Scenario'])
-
-    # get run control
-    config = {}
-    if'Configuration' in overrides:
-        config = overrides[['Configuration', 'Value']].dropna()
-        config = config.set_index('Configuration').to_dict()['Value']
-        overrides = overrides.drop(['Configuration', 'Value'], axis=1)
-
-    if regions.empty:
-        raise ValueError('Region definition is empty')
-
-    model = read_data(indfs)
-    model.columns = model.columns.str.capitalize()
-    model_name = model.Model.iloc[0]
-
-    scenarios = model.Scenario.unique()
-    dfs = []
-    metadata = []
-    for scenario in scenarios:
-        print('Harmonizing {}'.format(scenario))
-        _model = model[model.Scenario == scenario]
-        _overrides = overrides[overrides.Scenario == scenario]
-        _overrides = None if _overrides.empty else _overrides
-        try:
-            df, meta = harmonize_scenario(
-                _model, hist, regions, _overrides, config, add_5region=add_5region)
-            dfs.append(df)
-            metadata.append(meta)
-        except Exception as e:
-            msg = 'Scenario {} failed with the following message:'
-            print(msg.format(scenario))
-            raise
-
-    model = pd.concat(dfs)
-    metadata = pd.concat(metadata)
-
-    # write to excel
-    prefix = output_prefix or inf.split('.')[0]
-    fname = '{}_harmonized.xlsx'.format(prefix)
-    print('Writing result to: {}'.format(fname))
-    utils.pd_write(model, fname, sheet_name='data')
-
-    # save data about harmonization
-    fname = '{}_metadata.xlsx'.format(prefix)
-    print('Writing metadata to: {}'.format(fname))
-    utils.pd_write(metadata, fname)
-
-
-if __name__ == '__main__':
-    # C<LI
-    descr = """
-    Harmonize CEDS variables to data in the IAMC template format.
-
-    Example usage:
-
-    python harmonize.py input.xlsx history.csv --regions regions.csv
-    """
-    parser = argparse.ArgumentParser(description=descr,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-    data_in = 'Input data file.'
-    parser.add_argument('data_in', help=data_in)
-    history = 'Historical emissions in the base year.'
-    parser.add_argument('--history', help=history)
-    regions = 'Mapping of country iso-codes to native regions.'
-    parser.add_argument('--regions', help=regions)
-
-    # parse cli
-    args = parser.parse_args()
-    inf = args.data_in
-    history = args.history
-    regions = args.regions or utils.region_path('message.csv')
-
-    # run
-    main(inf, history=history, regions=regions)
