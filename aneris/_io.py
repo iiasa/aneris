@@ -2,7 +2,9 @@ import collections
 import os
 import yaml
 
-from aneris.utils import isstr
+import pandas as pd
+
+from aneris.utils import isstr, isnum
 
 _rc_defaults = """
 config:
@@ -65,7 +67,7 @@ def pd_write(df, f, *args, **kwargs):
 
 
 def read_excel(f):
-    indfs = utils.pd_read(f, sheetname=None, encoding='utf-8')
+    indfs = pd_read(f, sheetname=None, encoding='utf-8')
     model = _read_data(indfs)
 
     # make an empty df which will be caught later

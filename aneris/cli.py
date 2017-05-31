@@ -50,7 +50,7 @@ def main():
     rc.recursive_update('config', config)
 
     # do core harmonization
-    driver = aneris.HarmonizationDriver(rc, model, hist, overrides, regions)
+    driver = aneris.HarmonizationDriver(rc, hist, model, overrides, regions)
     for scenario in driver.scenarios():
         driver.harmonize(scenario)
     model, metadata = driver.harmonized_results()
