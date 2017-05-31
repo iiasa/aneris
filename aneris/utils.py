@@ -98,6 +98,54 @@ def numcols(df):
     return [i for i in dtypes.index if dtypes.loc[i].name.startswith(('float', 'int'))]
 
 
+def check_null(df, name, fail=False):
+    anynull = df.isnull().values.any()
+    if fail:
+        assert(not anynull)
+    if anynull:
+        msg = 'Null (missing) values found for {} indicies: \n{}'
+        _df = df[df.isnull().any(axis=1)].reset_index()[utils.df_idx]
+        warnings.warn(msg.format(name, _df))
+        df.dropna(inplace=True)
+
+
+def gases(var_col):
+    """The gas associated with each variable"""
+    gasidx = lambda x: x.split('|').index('Emissions') + 1
+    return var_col.apply(lambda x: x.split('|')[gasidx(x)])
+
+
+def units(var_col):
+    """returns a units column given a variable column"""
+    gas_col = gases(var_col)
+
+    # replace all gas names where name in unit != name in variable,
+    # this can go away if we agree on the list
+    replace = lambda x: x if x not in unit_gas_names else unit_gas_names[x]
+    gas_col = gas_col.apply(replace)
+
+    return gas_col.apply(
+        lambda gas: '{} {}/yr'.format('kt' if gas in kt_gases else 'Mt', gas))
+
+
+def remove_emissions_prefix(x, gas='XXX'):
+    """Return x with emissions prefix removed, e.g.,
+    Emissions|XXX|foo|bar -> foo|bar
+    """
+    return re.sub('^Emissions\|{}\|'.format(gas), '', x)
+
+
+def remove_recalculated_sectors(df):
+    # remove sectoral totals which will need to be recalculated after
+    # harmonization
+    df = df.reset_index()
+    # TODO: THIS IS A HACK, CURRENT GASES DEFINITION ASSUME IAMC NAMES
+    gases = df.gas.isin(utils.sector_gases + ['SO2', 'NOX'])
+    sectors = df.sector.apply(lambda x: len(x.split('|')) == 3)
+    keep = ~(gases & sectors)
+    return df[keep].set_index(utils.df_idx)
+
+
 def combine_rows(df, level, main, others=None, sumall=True, dropothers=True,
                  rowsonly=False, newlabel=None):
     """Combine rows (add values) in a dataframe. Rows corresponding to the main and
@@ -161,32 +209,6 @@ def combine_rows(df, level, main, others=None, sumall=True, dropothers=True,
         df.reset_index(inplace=True)
 
     return df
-
-
-def gases(var_col):
-    """The gas associated with each variable"""
-    gasidx = lambda x: x.split('|').index('Emissions') + 1
-    return var_col.apply(lambda x: x.split('|')[gasidx(x)])
-
-
-def units(var_col):
-    """returns a units column given a variable column"""
-    gas_col = gases(var_col)
-
-    # replace all gas names where name in unit != name in variable,
-    # this can go away if we agree on the list
-    replace = lambda x: x if x not in unit_gas_names else unit_gas_names[x]
-    gas_col = gas_col.apply(replace)
-
-    return gas_col.apply(
-        lambda gas: '{} {}/yr'.format('kt' if gas in kt_gases else 'Mt', gas))
-
-
-def remove_emissions_prefix(x, gas='XXX'):
-    """Return x with emissions prefix removed, e.g.,
-    Emissions|XXX|foo|bar -> foo|bar
-    """
-    return re.sub('^Emissions\|{}\|'.format(gas), '', x)
 
 
 def agg_regions(df, rfrom='ISO Code', rto='Native Region Code', mapping=None,
@@ -510,10 +532,8 @@ class FormatTranslator(object):
             df.loc[where, 'units'] = 'Mt'
 
 
-# make global only global (not global + sum of regions)
-
-
 def subtract_regions_from_world(df, name):
+    # make global only global (not global + sum of regions)
     check_null(df, name)
     if (df.loc['World']['2015'] == 0).all():
         # some models (gcam) are not reporting any values in World
@@ -536,83 +556,3 @@ def subtract_regions_from_world(df, name):
     df = glb.combine_first(df)
     check_null(df, name)
     return df
-
-# remove sectoral totals which will need to be recalculated after
-# harmonization
-
-
-def remove_recalculated_sectors(df):
-    df = df.reset_index()
-    # TODO: THIS IS A HACK, CURRENT GASES DEFINITION ASSUME IAMC NAMES
-    gases = df.gas.isin(utils.sector_gases + ['SO2', 'NOX'])
-    sectors = df.sector.apply(lambda x: len(x.split('|')) == 3)
-    keep = ~(gases & sectors)
-    return df[keep].set_index(utils.df_idx)
-
-
-def check_null(df, name, fail=False):
-    anynull = df.isnull().values.any()
-    if fail:
-        assert(not anynull)
-    if anynull:
-        msg = 'Null (missing) values found for {} indicies: \n{}'
-        _df = df[df.isnull().any(axis=1)].reset_index()[utils.df_idx]
-        warnings.warn(msg.format(name, _df))
-        df.dropna(inplace=True)
-
-
-def pd_read(f, *args, **kwargs):
-    """Try to read a file with pandas, no fancy stuff"""
-    if f.endswith('csv'):
-        return pd.read_csv(f, *args, **kwargs)
-    else:
-        return pd.read_excel(f, *args, **kwargs)
-
-
-def pd_write(df, f, *args, **kwargs):
-    # guess whether to use index, unless we're told otherwise
-    index = kwargs.pop('index', isinstance(df.index, pd.MultiIndex))
-
-    if f.endswith('csv'):
-        df.to_csv(f, index=index, *args, **kwargs)
-    else:
-        writer = pd.ExcelWriter(f, engine='xlsxwriter')
-        df.to_excel(writer, index=index, *args, **kwargs)
-        writer.save()
-
-
-def read_data(indfs):
-    datakeys = sorted([x for x in indfs if x.startswith('data')])
-    df = pd.concat([indfs[k] for k in datakeys])
-    # don't know why reading from excel changes dtype and column types
-    # but I have to reset them manually
-    df.columns = df.columns.astype(str)
-    numcols = [x for x in df.columns if isnum(x)]
-    df[numcols] = df[numcols].astype(float)
-
-    if '2015' not in df.columns:
-        msg = 'Base year not found in model data. Existing columns are {}.'
-        raise ValueError(msg.format(df.columns))
-
-    # some teams also don't provide standardized column names and styles
-    df.columns = df.columns.str.capitalize()
-
-    return df
-
-
-def read_excel(f):
-    indfs = utils.pd_read(f, sheetname=None, encoding='utf-8')
-    model = read_data(indfs)
-
-    # make an empty df which will be caught later
-    overrides = indfs['harmonization'] if 'harmonization' in indfs \
-        else pd.DataFrame([], columns=['Scenario'])
-
-    # get run control
-    config = {}
-    if'Configuration' in overrides:
-        config = overrides[['Configuration', 'Value']].dropna()
-        config = config.set_index('Configuration').to_dict()['Value']
-        overrides = overrides.drop(['Configuration', 'Value'], axis=1)
-
-    return model, overrides, config
