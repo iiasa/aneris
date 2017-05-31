@@ -1,6 +1,7 @@
 import argparse
 
-from aneris import harmonize, utils, _io
+import aneris
+from aneris.utils import hist_path, region_path
 
 
 def main():
@@ -20,10 +21,10 @@ def main():
     parser.add_argument('input_file', help=input_file)
     history = 'Historical emissions in the base year.'
     parser.add_argument('--history', help=history,
-                        default=utils.hist_path('history.csv'))
+                        default=hist_path('history.csv'))
     regions = 'Mapping of country iso-codes to native regions.'
     parser.add_argument('--regions', help=regions,
-                        default=utils.region_path('message.csv'))
+                        default=region_path('message.csv'))
     rc = 'Runcontrol YAML file (see <WEBSITE> for examples).'
     parser.add_argument('--rc', help=rc, default=None)
     output_prefix = 'Prefix to use for output file names.'
@@ -38,18 +39,18 @@ def main():
     output_prefix = args.output_prefix
 
     # read input
-    hist = utils.pd_read(history)
+    hist = aneris.pd_read(history)
     if hist.empty:
         raise ValueError('History file is empty')
-    regions = utils.pd_read(regions)
+    regions = aneris.pd_read(regions)
     if regions.empty:
         raise ValueError('Region definition is empty')
-    model, overrides, config = utils.read_excel(inf)
-    rc = _io.RunControl(rc=rc)
-    rc['config'] = rc.recursive_update('config', config)
+    model, overrides, config = aneris.read_excel(inf)
+    rc = aneris.RunControl(rc=rc)
+    rc.recursive_update('config', config)
 
     # do core harmonization
-    driver = harmonize.HarmonizationDriver(rc, model, hist, overrides, regions)
+    driver = aneris.HarmonizationDriver(rc, model, hist, overrides, regions)
     for scenario in driver.scenarios():
         driver.harmonize(scenario)
     model, metadata = driver.harmonized_results()
@@ -58,12 +59,12 @@ def main():
     prefix = output_prefix or inf.split('.')[0]
     fname = '{}_harmonized.xlsx'.format(prefix)
     print('Writing result to: {}'.format(fname))
-    utils.pd_write(model, fname, sheet_name='data')
+    aneris.pd_write(model, fname, sheet_name='data')
 
     # save data about harmonization
     fname = '{}_metadata.xlsx'.format(prefix)
     print('Writing metadata to: {}'.format(fname))
-    utils.pd_write(metadata, fname)
+    aneris.pd_write(metadata, fname)
 
 
 if __name__ == '__main__':
