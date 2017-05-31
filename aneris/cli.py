@@ -1,9 +1,9 @@
-import argparser
+import argparse
 
 from aneris import harmonize, utils, _io
 
 
-def main(inf, history=None, regions=None, output_prefix=None, add_5region=True):
+def main():
     # construct parser
     descr = """
     Harmonize historical trajectories to data in the IAMC template format.
@@ -16,8 +16,8 @@ def main(inf, history=None, regions=None, output_prefix=None, add_5region=True):
         description=descr,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    inf = 'Input data file.'
-    parser.add_argument('inf', help=inf)
+    input_file = 'Input data file.'
+    parser.add_argument('input_file', help=input_file)
     history = 'Historical emissions in the base year.'
     parser.add_argument('--history', help=history,
                         default=utils.hist_path('history.csv'))
@@ -31,7 +31,7 @@ def main(inf, history=None, regions=None, output_prefix=None, add_5region=True):
 
     # parse cli
     args = parser.parse_args()
-    inf = args.inf
+    inf = args.input_file
     history = args.history
     regions = args.regions
     rc = args.rc

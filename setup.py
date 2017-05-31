@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
+import glob
 import os
-import sys
-import subprocess
 
 try:
     from setuptools import setup
@@ -28,19 +27,20 @@ INFO = {
 def main():
     print(logo)
 
-    here = os.path.dirname(os.path.abspath(__file__))
-    scripts = glob.glob(os.path.join(here, 'scripts', '*'))
-
     packages = [
         'aneris',
     ]
     pack_dir = {
         'aneris': 'aneris',
     }
+    entry_points = {
+        'console_scripts': [
+            'aneris=aneris.cli:main',
+        ],
+    }
     setup_kwargs = {
         "name": "aneris",
         "version": INFO['version'],
-        # update the following:
         "description": 'Harmonize Integrated Assessment Model Emissions '
         'Trajectories',
         "author": 'Matthew Gidden',
@@ -48,7 +48,8 @@ def main():
         "url": 'http://github.com/gidden/aneris',
         "packages": packages,
         "package_dir": pack_dir,
-        "scripts": scripts,
+        "entry_points": entry_points,
+        "zip_safe": False,
     }
     rtn = setup(**setup_kwargs)
 

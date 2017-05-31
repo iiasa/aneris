@@ -1,6 +1,0 @@
-#!/usr/bin/env python
-"""aneris entry point."""
-
-from aneris.cli import main
-
-main()
