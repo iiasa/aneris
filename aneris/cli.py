@@ -46,7 +46,7 @@ def main():
         raise ValueError('Region definition is empty')
     model, overrides, config = utils.read_excel(inf)
     rc = _io.RunControl(rc=rc)
-    rc['config'] = _io.recursive_update(rc['config'], config)
+    rc['config'] = rc.recursive_update('config', config)
 
     # do core harmonization
     driver = harmonize.HarmonizationDriver(rc, model, hist, overrides, regions)

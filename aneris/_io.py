@@ -15,6 +15,25 @@ add_5regions: true
 """
 
 
+def _read_data(indfs):
+    datakeys = sorted([x for x in indfs if x.startswith('data')])
+    df = pd.concat([indfs[k] for k in datakeys])
+    # don't know why reading from excel changes dtype and column types
+    # but I have to reset them manually
+    df.columns = df.columns.astype(str)
+    numcols = [x for x in df.columns if isnum(x)]
+    df[numcols] = df[numcols].astype(float)
+
+    if '2015' not in df.columns:
+        msg = 'Base year not found in model data. Existing columns are {}.'
+        raise ValueError(msg.format(df.columns))
+
+    # some teams also don't provide standardized column names and styles
+    df.columns = df.columns.str.capitalize()
+
+    return df
+
+
 def _recursive_update(d, u):
     for k, v in u.items():
         if isinstance(v, collections.Mapping):
@@ -23,6 +42,44 @@ def _recursive_update(d, u):
         else:
             d[k] = u[k]
     return d
+
+
+def pd_read(f, *args, **kwargs):
+    """Try to read a file with pandas, no fancy stuff"""
+    if f.endswith('csv'):
+        return pd.read_csv(f, *args, **kwargs)
+    else:
+        return pd.read_excel(f, *args, **kwargs)
+
+
+def pd_write(df, f, *args, **kwargs):
+    # guess whether to use index, unless we're told otherwise
+    index = kwargs.pop('index', isinstance(df.index, pd.MultiIndex))
+
+    if f.endswith('csv'):
+        df.to_csv(f, index=index, *args, **kwargs)
+    else:
+        writer = pd.ExcelWriter(f, engine='xlsxwriter')
+        df.to_excel(writer, index=index, *args, **kwargs)
+        writer.save()
+
+
+def read_excel(f):
+    indfs = utils.pd_read(f, sheetname=None, encoding='utf-8')
+    model = _read_data(indfs)
+
+    # make an empty df which will be caught later
+    overrides = indfs['harmonization'] if 'harmonization' in indfs \
+        else pd.DataFrame([], columns=['Scenario'])
+
+    # get run control
+    config = {}
+    if'Configuration' in overrides:
+        config = overrides[['Configuration', 'Value']].dropna()
+        config = config.set_index('Configuration').to_dict()['Value']
+        overrides = overrides.drop(['Configuration', 'Value'], axis=1)
+
+    return model, overrides, config
 
 
 class RunControl(collections.Mapping):
@@ -40,6 +97,10 @@ class RunControl(collections.Mapping):
         defaults = yaml.safe_load(_rc_defaults)
         opts = _recursive_update(defaults, rc)
         self.store.update(opts)
+
+    def recursive_update(self, k, d):
+        u = self.__getitem__(k)
+        self.store[k] = _recursive_update(u, d)
 
     def __getitem__(self, k):
         return self.store[k]

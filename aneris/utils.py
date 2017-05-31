@@ -6,6 +6,9 @@ import warnings
 import numpy as np
 import pandas as pd
 
+# Index for iamc
+iamc_idx = ['Model', 'Scenario', 'Region', 'Variable']
+
 # default dataframe index
 df_idx = ['region', 'gas', 'sector', 'units']
 
@@ -14,9 +17,6 @@ here = os.path.join(os.path.dirname(os.path.realpath(__file__)))
 hist_path = lambda f: os.path.join(here, 'historical', f)
 iamc_path = lambda f: os.path.join(here, 'iamc_template', f)
 region_path = lambda f: os.path.join(here, 'regional_definitions', f)
-
-# Index for iamc
-iamc_idx = ['Model', 'Scenario', 'Region', 'Variable']
 
 # gases reported in kt of species
 kt_gases = [
@@ -85,24 +85,12 @@ def isstr(x):
         return isinstance(x, str)
 
 
-def pd_read(f, *args, **kwargs):
-    """Try to read a file with pandas, no fancy stuff"""
-    if f.endswith('csv'):
-        return pd.read_csv(f, *args, **kwargs)
-    else:
-        return pd.read_excel(f, *args, **kwargs)
-
-
-def pd_write(df, f, *args, **kwargs):
-    # guess whether to use index, unless we're told otherwise
-    index = kwargs.pop('index', isinstance(df.index, pd.MultiIndex))
-
-    if f.endswith('csv'):
-        df.to_csv(f, index=index, *args, **kwargs)
-    else:
-        writer = pd.ExcelWriter(f, engine='xlsxwriter')
-        df.to_excel(writer, index=index, *args, **kwargs)
-        writer.save()
+def isnum(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
 
 
 def numcols(df):
@@ -573,12 +561,24 @@ def check_null(df, name, fail=False):
         df.dropna(inplace=True)
 
 
-def isnum(s):
-    try:
-        float(s)
-        return True
-    except ValueError:
-        return False
+def pd_read(f, *args, **kwargs):
+    """Try to read a file with pandas, no fancy stuff"""
+    if f.endswith('csv'):
+        return pd.read_csv(f, *args, **kwargs)
+    else:
+        return pd.read_excel(f, *args, **kwargs)
+
+
+def pd_write(df, f, *args, **kwargs):
+    # guess whether to use index, unless we're told otherwise
+    index = kwargs.pop('index', isinstance(df.index, pd.MultiIndex))
+
+    if f.endswith('csv'):
+        df.to_csv(f, index=index, *args, **kwargs)
+    else:
+        writer = pd.ExcelWriter(f, engine='xlsxwriter')
+        df.to_excel(writer, index=index, *args, **kwargs)
+        writer.save()
 
 
 def read_data(indfs):
