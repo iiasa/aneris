@@ -1,4 +1,5 @@
 import argparse
+import os
 
 import aneris
 from aneris.utils import hist_path, region_path
@@ -27,6 +28,8 @@ def main():
                         default=region_path('message.csv'))
     rc = 'Runcontrol YAML file (see <WEBSITE> for examples).'
     parser.add_argument('--rc', help=rc, default=None)
+    output_path = 'Path to use for output file names.'
+    parser.add_argument('--output_path', help=output_path, default='.')
     output_prefix = 'Prefix to use for output file names.'
     parser.add_argument('--output_prefix', help=output_prefix, default=None)
 
@@ -36,6 +39,7 @@ def main():
     history = args.history
     regions = args.regions
     rc = args.rc
+    output_path = args.output_path
     output_prefix = args.output_prefix
 
     # read input
@@ -57,12 +61,12 @@ def main():
 
     # write to excel
     prefix = output_prefix or inf.split('.')[0]
-    fname = '{}_harmonized.xlsx'.format(prefix)
+    fname = os.path.join(output_path, '{}_harmonized.xlsx'.format(prefix))
     print('Writing result to: {}'.format(fname))
     aneris.pd_write(model, fname, sheet_name='data')
 
     # save data about harmonization
-    fname = '{}_metadata.xlsx'.format(prefix)
+    fname = os.path.join(output_path, '{}_metadata.xlsx'.format(prefix))
     print('Writing metadata to: {}'.format(fname))
     aneris.pd_write(metadata, fname)
 
