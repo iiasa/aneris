@@ -1,4 +1,3 @@
-import glob
 import itertools
 import os
 import re
@@ -7,18 +6,14 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from copy import copy
-
 # default dataframe index
 df_idx = ['region', 'gas', 'sector', 'units']
 
 # paths to data dependencies
 here = os.path.join(os.path.dirname(os.path.realpath(__file__)))
-data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
 hist_path = lambda f: os.path.join(here, 'historical', f)
 iamc_path = lambda f: os.path.join(here, 'iamc_template', f)
 region_path = lambda f: os.path.join(here, 'regional_definitions', f)
-file_path = lambda f: os.path.join(data_path, f)
 
 # Index for iamc
 iamc_idx = ['Model', 'Scenario', 'Region', 'Variable']
@@ -71,17 +66,6 @@ harmonize_total_gases = ['N2O'] + total_gases
 
 # gases for which full sectoral breakdown is reported
 sector_gases = sorted(set(all_gases) - set(total_gases))
-
-# co2 sector aggregates
-co2_aggregates = {
-    'Aggregate - Agriculture and LUC': [
-        'Agriculture',
-        'Agricultural Waste Burning',
-        'Forest Burning',
-        'Grassland Burning',
-        'Peat Burning',
-    ]
-}
 
 # mapping from gas name to name to use in units
 unit_gas_names = {
@@ -191,56 +175,6 @@ def combine_rows(df, level, main, others=None, sumall=True, dropothers=True,
     return df
 
 
-def expand_gases(df, gases=None):
-    """Replace all values of XXX in a dataframe with gas for all gases"""
-    gases = all_gases if gases is None else gases
-    if isinstance(df, pd.DataFrame):
-        dfs = [df.applymap(lambda x: x.replace('XXX', gas)) for gas in gases]
-    else:
-        dfs = [df.apply(lambda x: x.replace('XXX', gas)) for gas in gases]
-    return pd.concat(dfs, ignore_index=True, axis=0)
-
-
-def clean(df):
-    """Given a dataframe in the correct data layout (columns), clean all values such
-    that they can be compared across all sources"""
-    df.gas = df.gas.str.upper()
-    df.sector = df.sector.str.title()
-    df.region = df.region.str.upper()
-
-
-def var_prefix(var_col):
-    """Prefix of variable"""
-    varidx = lambda x: x.split('|').index('Emissions') + 2
-    return var_col.apply(lambda x: '|'.join(x.split('|')[:varidx(x)]))
-
-
-def var_suffix(var_col):
-    """Suffix of variable"""
-    return var_col.apply(
-        lambda x: '' if 'monized' not in x else x.split('|')[-1])
-
-
-def naked_vars(var_col):
-    """Variable without prefix"""
-    prefix = var_prefix(var_col)
-    suffix = var_suffix(var_col)
-    name = var_col.name
-    df = pd.DataFrame({'prefix': prefix,
-                       name: var_col,
-                       'suffix': suffix},
-                      index=var_col.index)
-
-    def extract_sector(row):
-        sec = row[name]
-        pidx = len(row.prefix)
-        sidx = len(sec) - len(row.suffix)
-        return sec[pidx:sidx].strip('|')
-
-    s = df.apply(extract_sector, axis=1)
-    return s
-
-
 def gases(var_col):
     """The gas associated with each variable"""
     gasidx = lambda x: x.split('|').index('Emissions') + 1
@@ -260,112 +194,11 @@ def units(var_col):
         lambda gas: '{} {}/yr'.format('kt' if gas in kt_gases else 'Mt', gas))
 
 
-def remove_trailing_numbers(x):
-    """Return x with trailing numbers removed, e.g.,
-    foo|bar|2 -> foo|bar
-    """
-    return re.sub(r'\|\d+$', '', x)
-
-
 def remove_emissions_prefix(x, gas='XXX'):
     """Return x with emissions prefix removed, e.g.,
     Emissions|XXX|foo|bar -> foo|bar
     """
     return re.sub('^Emissions\|{}\|'.format(gas), '', x)
-
-
-def iamc_sectors():
-    iamc = 'IAMC'
-    s = pd_read(iamc_path('sector_mapping.xlsx'),
-                sheetname='Sector_Mapping')[iamc]
-    s = s.iloc[:-3]  # drop last rows (Count, n/a row)
-    return expand_gases(s)
-
-
-def iamc_mapping(other, toiamc=True):
-    iamc = 'IAMC'
-    mapping = pd_read(iamc_path('sector_mapping.xlsx'),
-                      sheetname='Sector_Mapping')
-    mapping = mapping.iloc[:-3]  # drop last rows (Count, n/a row)
-    mapping[iamc] = (
-        mapping[iamc]
-        .apply(remove_trailing_numbers)
-        .apply(remove_emissions_prefix)
-    )
-    mapping[other] = mapping[other].str.title()
-    cols = [other, iamc] if toiamc else [iamc, other]
-    mapping = mapping[cols].dropna()
-    return mapping
-
-
-def sec_map(n):
-    # WARNING: deprecated
-    iamc = 'IAMC'
-    ceds = 'CEDS_{}'.format(n)
-    return iamc_mapping(ceds, toiamc=False)
-
-
-def ceds_mapping(sfrom='16_Sectors', sto='9_Sectors'):
-    mapping = pd.read_excel(iamc_path('sector_mapping.xlsx'),
-                            sheetname='CEDS Mapping')
-    mapping[sfrom] = mapping[sfrom].str.title()
-    mapping[sto] = mapping[sto].str.title()
-    mapping = mapping[[sfrom, sto]].drop_duplicates()
-    return mapping
-
-
-def agg_sectors(df, sfrom='16_Sectors', sto='9_Sectors', verify=True):
-    # only supports mapping to/from IAMC or within CEDS sectors for now
-    if 'IAMC' in [sfrom, sto]:
-        other = sto if sto != 'IAMC' else sfrom
-        mapping = iamc_mapping(other, toiamc=sto == 'IAMC')
-    else:
-        mapping = ceds_mapping(sfrom, sto)
-
-    multi_idx = isinstance(df.index, pd.MultiIndex)
-    if multi_idx:
-        df = df.reset_index()
-
-    df.sector = df.sector.str.title()
-
-    dup = mapping.duplicated(subset=sfrom)
-    if dup.any():
-        msg = 'Duplicated sectors in mapping (dropping extras): {}'
-        warnings.warn(msg.format(mapping.loc[dup, sfrom]))
-        mapping = mapping[~dup]
-
-    dfto = (
-        df
-        .merge(mapping, left_on='sector', right_on=sfrom)
-        .drop([sfrom, 'sector'], axis=1)
-        .rename(columns={sto: 'sector'})
-        .groupby(df_idx).sum().sort_index()
-    )
-
-    if verify:
-        # contract on exit
-        start = df[numcols(df)].values.sum()
-        end = dfto[numcols(dfto)].values.sum()
-        diff = abs(start - end)
-        if np.isnan(diff) or diff / start > 1e-6:
-            msg = 'Difference between before and after is large: {}'
-            raise(ValueError(msg.format(diff)))
-
-    if not multi_idx:
-        dfto.reset_index(inplace=True)
-    return dfto
-
-
-def sectors16to9(df, **kwargs):
-    return agg_sectors(df, sfrom='16_Sectors', sto='9_Sectors', **kwargs)
-
-
-def sectors59to16(df, **kwargs):
-    return agg_sectors(df, sfrom='59_Sectors', sto='16_Sectors', **kwargs)
-
-
-def sectors59to9(df, **kwargs):
-    return agg_sectors(df, sfrom='59_Sectors', sto='9_Sectors', **kwargs)
 
 
 def agg_regions(df, rfrom='ISO Code', rto='Native Region Code', mapping=None,
@@ -416,18 +249,6 @@ def agg_regions(df, rfrom='ISO Code', rto='Native Region Code', mapping=None,
     if not multi_idx:
         dfto.reset_index(inplace=True)
     return dfto
-
-
-def regionISOtoNative(df, **kwargs):
-    return agg_regions(df, rfrom='ISO Code', rto='Native Region Code', **kwargs)
-
-
-def regionNativeto5(df, **kwargs):
-    return agg_regions(df, rfrom='Native Region Code', rto='5_region', **kwargs)
-
-
-def regionISOto5(df, **kwargs):
-    return agg_regions(df, rfrom='ISO Code', rto='5_region', **kwargs)
 
 
 class EmissionsAggregator(object):
@@ -701,34 +522,6 @@ class FormatTranslator(object):
             df.loc[where, 'units'] = 'Mt'
 
 
-def merge_final_data(scenario, kind='constant_offset'):
-    uharm = pd.read_csv('unharmonized_{}.csv'.format(
-        scenario), encoding='utf-8')
-    uharm.columns = uharm.columns.str.upper()
-    uharm = uharm.drop(['2000', '2005'], axis=1)
-
-    df_11_16 = pd.read_csv('harmonized_{}_{}.csv'.format(kind, scenario))
-    df_11_16 = df_11_16.rename(columns={'unit': 'units'})
-    df_11_9 = sectors16to9(df_11_16, reset=False)
-
-    model = uharm.MODEL[0]
-    scenario = uharm.SCENARIO[0]
-    template_11_16 = Templateifier(
-        df_11_16.copy(), 16, model, scenario).to_template()
-    template_11_9 = Templateifier(
-        df_11_9.copy(), 9, model, scenario).to_template()
-
-    final = pd.concat([template_11_16.reset_index(),
-                       template_11_9.reset_index(), uharm])
-    final = final.set_index(
-        ['MODEL', 'SCENARIO', 'REGION', 'VARIABLE', 'UNIT']).reset_index()
-    final = final.fillna(0)
-
-    writer = pd.ExcelWriter(
-        'MESSAGE-GLOBIOM_{}_harmonized.xlsx'.format(scenario), enging='xlsxwriter')
-    final.to_excel(writer, sheet_name='data', index=False)
-    writer.save()
-
 # make global only global (not global + sum of regions)
 
 
@@ -780,13 +573,21 @@ def check_null(df, name, fail=False):
         df.dropna(inplace=True)
 
 
+def isnum(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+
 def read_data(indfs):
     datakeys = sorted([x for x in indfs if x.startswith('data')])
     df = pd.concat([indfs[k] for k in datakeys])
     # don't know why reading from excel changes dtype and column types
     # but I have to reset them manually
     df.columns = df.columns.astype(str)
-    numcols = [x for x in df.columns if x.startswith('2')]
+    numcols = [x for x in df.columns if isnum(x)]
     df[numcols] = df[numcols].astype(float)
 
     if '2015' not in df.columns:

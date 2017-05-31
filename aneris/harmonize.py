@@ -285,8 +285,10 @@ class HarmonizationDriver(object):
         # aggregate historical to native regions
         print('Aggregating historical values to native regions')
         # must set verify to false for now because some isos aren't included!
-        self.hist = utils.regionISOtoNative(
-            self.hist, mapping=self.regions, verify=False)
+        self.hist = utils.agg_regions(
+            self.hist, verify=False, mapping=self.regions,
+            rfrom='ISO Code', rto='Native Region Code'
+        )
 
     def _downselect_scen(self, model_name, scenario):
         ismodel = lambda df: df.Model == model_name
@@ -477,7 +479,9 @@ def harmonize_regional():
         print('Adding 5region values')
         # explicitly don't add World, it already exists from aggregation
         mapping = regions[regions['Native Region Code'] != 'World'].copy()
-        model = model.append(utils.regionNativeto5(model, mapping=mapping))
+        aggdf = utils.agg_regions(model, mapping=mapping,
+                                  rfrom='Native Region Code', rto='5_region')
+        model = model.append(aggdf)
         assert(not model.isnull().values.any())
 
     # duplicates come in from World and World being translated
