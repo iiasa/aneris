@@ -104,7 +104,7 @@ def check_null(df, name, fail=False):
         assert(not anynull)
     if anynull:
         msg = 'Null (missing) values found for {} indicies: \n{}'
-        _df = df[df.isnull().any(axis=1)].reset_index()[utils.df_idx]
+        _df = df[df.isnull().any(axis=1)].reset_index()[df_idx]
         warnings.warn(msg.format(name, _df))
         df.dropna(inplace=True)
 
@@ -140,10 +140,36 @@ def remove_recalculated_sectors(df):
     # harmonization
     df = df.reset_index()
     # TODO: THIS IS A HACK, CURRENT GASES DEFINITION ASSUME IAMC NAMES
-    gases = df.gas.isin(utils.sector_gases + ['SO2', 'NOX'])
+    gases = df.gas.isin(sector_gases + ['SO2', 'NOX'])
     sectors = df.sector.apply(lambda x: len(x.split('|')) == 3)
     keep = ~(gases & sectors)
-    return df[keep].set_index(utils.df_idx)
+    return df[keep].set_index(df_idx)
+
+
+def subtract_regions_from_world(df, name, threshold=5e-2):
+    # make global only global (not global + sum of regions)
+    check_null(df, name)
+    if (df.loc['World']['2015'] == 0).all():
+        # some models (gcam) are not reporting any values in World
+        # without this, you get `0 - sum(other regions)`
+        warnings.warn('Empty global region found in ' + name)
+        return df
+
+    # sum all rows where region == World
+    total = combine_rows(df, 'region', 'World', sumall=True,
+                         others=[], rowsonly=True)
+    # sum all rows where region != World
+    nonglb = combine_rows(df, 'region', 'World', sumall=False,
+                          others=None, rowsonly=True)
+    glb = total.subtract(nonglb, fill_value=0)
+    # pick up some precision issues
+    # TODO: this precision is large because I have seen model results
+    # be reported with this large of difference due to round off and values
+    # approaching 0
+    glb[(glb / total).abs() < threshold] = 0.
+    df = glb.combine_first(df)
+    check_null(df, name)
+    return df
 
 
 def combine_rows(df, level, main, others=None, sumall=True, dropothers=True,
@@ -530,29 +556,3 @@ class FormatTranslator(object):
             assert((df.units == 'kt').all())
             df.loc[where, numcols(df)] /= 1e3
             df.loc[where, 'units'] = 'Mt'
-
-
-def subtract_regions_from_world(df, name):
-    # make global only global (not global + sum of regions)
-    check_null(df, name)
-    if (df.loc['World']['2015'] == 0).all():
-        # some models (gcam) are not reporting any values in World
-        # without this, you get `0 - sum(other regions)`
-        warnings.warn('Empty global region found in ' + name)
-        return df
-
-    # sum all rows where region == World
-    total = utils.combine_rows(df, 'region', 'World', sumall=True,
-                               others=[], rowsonly=True)
-    # sum all rows where region != World
-    nonglb = utils.combine_rows(df, 'region', 'World', sumall=False,
-                                others=None, rowsonly=True)
-    glb = total.subtract(nonglb, fill_value=0)
-    # pick up some precision issues
-    # TODO: this precision is large because I have seen model results
-    # be reported with this large of difference due to round off and values
-    # approaching 0
-    glb[(glb / total).abs() < 5e-2] = 0.
-    df = glb.combine_first(df)
-    check_null(df, name)
-    return df
