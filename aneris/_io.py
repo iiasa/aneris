@@ -84,23 +84,13 @@ def read_excel(f):
 
 class RunControl(collections.Mapping):
 
-    def __init__(self, rc=None):
-        self.store = dict()
+    def __init__(self, rc=None, defaults=None):
         rc = rc or {}
-        if isinstance(rc, file):
-            rc = rc.read()
-        if isstr(rc) and os.path.exists(rc):
-            with open(rc) as f:
-                rc = f.read()
-        if not isinstance(rc, dict):
-            rc = yaml.load(rc)
-        defaults = yaml.safe_load(_rc_defaults)
-        opts = _recursive_update(defaults, rc)
-        self.store.update(opts)
+        defaults = defaults or _rc_defaults
 
-    def recursive_update(self, k, d):
-        u = self.__getitem__(k)
-        self.store[k] = _recursive_update(u, d)
+        rc = self._load_yaml(rc)
+        defaults = self._load_yaml(defaults)
+        self.store = _recursive_update(defaults, rc)
 
     def __getitem__(self, k):
         return self.store[k]
@@ -113,3 +103,17 @@ class RunControl(collections.Mapping):
 
     def __repr__(self):
         return self.store.__repr__()
+
+    def _load_yaml(self, obj):
+        if isinstance(obj, file):
+            obj = obj.read()
+        if isstr(obj) and os.path.exists(obj):
+            with open(obj) as f:
+                obj = f.read()
+        if not isinstance(obj, dict):
+            obj = yaml.load(obj)
+        return obj
+
+    def recursive_update(self, k, d):
+        u = self.__getitem__(k)
+        self.store[k] = _recursive_update(u, d)

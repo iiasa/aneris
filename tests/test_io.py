@@ -51,3 +51,16 @@ def test_nondefault_rc_file_read():
         exp = _defaults
         exp['config']['cov_threshold'] = 42
         assert exp == obs
+
+
+def test_recursive_update():
+    update = {
+        'foo': 'bar',
+        'cov_threshold': 42,
+    }
+    exp = _defaults
+    exp['config'].update(update)
+
+    obs = _io.RunControl()
+    obs.recursive_update('config', update)
+    assert obs == exp
