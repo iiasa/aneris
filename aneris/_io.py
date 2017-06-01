@@ -1,3 +1,7 @@
+"""Provides helper functions for reading input data and configuration files.
+
+The default configuration values are provided in aneris._io._rc_defaults.
+"""
 import collections
 import os
 import yaml
@@ -47,7 +51,7 @@ def _recursive_update(d, u):
 
 
 def pd_read(f, *args, **kwargs):
-    """Try to read a file with pandas, no fancy stuff"""
+    """Try to read a file with pandas, supports CSV and XLSX"""
     if f.endswith('csv'):
         return pd.read_csv(f, *args, **kwargs)
     else:
@@ -55,6 +59,7 @@ def pd_read(f, *args, **kwargs):
 
 
 def pd_write(df, f, *args, **kwargs):
+    """Try to write a file with pandas, supports CSV and XLSX"""
     # guess whether to use index, unless we're told otherwise
     index = kwargs.pop('index', isinstance(df.index, pd.MultiIndex))
 
@@ -67,6 +72,22 @@ def pd_write(df, f, *args, **kwargs):
 
 
 def read_excel(f):
+    """Read an excel-based input file for harmonization.
+
+    Parameters
+    ----------
+    f : string
+        path to input file
+
+    Returns
+    -------
+    model : pd.DataFrame
+        model data frame in IAMC format
+    overrides : pd.DataFrame
+        overrides data frame in IAMC format
+    config : dictionary
+        configuration overrides (if any)
+    """
     indfs = pd_read(f, sheetname=None, encoding='utf-8')
     model = _read_data(indfs)
 
@@ -85,8 +106,22 @@ def read_excel(f):
 
 
 class RunControl(collections.Mapping):
+    """A thin wrapper around a Python Dictionary to support configuration of
+    harmonization execution. Input can be provided as dictionaries or YAML
+    files.
+    """
 
     def __init__(self, rc=None, defaults=None):
+        """
+        Parameters
+        ----------
+        rc : string, file, dictionary, optional
+            a path to a YAML file, a file handle for a YAML file, or a 
+            dictionary describing run control configuration
+        defaults : string, file, dictionary, optional
+            a path to a YAML file, a file handle for a YAML file, or a 
+            dictionary describing **default** run control configuration
+        """
         rc = rc or {}
         defaults = defaults or _rc_defaults
 
@@ -141,5 +176,14 @@ class RunControl(collections.Mapping):
         return obj
 
     def recursive_update(self, k, d):
+        """Recursively update a top-level option in the run control
+
+        Parameters
+        ----------
+        k : string
+            the top-level key
+        d : dictionary or similar
+            the dictionary to use for updating
+        """
         u = self.__getitem__(k)
         self.store[k] = _recursive_update(u, d)
