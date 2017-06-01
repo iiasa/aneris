@@ -1,3 +1,8 @@
+"""This module defines all possible functional forms of harmonization methods
+and the default decision tree for choosing which method to use.
+
+"""
+
 import pandas as pd
 import numpy as np
 
