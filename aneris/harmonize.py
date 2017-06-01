@@ -1,7 +1,7 @@
 import pandas as pd
 
 from aneris import utils
-from aneris import pd_read, pd_write
+from aneris import pd_read
 from aneris.methods import harmonize_factors, constant_offset, reduce_offset, \
     constant_ratio, reduce_ratio, linear_interpolate, model_zero, hist_zero, \
     coeff_of_var, default_methods
@@ -387,9 +387,6 @@ class HarmonizationDriver(object):
             .sort_index()
             .reset_index()
         )
-        pd_write(self._model, 'modelc.xlsx', sheet_name='data')
-        pd_write(self.exogenous_trajectories,
-                 'exogc.xlsx', sheet_name='data')
 
         # add exogenous trajectories
         exog = self.exogenous_trajectories.copy()
@@ -437,10 +434,7 @@ class HarmonizationDriver(object):
         self._meta['model'] = self.model_name
         self._meta['scenario'] = scenario
         self._meta = self._meta.set_index(['model', 'scenario'])
-
-        pd_write(self._model, 'modela.xlsx', sheet_name='data')
         self._postprocess_trajectories(scenario)
-        pd_write(self._model, 'modelb.xlsx', sheet_name='data')
 
         # store results
         self._model_dfs.append(self._model)
@@ -491,7 +485,6 @@ def harmonize_global_total(config, prefix, suffix, hist, model, overrides):
     if o is not None:
         _log('and override methods:')
         _log(o.head())
-        o.to_csv('o.csv')
     m = harmonizer.harmonize(overrides=o)
     utils.check_null(m, 'model')
 
