@@ -8,7 +8,7 @@ here = os.path.join(os.path.dirname(os.path.realpath(__file__)))
 
 
 def test_message_ref():
-    prefix = os.path.join(here, '..', 'tmp')
+    prefix = os.path.join(here, 'regression_data')
     add_prefix = lambda f: os.path.join(prefix, f)
     _inf = 'MESSAGE-GLOBIOM_SSP2-Ref-SPA0-V25_unharmonized.xlsx'
     outf = add_prefix('test_harmonized.xlsx')
@@ -24,9 +24,8 @@ def test_message_ref():
     print(cmd)
     subprocess.check_call(cmd.split())
 
-    xfile = _inf.replace('unharmonized', 'unharmonized_harmonized')
-    xpth = os.path.join(here, '..', '..', 'harmonization')
-    x = pd.read_excel(os.path.join(xpth, xfile), sheetname='data')
+    xfile = os.path.join(prefix, 'test_regress_ssp2_ref.xlsx')
+    x = pd.read_excel(xfile, sheetname='data')
     y = pd.read_excel(outf, sheetname='data')
 
     assert_frame_equal(x, y)

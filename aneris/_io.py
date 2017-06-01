@@ -106,14 +106,38 @@ class RunControl(collections.Mapping):
     def __repr__(self):
         return self.store.__repr__()
 
+    def _get_path(self, key, fyaml, fname):
+        if os.path.exists(fname):
+            return fname
+
+        _fname = os.path.join(os.path.dirname(fyaml), fname)
+        if not os.path.exists(_fname):
+            msg = "YAML key '{}' in {}: {} is not a valid relative " + \
+                "or absolute path"
+            raise IOError(msg.format(key, fyaml, fname))
+        return _fname
+
+    def _fill_relative_paths(self, fyaml, d):
+        file_keys = [
+            'exogenous',
+        ]
+        for k in file_keys:
+            if k in d:
+                d[k] = [self._get_path(k, fyaml, fname) for fname in d[k]]
+
     def _load_yaml(self, obj):
+        check_rel_paths = False
         if isinstance(obj, file):
             obj = obj.read()
         if isstr(obj) and os.path.exists(obj):
-            with open(obj) as f:
+            check_rel_paths = True
+            fname = obj
+            with open(fname) as f:
                 obj = f.read()
         if not isinstance(obj, dict):
             obj = yaml.load(obj)
+        if check_rel_paths:
+            self._fill_relative_paths(fname, obj)
         return obj
 
     def recursive_update(self, k, d):
