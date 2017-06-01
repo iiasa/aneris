@@ -81,6 +81,7 @@ _logger = None
 
 
 def logger():
+    """Global Logger used for aneris"""
     global _logger
     if _logger is None:
         logging.basicConfig()
@@ -90,6 +91,7 @@ def logger():
 
 
 def isstr(x):
+    """Returns True if x is a string"""
     try:
         return isinstance(x, (str, unicode))
     except NameError:
@@ -97,6 +99,7 @@ def isstr(x):
 
 
 def isnum(s):
+    """Returns True if s is a number"""
     try:
         float(s)
         return True
@@ -105,11 +108,22 @@ def isnum(s):
 
 
 def numcols(df):
+    """Returns all columns in df that have data types of floats or ints"""
     dtypes = df.dtypes
     return [i for i in dtypes.index if dtypes.loc[i].name.startswith(('float', 'int'))]
 
 
-def check_null(df, name, fail=False):
+def check_null(df, name=None, fail=False):
+    """Determines which values, if any in a dataframe are null
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+    name : string, optional
+        the name of the dataframe to use in a warning message
+    fail : bool, optional
+        if True, assert that no null values exist
+    """
     anynull = df.isnull().values.any()
     if fail:
         assert(not anynull)
@@ -147,17 +161,31 @@ def remove_emissions_prefix(x, gas='XXX'):
 
 
 def remove_recalculated_sectors(df):
+    """Return df with Total gas (sum of all sectors) removed
+    """
     # remove sectoral totals which will need to be recalculated after
     # harmonization
     df = df.reset_index()
     # TODO: THIS IS A HACK, CURRENT GASES DEFINITION ASSUME IAMC NAMES
     gases = df.gas.isin(sector_gases + ['SO2', 'NOX'])
+    # TODO: 3 is CEDS specific!
     sectors = df.sector.apply(lambda x: len(x.split('|')) == 3)
     keep = ~(gases & sectors)
     return df[keep].set_index(df_idx)
 
 
-def subtract_regions_from_world(df, name, threshold=5e-2):
+def subtract_regions_from_world(df, name=None, threshold=5e-2):
+    """Subtract the sum of regional results in each variable from the World total. 
+    If the result is a World total below a threshold, set those values to 0.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+    name : string, optional
+        name to use in error checking
+    threshold : float, optional
+        threshold below which to set values to 0
+    """
     # make global only global (not global + sum of regions)
     check_null(df, name)
     if (df.loc['World']['2015'] == 0).all():
@@ -193,14 +221,26 @@ def combine_rows(df, level, main, others=None, sumall=True, dropothers=True,
 
     Parameters
     ----------
-    df: pd.DataFrame
-    level: common level or column (e.g., 'region')
-    main: the value of the level to aggregate on
-    others: a list of other values to aggregate
-    sumall: sum main and other values (otherwise, only add other values)
-    dropothers: remove rows with values provided in `others`
-    rowsonly: only return newly generated rows
-    newlabel: optional, a new label for the level/column value, default is main
+    df : pd.DataFrame
+    level : string, int
+        common level or column (e.g., 'region')
+    main : string
+        the value of the level to aggregate on
+    others : string, optional
+        a list of other values to aggregate
+    sumall : bool, optional
+        sum main and other values (otherwise, only add other values)
+    dropothers : bool, optional
+        remove rows with values provided in `others`
+    rowsonly : bool, optional
+        only return newly generated rows
+    newlabel : string, optional
+        a new label for the level/column value, default is main
+
+    Returns
+    -------
+    df : pd.DataFrame
+        resulting data
     """
     newlabel = newlabel or main
     multi_idx = isinstance(df.index, pd.MultiIndex)
@@ -250,6 +290,24 @@ def combine_rows(df, level, main, others=None, sumall=True, dropothers=True,
 
 def agg_regions(df, rfrom='ISO Code', rto='Native Region Code', mapping=None,
                 verify=True):
+    """Aggregate values in a dataframe to a new regional composition
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+    rfrom : string
+        original regional composition column name in mapping
+    rto : string
+        column name to use for aggregation in mapping
+    mapping : pd.DataFrame, optional
+        mapping to use, otherwise MESSAGE mappings are read
+    verify : bool, optional
+        if True, confirm that sum of original values == sum of aggregated values
+
+    Returns
+    -------
+    df : pd.DataFrame
+    """
     mapping = mapping if mapping is not None else \
         pd.read_csv(region_path('message.csv'))
     mapping[rfrom] = mapping[rfrom].str.upper()
@@ -299,8 +357,18 @@ def agg_regions(df, rfrom='ISO Code', rto='Native Region Code', mapping=None,
 
 
 class EmissionsAggregator(object):
+    """Helper class to aggregate emissions"""
 
     def __init__(self, df, model=None, scenario=None):
+        """Parameters
+        ----------
+        df : pd.DataFrame
+            original data
+        model : string, optional
+            model name
+        scenario : string, optional
+            scenario name
+        """
         self.multi_idx = isinstance(df.index, pd.MultiIndex)
         if self.multi_idx:
             df = df.reset_index()
@@ -309,18 +377,22 @@ class EmissionsAggregator(object):
         self.scenario = scenario
         assert((self.df.units == 'kt').all())
 
+    # TODO: this is CEDS specific
     def add_variables(self, totals=None, aggregates=True, ceds_types=None,
                       ceds_number=None):
-        """
-        Add aggregates and variables with direct mappings.
+        """Add aggregates and variables with direct mappings.
 
         Parameters
         ----------
-        totals: whether to add totals
-        add_aggregates: optional, whether to add aggregate variables
-        ceds_types: optional, string or list, whether to add CEDS variables
-                    type can take on any value, but usually is Historical or
-                    Unharmonized
+        totals : list, optional
+             sectors to compute totals for
+        add_aggregates : bool, optional 
+            whether to add aggregate variables
+        ceds_types: string or list, optional 
+            whether to add CEDS variables
+            type can take on any value, but usually is Historical or
+            Unharmonized
+
         """
         if totals is not None:
             self._add_totals(totals)
@@ -418,6 +490,7 @@ class EmissionsAggregator(object):
 
 
 class FormatTranslator(object):
+    """Helper class to translate between IAMC and calcluation formats"""
 
     def __init__(self, df=None):
         self.df = df if df is None else df.copy()
@@ -425,6 +498,14 @@ class FormatTranslator(object):
         self.scenario = None
 
     def to_std(self, df=None, set_metadata=True):
+        """Translate a dataframe from IAMC to standard calculation format
+
+        Parameters
+        ----------
+        df : pd.DataFrame, optional
+        set_metadata : bool, optional
+            save metadata (model, scenario) for future use
+        """
         df = self.df if df is None else df
         multi_idx = isinstance(df.index, pd.MultiIndex)
         if multi_idx:
@@ -481,11 +562,17 @@ class FormatTranslator(object):
 
     def to_template(self, df=None, model=None, scenario=None,
                     column_style=None):
-        """Create an IAMC template out of the original data frame
+        """Translate a dataframe from standard calculation format to IAMC
 
         Parameters
         ----------
-        first_year: optional, the first year to report values for
+        df : pd.DataFrame, optional
+        model : string, optional
+            model name
+        scenario : string, optional
+            scenario name
+        column_style : string
+            column style (upper, lower, etc.) to use
         """
         df = self.df if df is None else df
         multi_idx = isinstance(df.index, pd.MultiIndex)
