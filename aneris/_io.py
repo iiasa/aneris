@@ -8,7 +8,7 @@ import yaml
 
 import pandas as pd
 
-from aneris.utils import isstr, isnum
+from aneris.utils import isstr, isnum, iamc_idx
 
 RC_DEFAULTS = """
 config:
@@ -93,7 +93,7 @@ def read_excel(f):
 
     # make an empty df which will be caught later
     overrides = indfs['harmonization'] if 'harmonization' in indfs \
-        else pd.DataFrame([], columns=['Scenario'])
+        else pd.DataFrame([], columns=iamc_idx + ['Unit'])
 
     # get run control
     config = {}
@@ -101,6 +101,11 @@ def read_excel(f):
         config = overrides[['Configuration', 'Value']].dropna()
         config = config.set_index('Configuration').to_dict()['Value']
         overrides = overrides.drop(['Configuration', 'Value'], axis=1)
+
+    # a single row of nans implies only configs provided,
+    # if so, only return the empty df
+    if len(overrides) == 1 and overrides.isnull().values.all():
+        overrides = pd.DataFrame([], columns=iamc_idx + ['Unit'])
 
     return model, overrides, config
 

@@ -516,10 +516,10 @@ class FormatTranslator(object):
             raise ValueError(msg.format(df.columns))
 
         # make sure we're working with good data
-        if len(df['Model'].unique()) != 1:
+        if len(df['Model'].unique()) > 1:
             raise ValueError(
                 'Model not unique: {}'.format(df['Model'].unique()))
-        assert(len(df['Scenario'].unique()) == 1)
+        assert(len(df['Scenario'].unique()) <= 1)
         assert(df['Variable'].apply(lambda x: 'Emissions' in x).all())
 
         # save data
@@ -546,7 +546,8 @@ class FormatTranslator(object):
             sectors.pop(idx)  # emissions
             sectors.pop(idx)  # gas
             return '|'.join(sectors).strip('|')
-        df['sector'] = df.apply(update_sector, axis=1)
+        if not df.empty:
+            df['sector'] = df.apply(update_sector, axis=1)
 
         # drop old columns
         df.drop(iamc_idx + ['Unit'], axis=1, inplace=True)

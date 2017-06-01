@@ -308,15 +308,17 @@ class _TrajectoryPreprocessor(object):
         self.hist = self.hist[~self.hist.index.duplicated(keep='last')]
 
         # hackery required because unit needed for df_idx
-        if 'Unit' not in self.overrides:
+        if self.overrides.empty:
+            self.overrides = None
+        else:
             self.overrides['Unit'] = 'kt'
-        self.overrides = (
-            xlator.to_std(df=self.overrides.copy(), set_metadata=False)
-            .set_index(utils.df_idx)
-            .sort_index()
-        )
-        self.overrides.columns = self.overrides.columns.str.lower()
-        self.overrides = self.overrides['method']
+            self.overrides = (
+                xlator.to_std(df=self.overrides.copy(), set_metadata=False)
+                .set_index(utils.df_idx)
+                .sort_index()
+            )
+            self.overrides.columns = self.overrides.columns.str.lower()
+            self.overrides = self.overrides['method']
 
     def _agg_hist(self):
         # aggregate and clean hist
