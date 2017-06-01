@@ -1,24 +1,38 @@
-.. aneris documentation master file, created by
-   sphinx-quickstart on Tue Feb  9 09:59:03 2016.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
 
-Welcome to aneris's documentation!
-==================================
+aneris: Emissions Trajectory Harmonization for Integrated Assessment Models 
+===========================================================================
+
+**aneris** is a Python package and Command Line Interface (CLI) for harmonizing
+IAM emissions trajectories.
+
+Documentation
+-------------
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
-   foo
+   examples
+   install
+   cli
+   config
+   api
 
 
+Get in touch
+------------
 
-Indices and tables
-==================
+- Report bugs, suggest features or view the source code `on GitHub`_.
+- For less well defined questions or ideas, use the `mailing list`_.
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. _mailing list: https://groups.google.com/forum/#!forum/aneris
+.. _on GitHub: http://github.com/gidden/aneris
+
+License
+-------
+
+aneris is available under the open source `Apache License`__.
+
+__ http://www.apache.org/licenses/LICENSE-2.0.html
 
