@@ -16,7 +16,9 @@ def _warn(msg, *args, **kwargs):
 
 
 class Harmonizer(object):
-
+    """A class used to harmonize model data to historical data in the 
+    standard calculation format
+    """
     # WARNING: it is not possible to programmatically do the offset methods
     # because they use lambdas. you can't do `for y in years: lambda x: f(x,
     # kwarg=str(y))` because y is evaluated when the lambda is executed, not in
@@ -74,6 +76,18 @@ class Harmonizer(object):
     }
 
     def __init__(self, data, history, config={}, verify_indicies=True):
+        """Parameters
+        ----------
+        data : pd.DataFrame
+            model data in standard calculation format
+        history : pd.DataFrame
+            history data in standard calculation format
+        config : dict, optional
+            configuration dictionary (see <WEBSITE> for options)
+        verify_indicies : bool, optional
+            check indicies of data and history, provide warning message if 
+            different
+        """
         if not isinstance(data.index, pd.MultiIndex):
             raise ValueError('Data must use utils.df_idx')
         if not isinstance(history.index, pd.MultiIndex):
@@ -98,6 +112,7 @@ class Harmonizer(object):
         self.luc_method = config[key] if key in config else None
 
     def metadata(self):
+        """Return pd.DataFrame of method choice metadata"""
         methods = self.methods_used
         if isinstance(methods, pd.Series):  # only defaults used
             methods = methods.to_frame()
@@ -165,6 +180,9 @@ class Harmonizer(object):
         return model
 
     def methods(self, overrides=None):
+        """Return pd.DataFrame of methods to use for harmonization given 
+        pd.DataFrame of overrides
+        """
         # get method listing
         methods = self._default_methods()
         if overrides is not None:
@@ -195,6 +213,9 @@ class Harmonizer(object):
         return methods
 
     def harmonize(self, overrides=None):
+        """Return pd.DataFrame of harmonized trajectories given pd.DataFrame 
+        overrides
+        """
         # get special configurations
         methods = self.methods(overrides=overrides)
 
@@ -235,8 +256,7 @@ class Harmonizer(object):
         return df
 
 
-class TrajectoryPreprocessor(object):
-
+class _TrajectoryPreprocessor(object):
     def __init__(self, hist, model, overrides, regions, prefix, suffix):
         self.hist = hist
         self.model = model
@@ -332,8 +352,22 @@ class TrajectoryPreprocessor(object):
 
 
 class HarmonizationDriver(object):
+    """A helper class to harmonize all scenarios for a model.
+    """
 
     def __init__(self, rc, hist, model, overrides, regions):
+        """Parameters
+        ----------
+        rc : aneris.RunControl
+        hist : pd.DataFrame
+            history in IAMC format
+        model : pd.DataFrame
+            model data in IAMC format
+        overrides : pd.DataFrame
+            harmonization overrides in IAMC format
+        regions : pd.DataFrame
+            regional aggregation mapping (ISO -> model regions)
+        """
         self.prefix = rc['prefix']
         self.suffix = rc['suffix']
         self.config = rc['config']
@@ -397,26 +431,29 @@ class HarmonizationDriver(object):
         self._model = pd.concat([self._model, exog])
 
     def harmonize(self, scenario):
+        """Harmonize a given scneario. Get results from 
+        aneris.harmonize.HarmonizationDriver.results()
+        """
         # need to specify model and scenario in xlator to template
         self._hist = self.hist.copy()
         self._model = self.model.copy()
         self._overrides = self.overrides.copy()
 
         # preprocess
-        pp = TrajectoryPreprocessor(self._hist, self._model, self._overrides,
-                                    self.regions, self.prefix, self.suffix)
+        pp = _TrajectoryPreprocessor(self._hist, self._model, self._overrides,
+                                     self.regions, self.prefix, self.suffix)
         # TODO, preprocess in init, just process here
         self._hist, self._model, self._overrides = pp.process(
             scenario).results()
 
         # global only gases
-        self._glb_model, self._glb_meta = harmonize_global_total(
+        self._glb_model, self._glb_meta = _harmonize_global_total(
             self.config, self.prefix, self.suffix,
             self._hist, self._model.copy(), self._overrides
         )
 
         # regional gases
-        self._model, self._meta = harmonize_regions(
+        self._model, self._meta = _harmonize_regions(
             self.config, self.prefix, self.suffix, self.regions,
             self._hist, self._model.copy(), self._overrides,
             self.add_5regions
@@ -441,16 +478,20 @@ class HarmonizationDriver(object):
         self._metadata_dfs.append(self._meta)
 
     def scenarios(self):
+        """Return all known scenarios"""
         return self.model['Scenario'].unique()
 
     def harmonized_results(self):
+        """Return 2-tuple of (pd.DataFrame of harmonized trajectories, 
+        pd.DataFrame of metadata)
+        """
         return (
             pd.concat(self._model_dfs),
             pd.concat(self._metadata_dfs),
         )
 
 
-def harmonize_global_total(config, prefix, suffix, hist, model, overrides):
+def _harmonize_global_total(config, prefix, suffix, hist, model, overrides):
     gases = utils.harmonize_total_gases
     sector = '|'.join([prefix, suffix])
     idx = (pd.IndexSlice['World', gases, sector],
@@ -492,8 +533,8 @@ def harmonize_global_total(config, prefix, suffix, hist, model, overrides):
     return m, metadata
 
 
-def harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
-                      add_5regions):
+def _harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
+                       add_5regions):
     # clean model
     model = utils.subtract_regions_from_world(model, 'model')
     model = utils.remove_recalculated_sectors(model)
@@ -563,6 +604,23 @@ def harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
 
 
 def diagnostics(model, metadata):
+    """Provide warnings or throw errors based on harmonized model data and 
+    metadata
+
+    Current diagnostics are:
+    - large missing values (sector has 20% or more contribution to 
+      history and model does not report sector) 
+      - Warning provided
+    - non-negative CO2 emissions (values other than CO2 are < 0)
+      - Error thrown
+
+    Parameters
+    ----------
+    model : pd.DataFrame
+        harmonized model data in standard calculation format
+    metadata : pd.DataFrame
+        harmonization metadata
+    """
     #
     # Detect Large Missing Values
     #

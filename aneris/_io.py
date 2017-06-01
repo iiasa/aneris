@@ -1,6 +1,6 @@
 """Provides helper functions for reading input data and configuration files.
 
-The default configuration values are provided in aneris._io._rc_defaults.
+The default configuration values are provided in aneris.RC_DEFAULTS.
 """
 import collections
 import os
@@ -10,7 +10,7 @@ import pandas as pd
 
 from aneris.utils import isstr, isnum
 
-_rc_defaults = """
+RC_DEFAULTS = """
 config:
     default_luc_method: reduce_ratio_2150_cov
     cov_threshold: 20
@@ -123,7 +123,7 @@ class RunControl(collections.Mapping):
             dictionary describing **default** run control configuration
         """
         rc = rc or {}
-        defaults = defaults or _rc_defaults
+        defaults = defaults or RC_DEFAULTS
 
         rc = self._load_yaml(rc)
         defaults = self._load_yaml(defaults)
