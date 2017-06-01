@@ -38,12 +38,12 @@ class TestRegression():
         checkf = 'test_regress_ssp2_ref.xlsx'
         self._run(inf, checkf)
 
-    def test_message_no_sheet(self):
-        inf = 'no_sheet.xlsx'
-        checkf = 'test_regress_ssp2_no_sheet.xlsx'
-        self._run(inf, checkf)
+    # def test_message_no_sheet(self):
+    #     inf = 'no_sheet.xlsx'
+    #     checkf = 'test_regress_ssp2_no_sheet.xlsx'
+    #     self._run(inf, checkf)
 
-    def test_message_empty_sheet(self):
-        inf = 'empty_sheet.xlsx'
-        checkf = 'test_regress_ssp2_empty_sheet.xlsx'
-        self._run(inf, checkf)
+    # def test_message_empty_sheet(self):
+    #     inf = 'empty_sheet.xlsx'
+    #     checkf = 'test_regress_ssp2_empty_sheet.xlsx'
+    #     self._run(inf, checkf)
