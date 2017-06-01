@@ -1,0 +1,12 @@
+machine:
+  services:
+      - docker
+
+dependencies:
+  override:
+      - docker build -t aneris/aneris:latest .
+
+test:
+  override:
+      - docker run aneris/aneris:latest python2 -m pytest /aneris/tests
+      - docker run aneris/aneris:latest python3 -m pytest /aneris/tests
