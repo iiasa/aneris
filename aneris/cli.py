@@ -1,3 +1,5 @@
+"""Harmonization CLI for aneris.
+"""
 import argparse
 import logging
 import os
