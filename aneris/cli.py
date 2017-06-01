@@ -1,8 +1,9 @@
 import argparse
+import logging
 import os
 
 import aneris
-from aneris.utils import hist_path, region_path
+from aneris.utils import hist_path, region_path, logger
 
 
 def main():
@@ -62,12 +63,12 @@ def main():
     # write to excel
     prefix = output_prefix or inf.split('.')[0]
     fname = os.path.join(output_path, '{}_harmonized.xlsx'.format(prefix))
-    print('Writing result to: {}'.format(fname))
+    logger().info('Writing result to: {}'.format(fname))
     aneris.pd_write(model, fname, sheet_name='data')
 
     # save data about harmonization
     fname = os.path.join(output_path, '{}_metadata.xlsx'.format(prefix))
-    print('Writing metadata to: {}'.format(fname))
+    logger().info('Writing metadata to: {}'.format(fname))
     aneris.pd_write(metadata, fname)
 
 

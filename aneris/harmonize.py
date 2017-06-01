@@ -1,17 +1,18 @@
-import os
-import argparse
-import warnings
-import logging
-
-
-import numpy as np
 import pandas as pd
 
-
-from aneris import utils, _io
+from aneris import utils
+from aneris import pd_read, pd_write
 from aneris.methods import harmonize_factors, constant_offset, reduce_offset, \
     constant_ratio, reduce_ratio, linear_interpolate, model_zero, hist_zero, \
     coeff_of_var, default_methods
+
+
+def _log(msg, *args, **kwargs):
+    utils.logger().info(msg, *args, **kwargs)
+
+
+def _warn(msg, *args, **kwargs):
+    utils.logger().warning(msg, *args, **kwargs)
 
 
 class Harmonizer(object):
@@ -80,7 +81,7 @@ class Harmonizer(object):
         if verify_indicies and not data.index.equals(history.index):
             idx = history.index.difference(data.index)
             msg = 'More history than model reports, adding 0 values {}'
-            warnings.warn(msg.format(idx.to_series().head()))
+            _warn(msg.format(idx.to_series().head()))
             df = pd.DataFrame(0, columns=data.columns, index=idx)
             data = pd.concat([data, df]).sort_index().loc[history.index]
             assert data.index.equals(history.index)
@@ -174,14 +175,14 @@ class Harmonizer(object):
             dup = oidx.duplicated(keep='last')
             if dup.any():
                 msg = 'Removing duplicated override entries found: {}\n'
-                warnings.warn(msg.format(overrides.loc[dup]))
+                _warn(msg.format(overrides.loc[dup]))
                 overrides = overrides.loc[~dup]
 
             # get subset of overrides which are in model
             outidx = oidx.difference(midx)
             if outidx.size > 0:
                 msg = 'Removing override methods not in processed model output:\n{}'
-                warnings.warn(msg.format(overrides.loc[outidx]))
+                _warn(msg.format(overrides.loc[outidx]))
                 inidx = oidx.intersection(midx)
                 overrides = overrides.loc[inidx]
 
@@ -212,7 +213,7 @@ class Harmonizer(object):
         dfs = []
         y = str(self.base_year)
         for method in methods.unique():
-            print('Harmonizing with {}'.format(method))
+            _log('Harmonizing with {}'.format(method))
             # get subset indicies
             idx = methods[methods == method].index
             check_len = len(methods.unique()) > 1
@@ -251,8 +252,8 @@ class TrajectoryPreprocessor(object):
 
     def _downselect_var(self):
         # separate data
-        print('Downselecting {} variables'.format('|'.join([self.prefix,
-                                                            self.suffix])))
+        _log('Downselecting {} variables'.format('|'.join([self.prefix,
+                                                           self.suffix])))
 
         hasprefix = lambda df: df.Variable.str.startswith(self.prefix)
         hassuffix = lambda df: df.Variable.str.endswith(self.suffix)
@@ -269,7 +270,7 @@ class TrajectoryPreprocessor(object):
         assert(len(self.hist) > 0)
 
     def _to_std(self):
-        print('Translating to standard format')
+        _log('Translating to standard format')
         xlator = utils.FormatTranslator()
 
         self.model = (
@@ -299,7 +300,7 @@ class TrajectoryPreprocessor(object):
 
     def _agg_hist(self):
         # aggregate and clean hist
-        print('Aggregating historical values to native regions')
+        _log('Aggregating historical values to native regions')
         # must set verify to false for now because some isos aren't included!
         self.hist = utils.agg_regions(
             self.hist, verify=False, mapping=self.regions,
@@ -313,7 +314,7 @@ class TrajectoryPreprocessor(object):
         if notin.any():
             msg = 'Not all of self.history is covered by self.model: \n{}'
             _df = self.hist.loc[notin].reset_index()[utils.df_idx]
-            warnings.warn(msg.format(_df.head()))
+            _warn(msg.format(_df.head()))
             zeros = pd.DataFrame(0, index=idx, columns=self.model.columns)
             self.model = self.model.combine_first(zeros)
         self.model = self.model.loc[idx]
@@ -348,7 +349,7 @@ class HarmonizationDriver(object):
                 'Country': 'World',
                 'Native Region Code': 'World',
             }
-            print('Manually adding global regional definition: {}'.format(glb))
+            _log('Manually adding global regional definition: {}'.format(glb))
             self.regions = self.regions.append(glb, ignore_index=True)
 
         model_names = self.model.Model.unique()
@@ -364,7 +365,7 @@ class HarmonizationDriver(object):
         # add exogenous variables
         dfs = []
         for fname in self.exog_files:
-            exog = _io.pd_read(fname, sheetname='data')
+            exog = pd_read(fname, sheetname='data')
             exog.columns = [str(x) for x in exog.columns]
             exog['Model'] = self.model_name
             dfs.append(exog)
@@ -373,7 +374,7 @@ class HarmonizationDriver(object):
         return pd.concat(dfs)
 
     def _postprocess_trajectories(self, scenario):
-        print('Translating to IAMC template')
+        _log('Translating to IAMC template')
         # update variable name
         self._model = self._model.reset_index()
         self._model.sector = self._model.sector.str.replace(
@@ -386,9 +387,9 @@ class HarmonizationDriver(object):
             .sort_index()
             .reset_index()
         )
-        _io.pd_write(self._model, 'modelc.xlsx', sheet_name='data')
-        _io.pd_write(self.exogenous_trajectories,
-                     'exogc.xlsx', sheet_name='data')
+        pd_write(self._model, 'modelc.xlsx', sheet_name='data')
+        pd_write(self.exogenous_trajectories,
+                 'exogc.xlsx', sheet_name='data')
 
         # add exogenous trajectories
         exog = self.exogenous_trajectories.copy()
@@ -437,9 +438,9 @@ class HarmonizationDriver(object):
         self._meta['scenario'] = scenario
         self._meta = self._meta.set_index(['model', 'scenario'])
 
-        _io.pd_write(self._model, 'modela.xlsx', sheet_name='data')
+        pd_write(self._model, 'modela.xlsx', sheet_name='data')
         self._postprocess_trajectories(scenario)
-        _io.pd_write(self._model, 'modelb.xlsx', sheet_name='data')
+        pd_write(self._model, 'modelb.xlsx', sheet_name='data')
 
         # store results
         self._model_dfs.append(self._model)
@@ -464,7 +465,7 @@ def harmonize_global_total(config, prefix, suffix, hist, model, overrides):
     try:
         m = model.loc[idx].copy()
     except TypeError:
-        warnings.warn('Non-CEDS gases not found in model')
+        _warn('Non-CEDS gases not found in model')
         return None, None
     # catch empty dfs if no global toatls are overriden
     if overrides is None:
@@ -485,11 +486,11 @@ def harmonize_global_total(config, prefix, suffix, hist, model, overrides):
     utils.check_null(m, 'model')
     utils.check_null(h, 'hist', fail=True)
     harmonizer = Harmonizer(m, h, config=config)
-    print('Harmonizing (with example methods):')
-    print(harmonizer.methods(overrides=o).head())
+    _log('Harmonizing (with example methods):')
+    _log(harmonizer.methods(overrides=o).head())
     if o is not None:
-        print('and override methods:')
-        print(o.head())
+        _log('and override methods:')
+        _log(o.head())
         o.to_csv('o.csv')
     m = harmonizer.harmonize(overrides=o)
     utils.check_null(m, 'model')
@@ -516,12 +517,12 @@ def harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
     utils.check_null(model, 'model')
     utils.check_null(hist, 'hist', fail=True)
     harmonizer = Harmonizer(model, hist, config=config)
-    print('Harmonizing (with example methods):')
-    print(harmonizer.methods(overrides=overrides).head())
+    _log('Harmonizing (with example methods):')
+    _log(harmonizer.methods(overrides=overrides).head())
 
     if overrides is not None:
-        print('and override methods:')
-        print(overrides.head())
+        _log('and override methods:')
+        _log(overrides.head())
     model = harmonizer.harmonize(overrides=overrides)
     utils.check_null(model, 'model')
     metadata = harmonizer.metadata()
@@ -530,7 +531,7 @@ def harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
     totals = '|'.join([prefix, suffix])
     if model.index.get_level_values('sector').isin([totals]).any():
         msg = 'Removing sector aggregates. Recalculating with harmonized totals.'
-        warnings.warn(msg)
+        _warn(msg)
         model.drop(totals, level='sector', inplace=True)
     model = (
         utils.EmissionsAggregator(model)
@@ -549,7 +550,7 @@ def harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
 
     # add 5regions
     if add_5regions:
-        print('Adding 5region values')
+        _log('Adding 5region values')
         # explicitly don't add World, it already exists from aggregation
         mapping = regions[regions['Native Region Code'] != 'World'].copy()
         aggdf = utils.agg_regions(model, mapping=mapping,
@@ -562,7 +563,7 @@ def harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
     if duplicates.any():
         regions = model[duplicates].index.get_level_values('region').unique()
         msg = 'Dropping duplicate rows found for regions: {}'.format(regions)
-        warnings.warn(msg)
+        _warn(msg)
         model = model[~duplicates]
 
     return model, metadata
@@ -590,7 +591,7 @@ def diagnostics(model, metadata):
     report = big.loc[bad.index].reset_index()
 
     if not report.empty:
-        warnings.warn('LARGE MISSING Values Found!!:\n {}'.format(report))
+        _warn('LARGE MISSING Values Found!!:\n {}'.format(report))
 
     #
     # Detect non-negative CO2 emissions
@@ -600,6 +601,6 @@ def diagnostics(model, metadata):
     neg = m[(m[utils.numcols(m)].T < 0).any()]
 
     if not neg.empty:
-        warnings.warn(
+        _warn(
             'Negative Emissions found for non-CO2 gases:\n {}'.format(neg))
         raise ValueError('Harmonization failed due to negative non-CO2 gases')

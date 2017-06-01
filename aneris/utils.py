@@ -1,7 +1,7 @@
 import itertools
+import logging
 import os
 import re
-import warnings
 
 import numpy as np
 import pandas as pd
@@ -77,6 +77,17 @@ unit_gas_names = {
     'CFC': 'CO2-equiv',
 }
 
+_logger = None
+
+
+def logger():
+    global _logger
+    if _logger is None:
+        logging.basicConfig()
+        _logger = logging.getLogger()
+        _logger.setLevel('INFO')
+    return _logger
+
 
 def isstr(x):
     try:
@@ -105,7 +116,7 @@ def check_null(df, name, fail=False):
     if anynull:
         msg = 'Null (missing) values found for {} indicies: \n{}'
         _df = df[df.isnull().any(axis=1)].reset_index()[df_idx]
-        warnings.warn(msg.format(name, _df))
+        logger().warning(msg.format(name, _df))
         df.dropna(inplace=True)
 
 
@@ -152,7 +163,7 @@ def subtract_regions_from_world(df, name, threshold=5e-2):
     if (df.loc['World']['2015'] == 0).all():
         # some models (gcam) are not reporting any values in World
         # without this, you get `0 - sum(other regions)`
-        warnings.warn('Empty global region found in ' + name)
+        logger().warning('Empty global region found in ' + name)
         return df
 
     # sum all rows where region == World
@@ -257,7 +268,7 @@ def agg_regions(df, rfrom='ISO Code', rto='Native Region Code', mapping=None,
     check = mapping[rfrom]
     notin = list(set(df.region) - set(check))
     if len(notin) > 0:
-        warnings.warn(
+        logger().warning(
             'Removing regions without direct mapping: {}'.format(notin))
         df = df[df.region.isin(check)]
 
