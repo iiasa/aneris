@@ -3,8 +3,27 @@ import numpy as np
 
 from aneris import utils
 
-def harmonize_factors(data, hist, harmonize_year='2015'):
-    c, m = hist[harmonize_year], data[harmonize_year]
+
+def harmonize_factors(df, hist, harmonize_year='2015'):
+    """Calculate offset and ratio values between data and history
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        model data
+    hist : pd.DataFrame
+        historical data
+    harmonize_year : string, optional
+        column name of harmonization year 
+
+    Returns
+    -------
+    offset : pd.Series
+       offset (history - model)
+    ratio : pd.Series
+       ratio (history / model)
+    """
+    c, m = hist[harmonize_year], df[harmonize_year]
     offset = (c - m).fillna(0)
     offset.name = 'offset'
     ratios = (c / m).replace(np.inf, np.nan).fillna(0)
@@ -13,6 +32,20 @@ def harmonize_factors(data, hist, harmonize_year='2015'):
 
 
 def constant_offset(df, offset):
+    """Calculate constant offset harmonized trajectory
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        model data
+    offset : pd.DataFrame
+        offset data
+
+    Returns
+    -------
+    df : pd.DataFrame
+        harmonized trajectories
+    """
     df = df.copy()
     numcols = utils.numcols(df)
     # just add offset to all values
@@ -21,6 +54,20 @@ def constant_offset(df, offset):
 
 
 def constant_ratio(df, ratios):
+    """Calculate constant ratio harmonized trajectory
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        model data
+    ratio : pd.DataFrame
+        ratio data
+
+    Returns
+    -------
+    df : pd.DataFrame
+        harmonized trajectories
+    """
     df = df.copy()
     numcols = utils.numcols(df)
     # just add offset to all values
@@ -29,6 +76,24 @@ def constant_ratio(df, ratios):
 
 
 def linear_interpolate(df, offset, final_year='2050', harmonize_year='2015'):
+    """Calculate linearly interpolated convergence harmonized trajectory
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        model data
+    offset : pd.DataFrame
+        offset data
+    final_year : string, optional
+        column name of convergence year 
+    harmonize_year : string, optional
+        column name of harmonization year 
+
+    Returns
+    -------
+    df : pd.DataFrame
+        harmonized trajectories
+    """
     df = df.copy()
     x1, x2 = harmonize_year, final_year
     y1, y2 = offset + df[x1], df[x2]
@@ -42,6 +107,24 @@ def linear_interpolate(df, offset, final_year='2050', harmonize_year='2015'):
 
 
 def reduce_offset(df, offset, final_year='2050', harmonize_year='2015'):
+    """Calculate offset convergence harmonized trajectory
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        model data
+    offset : pd.DataFrame
+        offset data
+    final_year : string, optional
+        column name of convergence year 
+    harmonize_year : string, optional
+        column name of harmonization year 
+
+    Returns
+    -------
+    df : pd.DataFrame
+        harmonized trajectories
+    """
     df = df.copy()
     yi, yf = int(harmonize_year), int(final_year)
     numcols = utils.numcols(df)
@@ -56,6 +139,24 @@ def reduce_offset(df, offset, final_year='2050', harmonize_year='2015'):
 
 
 def reduce_ratio(df, ratios, final_year='2050', harmonize_year='2015'):
+    """Calculate ratio convergence harmonized trajectory
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        model data
+    ratio : pd.DataFrame
+        ratio data
+    final_year : string, optional
+        column name of convergence year 
+    harmonize_year : string, optional
+        column name of harmonization year 
+
+    Returns
+    -------
+    df : pd.DataFrame
+        harmonized trajectories
+    """
     df = df.copy()
     yi, yf = int(harmonize_year), int(final_year)
     numcols = utils.numcols(df)
@@ -75,6 +176,7 @@ def reduce_ratio(df, ratios, final_year='2050', harmonize_year='2015'):
 
 
 def model_zero(df, offset):
+    """Returns result of aneris.methods.constant_offset()"""
     # current decision is to return a simple offset, this will be a straight
     # line for all time periods. previous behavior was to set df[numcols] = 0,
     # i.e., report 0 if model reports 0.
@@ -82,17 +184,54 @@ def model_zero(df, offset):
 
 
 def hist_zero(df, *args, **kwargs):
+    """Returns df (no change)"""
     # TODO: should this set values to 0?
     df = df.copy()
     return df
 
 
 def coeff_of_var(s):
+    """Returns coefficient of variation of a Series 
+
+    .. math:: c_v =  \frac{\sigma(s^{\prime}(t))}{\mu(s^{\prime}(t))}
+
+    Parameters
+    ----------
+    s : pd.Series
+        timeseries
+
+    Returns
+    -------
+    c_v : float
+        coefficient of variation
+    """
     x = np.diff(s.values)
     return np.abs(np.std(x) / np.mean(x))
 
 
 def default_methods(hist, model, base_year, luc_method=None):
+    """Determine default harmonization methods to use.
+
+    See <WEBSITE> for a graphical description of the decision tree.
+
+    Parameters
+    ----------
+    hist : pd.DataFrame
+        historical data
+    model : pd.DataFrame
+        model data
+    base_year : string, int
+        column name of harmonization year 
+    luc_method : string, optional
+        method to use for high coefficient of variation
+
+    Returns
+    -------
+    methods : pd.Series
+       default harmonization methods
+    metadata : pd.DataFrame
+       metadata regarding why each method was chosen
+    """
     luc_method = luc_method or 'reduce_offset_2150_cov'
     y = str(base_year)
     h = hist[y]
