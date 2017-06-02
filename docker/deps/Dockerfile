@@ -25,4 +25,5 @@ RUN pip3 install \
     pandas \
     xlrd \
     pyyaml
-    
+
+RUN apt-get install -y --force-yes wget 
