@@ -40,7 +40,7 @@ def test_nondefault_rc():
 
 
 def test_nondefault_rc_file_read():
-    rcstr = """
+    rcstr = b"""
     config:
         cov_threshold: 42
     """
