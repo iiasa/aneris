@@ -13,7 +13,7 @@ RUN pip install \
     pytest \
     pandas \
     xlrd \
-    yaml
+    pyyaml
 
 RUN apt-get install -y --force-yes python3-pip 
 
@@ -24,5 +24,5 @@ RUN pip3 install \
     pytest \
     pandas \
     xlrd \
-    yaml
+    pyyaml
     
