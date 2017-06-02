@@ -160,7 +160,7 @@ def remove_emissions_prefix(x, gas='XXX'):
     return re.sub('^Emissions\|{}\|'.format(gas), '', x)
 
 
-def remove_recalculated_sectors(df):
+def remove_recalculated_sectors(df, prefix='', suffix=''):
     """Return df with Total gas (sum of all sectors) removed
     """
     # remove sectoral totals which will need to be recalculated after
@@ -169,12 +169,13 @@ def remove_recalculated_sectors(df):
     # TODO: THIS IS A HACK, CURRENT GASES DEFINITION ASSUME IAMC NAMES
     gases = df.gas.isin(sector_gases + ['SO2', 'NOX'])
     # TODO: 3 is CEDS specific!
-    sectors = df.sector.apply(lambda x: len(x.split('|')) == 3)
+    sepcount = 2 + prefix.count('|') + suffix.count('|')
+    sectors = df.sector.apply(lambda x: len(x.split('|')) == sepcount)
     keep = ~(gases & sectors)
     return df[keep].set_index(df_idx)
 
 
-def subtract_regions_from_world(df, name=None, threshold=5e-2):
+def subtract_regions_from_world(df, name=None, base_year='2015', threshold=5e-2):
     """Subtract the sum of regional results in each variable from the World total. 
     If the result is a World total below a threshold, set those values to 0.
 
@@ -183,12 +184,14 @@ def subtract_regions_from_world(df, name=None, threshold=5e-2):
     df : pd.DataFrame
     name : string, optional
         name to use in error checking
+    base_year : int, string, optional
+        column to use in error checking
     threshold : float, optional
         threshold below which to set values to 0
     """
     # make global only global (not global + sum of regions)
     check_null(df, name)
-    if (df.loc['World']['2015'] == 0).all():
+    if (df.loc['World'][base_year] == 0).all():
         # some models (gcam) are not reporting any values in World
         # without this, you get `0 - sum(other regions)`
         logger().warning('Empty global region found in ' + name)
@@ -248,9 +251,12 @@ def combine_rows(df, level, main, others=None, sumall=True, dropothers=True,
     if multi_idx:
         df.reset_index(inplace=True)
 
+    # get all values in level column
+    lvl_values = df[level].unique()
+
     # if others is none, then its everything other than the primary
     others = others if others is not None else \
-        list(set(df[level].unique()) - set([main]))
+        list(set(lvl_values) - set([main]))
 
     # set up df idx for operations
     grp_idx = [x for x in df_idx if x != level]
@@ -273,6 +279,7 @@ def combine_rows(df, level, main, others=None, sumall=True, dropothers=True,
 
     # get rid of rows that aren't needed in final dataframe
     drop = [main] + others if dropothers else [main]
+    drop = list(set(drop) & set(lvl_values))
     df = (
         df.drop(drop)
         .reset_index()
@@ -492,10 +499,12 @@ class EmissionsAggregator(object):
 class FormatTranslator(object):
     """Helper class to translate between IAMC and calcluation formats"""
 
-    def __init__(self, df=None):
+    def __init__(self, df=None, prefix='', suffix=''):
         self.df = df if df is None else df.copy()
         self.model = None
         self.scenario = None
+        self.prefix = prefix
+        self.suffix = suffix
 
     def to_std(self, df=None, set_metadata=True):
         """Translate a dataframe from IAMC to standard calculation format
@@ -548,7 +557,6 @@ class FormatTranslator(object):
             return '|'.join(sectors).strip('|')
         if not df.empty:
             df['sector'] = df.apply(update_sector, axis=1)
-
         # drop old columns
         df.drop(iamc_idx + ['Unit'], axis=1, inplace=True)
 
@@ -595,12 +603,11 @@ class FormatTranslator(object):
         # inject emissions prefix
         def update_sector(row):
             sectors = row.sector.split('|')
-            idx = 2 if 'CEDS' in sectors[0] else 0
+            idx = self.prefix.count('|') + 1
             sectors.insert(idx, 'Emissions')
             sectors.insert(idx + 1, row.gas)
             return '|'.join(sectors).strip('|')
         df['sector'] = df.apply(update_sector, axis=1)
-
         # write units correctly
         df['units'] = units(df.sector)
 

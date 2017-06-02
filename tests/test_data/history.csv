@@ -1,0 +1,7 @@
+Model,Scenario,Region,Variable,Unit,2000,2001,2002,2003,2004,2005
+History,scen,regiona,prefix|Emissions|BC|sector1|suffix,Mt BC/yr,1,2,3,4,5,6
+History,scen,regiona,prefix|Emissions|BC|sector2|suffix,Mt BC/yr,2,3,4,5,6,7
+History,scen,regionb,prefix|Emissions|BC|sector1|suffix,Mt BC/yr,3,4,5,6,7,8
+History,scen,regionb,prefix|Emissions|BC|sector2|suffix,Mt BC/yr,4,5,6,7,8,9
+History,scen,World,prefix|Emissions|BC|sector1|suffix,Mt BC/yr,4,6,8,10,12,14
+History,scen,World,prefix|Emissions|BC|sector2|suffix,Mt BC/yr,6,8,10,12,14,16

@@ -30,10 +30,6 @@ def _read_data(indfs):
     numcols = [x for x in df.columns if isnum(x)]
     df[numcols] = df[numcols].astype(float)
 
-    if '2015' not in df.columns:
-        msg = 'Base year not found in model data. Existing columns are {}.'
-        raise ValueError(msg.format(df.columns))
-
     # some teams also don't provide standardized column names and styles
     df.columns = df.columns.str.capitalize()
 

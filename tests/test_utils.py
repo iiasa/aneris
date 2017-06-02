@@ -34,7 +34,6 @@ def test_region_agg_funky_name():
         'gas': ['BC'],
     }).set_index(utils.df_idx).sort_index()
     obs = utils.agg_regions(df, rfrom='y', rto='x', mapping=mapping)
-    print(obs)
     pdt.assert_frame_equal(obs, exp)
 
 
@@ -92,7 +91,7 @@ def test_formatter_to_template():
     df = pd.DataFrame({
         'Variable': [
             'CEDS+|9+ Sectors|Emissions|BC|foo|Unharmonized',
-            'Emissions|BC|bar|baz',
+            'CEDS+|9+ Sectors|Emissions|BC|bar|Unharmonized',
         ],
         'Region': ['a', 'b'],
         '2010': [5.0, 2.0],
@@ -101,7 +100,8 @@ def test_formatter_to_template():
         'Model': ['foo'] * 2,
         'Scenario': ['foo'] * 2,
     }).set_index(utils.iamc_idx)
-    fmt = utils.FormatTranslator(df)
+    fmt = utils.FormatTranslator(df, prefix='CEDS+|9+ Sectors',
+                                 suffix='Unharmonized')
     std = fmt.to_std()
     obs = fmt.to_template()
     exp = df.reindex_axis(obs.columns, axis=1)
@@ -111,11 +111,11 @@ def test_formatter_to_template():
 def combine_rows_df():
     df = pd.DataFrame({
         'sector': [
-            '1A1a_Electricity-autoproducer',
-            '1A1a_Electricity-public',
-            '1A1a_Electricity-autoproducer',
+            'sector1',
+            'sector2',
+            'sector1',
             'extra_b',
-            '1A1a_Electricity-autoproducer',
+            'sector1',
         ],
         'region': ['a', 'a', 'b', 'b', 'c'],
         '2010': [1.0, 4.0, 2.0, 21, 42],
@@ -130,10 +130,10 @@ def test_combine_rows_default():
     df = combine_rows_df()
     exp = pd.DataFrame({
         'sector': [
-            '1A1a_Electricity-autoproducer',
-            '1A1a_Electricity-public',
+            'sector1',
+            'sector2',
             'extra_b',
-            '1A1a_Electricity-autoproducer',
+            'sector1',
         ],
         'region': ['a', 'a', 'a', 'c'],
         '2010': [3.0, 4.0, 21, 42],
@@ -142,19 +142,22 @@ def test_combine_rows_default():
         'gas': ['BC'] * 4,
     }).set_index(utils.df_idx)
     obs = utils.combine_rows(df, 'region', 'a', ['b'])
-    pdt.assert_frame_equal(obs, exp.reindex_axis(obs.columns, axis=1))
+
+    exp = exp.reindex_axis(obs.columns, axis=1)
+    clean = lambda df: df.sort_index().reset_index()
+    pdt.assert_frame_equal(clean(obs), clean(exp))
 
 
 def test_combine_rows_dropothers():
     df = combine_rows_df()
     exp = pd.DataFrame({
         'sector': [
-            '1A1a_Electricity-autoproducer',
-            '1A1a_Electricity-public',
+            'sector1',
+            'sector2',
             'extra_b',
-            '1A1a_Electricity-autoproducer',
+            'sector1',
             'extra_b',
-            '1A1a_Electricity-autoproducer',
+            'sector1',
         ],
         'region': ['a', 'a', 'a', 'b', 'b', 'c'],
         '2010': [3.0, 4.0, 21, 2.0, 21, 42],
@@ -163,16 +166,19 @@ def test_combine_rows_dropothers():
         'gas': ['BC'] * 6,
     }).set_index(utils.df_idx)
     obs = utils.combine_rows(df, 'region', 'a', ['b'], dropothers=False)
-    pdt.assert_frame_equal(obs, exp.reindex_axis(obs.columns, axis=1))
+
+    exp = exp.reindex_axis(obs.columns, axis=1)
+    clean = lambda df: df.sort_index().reset_index()
+    pdt.assert_frame_equal(clean(obs), clean(exp))
 
 
 def test_combine_rows_sumall():
     df = combine_rows_df()
     exp = pd.DataFrame({
         'sector': [
-            '1A1a_Electricity-autoproducer',
+            'sector1',
             'extra_b',
-            '1A1a_Electricity-autoproducer',
+            'sector1',
         ],
         'region': ['a', 'a', 'c'],
         '2010': [2.0, 21, 42],
@@ -181,4 +187,7 @@ def test_combine_rows_sumall():
         'gas': ['BC'] * 3,
     }).set_index(utils.df_idx)
     obs = utils.combine_rows(df, 'region', 'a', ['b'], sumall=False)
-    pdt.assert_frame_equal(obs, exp.reindex_axis(obs.columns, axis=1))
+
+    exp = exp.reindex_axis(obs.columns, axis=1)
+    clean = lambda df: df.sort_index().reset_index()
+    pdt.assert_frame_equal(clean(obs), clean(exp))

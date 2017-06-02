@@ -100,13 +100,18 @@ class Harmonizer(object):
             data = pd.concat([data, df]).sort_index().loc[history.index]
             assert data.index.equals(history.index)
 
-        self.base_year = y = '2015'
-        cols = [x for x in utils.numcols(data) if int(x) >= int(y)]
+        key = 'harmonize_year'
+        # TODO type
+        self.base_year = str(config[key]) if key in config else '2015'
+        numcols = utils.numcols(data)
+        cols = [x for x in numcols if int(x) >= int(self.base_year)]
         self.data = data[cols]
-        self.model = pd.Series(index=self.data.index, name='2015').to_frame()
+        self.model = pd.Series(index=self.data.index,
+                               name=self.base_year).to_frame()
         self.history = history
         self.methods_used = None
-        self.offsets, self.ratios = harmonize_factors(self.data, self.history)
+        self.offsets, self.ratios = harmonize_factors(
+            self.data, self.history, self.base_year)
 
         key = 'default_luc_method'
         self.luc_method = config[key] if key in config else None
@@ -272,8 +277,8 @@ class _TrajectoryPreprocessor(object):
 
     def _downselect_var(self):
         # separate data
-        _log('Downselecting {} variables'.format('|'.join([self.prefix,
-                                                           self.suffix])))
+        select = '|'.join([self.prefix, self.suffix])
+        _log('Downselecting {} variables'.format(select))
 
         hasprefix = lambda df: df.Variable.str.startswith(self.prefix)
         hassuffix = lambda df: df.Variable.str.endswith(self.suffix)
@@ -284,9 +289,8 @@ class _TrajectoryPreprocessor(object):
         self.overrides = subset(self.overrides)
 
         if len(self.model) == 0:
-            msg = 'No CEDS Variables found for harmonization. '
-            'Searched for CEDS+|9+*|Unharmonized'
-            raise ValueError(msg)
+            msg = 'No Variables found for harmonization. Searched for {}.'
+            raise ValueError(msg.format(select))
         assert(len(self.hist) > 0)
 
     def _to_std(self):
@@ -392,10 +396,21 @@ class HarmonizationDriver(object):
         if len(model_names) > 1:
             raise ValueError('Can not have more than one model to harmonize')
         self.model_name = model_names[0]
-        self._xlator = utils.FormatTranslator()
+        self._xlator = utils.FormatTranslator(prefix=self.prefix,
+                                              suffix=self.suffix)
         self._model_dfs = []
         self._metadata_dfs = []
         self.exogenous_trajectories = self._exogenous_trajectories()
+
+        # TODO better type checking?
+        self.config['harmonize_year'] = str(self.config['harmonize_year'])
+        y = self.config['harmonize_year']
+        if y not in model.columns:
+            msg = 'Base year {} not found in model data. Existing columns are {}.'
+            raise ValueError(msg.format(y, model.columns))
+        if y not in hist.columns:
+            msg = 'Base year {} not found in hist data. Existing columns are {}.'
+            raise ValueError(y, msg.format(hist.columns))
 
     def _exogenous_trajectories(self):
         # add exogenous variables
@@ -458,12 +473,13 @@ class HarmonizationDriver(object):
         self._model, self._meta = _harmonize_regions(
             self.config, self.prefix, self.suffix, self.regions,
             self._hist, self._model.copy(), self._overrides,
-            self.add_5regions
+            self.config['harmonize_year'], self.add_5regions
         )
 
         # combine special case results with harmonized results
-        self._model = self._glb_model.combine_first(self._model)
-        self._meta = self._glb_meta.combine_first(self._meta)
+        if self._glb_model is not None:
+            self._model = self._glb_model.combine_first(self._model)
+            self._meta = self._glb_meta.combine_first(self._meta)
 
         # perform any automated diagnostics/analysis
         diagnostics(self._model, self._meta)
@@ -499,11 +515,16 @@ def _harmonize_global_total(config, prefix, suffix, hist, model, overrides):
     idx = (pd.IndexSlice['World', gases, sector],
            pd.IndexSlice[:])
     h = hist.loc[idx].copy()
+
     try:
         m = model.loc[idx].copy()
     except TypeError:
         _warn('Non-CEDS gases not found in model')
         return None, None
+
+    if m.empty:
+        return None, None
+
     # catch empty dfs if no global toatls are overriden
     if overrides is None:
         o = None
@@ -536,18 +557,23 @@ def _harmonize_global_total(config, prefix, suffix, hist, model, overrides):
 
 
 def _harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
-                       add_5regions):
+                       base_year, add_5regions):
+
     # clean model
-    model = utils.subtract_regions_from_world(model, 'model')
-    model = utils.remove_recalculated_sectors(model)
+    model = utils.subtract_regions_from_world(model, 'model', base_year)
+    model = utils.remove_recalculated_sectors(model, prefix, suffix)
     # remove rows with all 0s
     model = model[(model.T > 0).any()]
 
     # clean hist
-    hist = utils.subtract_regions_from_world(hist, 'hist')
-    hist = utils.remove_recalculated_sectors(hist)
+    hist = utils.subtract_regions_from_world(hist, 'hist', base_year)
+    hist = utils.remove_recalculated_sectors(hist, prefix, suffix)
     # remove rows with all 0s
     hist = hist[(hist.T > 0).any()]
+
+    if model.empty:
+        raise RuntimeError(
+            'Model is empty after downselecting regional values')
 
     # harmonize
     utils.check_null(model, 'model')
