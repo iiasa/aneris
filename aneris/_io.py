@@ -163,7 +163,7 @@ class RunControl(collections.Mapping):
 
     def _load_yaml(self, obj):
         check_rel_paths = False
-        if isinstance(obj, file):
+        if hasattr(obj, 'read'):  # it's a file
             obj = obj.read()
         if isstr(obj) and os.path.exists(obj):
             check_rel_paths = True
