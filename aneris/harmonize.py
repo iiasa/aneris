@@ -308,7 +308,7 @@ class _TrajectoryPreprocessor(object):
             .set_index(utils.df_idx)
             .sort_index()
         )
-        # override CEDS with special cases (e.g. primap)
+        # override with special cases if more are found in history
         self.hist = self.hist[~self.hist.index.duplicated(keep='last')]
 
         # hackery required because unit needed for df_idx
@@ -519,7 +519,7 @@ def _harmonize_global_total(config, prefix, suffix, hist, model, overrides):
     try:
         m = model.loc[idx].copy()
     except TypeError:
-        _warn('Non-CEDS gases not found in model')
+        _warn('Non-history gases not found in model')
         return None, None
 
     if m.empty:

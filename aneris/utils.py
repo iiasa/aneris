@@ -168,7 +168,6 @@ def remove_recalculated_sectors(df, prefix='', suffix=''):
     df = df.reset_index()
     # TODO: THIS IS A HACK, CURRENT GASES DEFINITION ASSUME IAMC NAMES
     gases = df.gas.isin(sector_gases + ['SO2', 'NOX'])
-    # TODO: 3 is CEDS specific!
     sepcount = 2 + prefix.count('|') + suffix.count('|')
     sectors = df.sector.apply(lambda x: len(x.split('|')) == sepcount)
     keep = ~(gases & sectors)
@@ -384,9 +383,7 @@ class EmissionsAggregator(object):
         self.scenario = scenario
         assert((self.df.units == 'kt').all())
 
-    # TODO: this is CEDS specific
-    def add_variables(self, totals=None, aggregates=True, ceds_types=None,
-                      ceds_number=None):
+    def add_variables(self, totals=None, aggregates=True):
         """Add aggregates and variables with direct mappings.
 
         Parameters
@@ -395,18 +392,11 @@ class EmissionsAggregator(object):
              sectors to compute totals for
         add_aggregates : bool, optional 
             whether to add aggregate variables
-        ceds_types: string or list, optional 
-            whether to add CEDS variables
-            type can take on any value, but usually is Historical or
-            Unharmonized
-
         """
         if totals is not None:
             self._add_totals(totals)
         if aggregates:
             self._add_aggregates()
-        if ceds_types is not None or ceds_number is not None:
-            self._add_ceds(ceds_types, ceds_number)
         return self
 
     def to_template(self, **kwargs):
@@ -445,53 +435,6 @@ class EmissionsAggregator(object):
             # add aggregate to rows
             subset = subset.groupby(df_idx).sum().reset_index()
             rows = rows.append(subset)
-
-        self.df = self.df.append(rows)
-
-    def _add_ceds(self, ceds_type=None, ceds_number=None):
-        ceds_type = ceds_type or ['Unharmonized']
-        ceds_number = ceds_number or ['9', '16']
-        if isstr(ceds_type):
-            ceds_type = [ceds_type]
-        if isstr(ceds_number):
-            ceds_number = [ceds_number]
-
-        # get mapping for all gases from iamc to full ceds sector name
-        mapping = pd_read(iamc_path('sector_mapping.xlsx'),
-                          sheetname='Sector_Mapping').iloc[:-1]  # get rid of count
-        cols = ['IAMC'] + ['CEDS_{}'.format(n) for n in ceds_number]
-        mapping = mapping[cols]
-
-        rows = pd.DataFrame(columns=self.df.columns)
-        for n, kind in itertools.product(ceds_number, ceds_type):
-            col = 'CEDS_{}'.format(n)
-            label = 'CEDS+|{}+ Sectors'.format(n)
-
-            # generate map for ceds sector level and variable type
-            _map = mapping[['IAMC', col]].dropna()
-            _map = _map.applymap(remove_emissions_prefix)
-            template = label + '|{}|' + kind
-            _map[col] = _map[col].apply(lambda x: template.format(x))
-            _map = _map.set_index('IAMC')[col]
-
-            # save total only gases for use later
-            totalonly = self.df[self.df.gas.isin(total_gases)]
-
-            # get subset in sector mapping, map sectors, and sum (to cover
-            # sectors with multiple mappings)
-            subset = self.df[self.df.sector.isin(_map.index)].copy()
-            subset['sector'] = subset.sector.map(_map)
-            subset = subset.groupby(df_idx).sum().reset_index()
-
-            # add totals
-            grp_idx = [x for x in df_idx if x != 'sector']
-            totals = subset.groupby(grp_idx).sum()
-            totals = totals.combine_first(totalonly.set_index(grp_idx))
-            totals = totals.reset_index()
-            totals['sector'] = label + '|' + kind
-
-            # combine
-            rows = rows.append(subset.append(totals))
 
         self.df = self.df.append(rows)
 
