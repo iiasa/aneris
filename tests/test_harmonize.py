@@ -14,7 +14,7 @@ _df = pd.DataFrame({
     'gas': ['BC'] * nvals,
     'region': ['a'] * nvals,
     'units': ['Mt'] * nvals,
-    'sector': ['bar', 'foo'] + list(range(nvals - 2)),
+    'sector': ['bar', 'foo'] + [str(x) for x in range(nvals - 2)],
     '2010': [2, 1, 9000, 9000, 9000, 9000],
     '2015': [3, 2, 0.51, 9000, 9000, -90],
     '2040': [4.5, 1.5, 9000, 9000, 9000, 9000],
@@ -27,7 +27,7 @@ _hist = pd.DataFrame({
     'gas': ['BC'] * nvals,
     'region': ['a'] * nvals,
     'units': ['Mt'] * nvals,
-    'sector': ['bar', 'foo'] + list(range(nvals - 2)),
+    'sector': ['bar', 'foo'] + [str(x) for x in range(nvals - 2)],
     '2010': [1., 0.34, 9000, 9000, 9000, 9000],
     '2015': [0.01, 1., 0.5, 2 * 8999. / 9, 3 * 8999., 8999.],
 }).set_index(utils.df_idx).sort_index()
