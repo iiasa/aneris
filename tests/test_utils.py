@@ -1,19 +1,17 @@
 import pandas as pd
 
-from numpy.testing import assert_almost_equal
-import nose.tools as nt
 import pandas.util.testing as pdt
 
 from aneris import utils
 
 
 def test_remove_emissions_prefix():
-    nt.assert_equal('foo', utils.remove_emissions_prefix('foo'))
-    nt.assert_equal('foo', utils.remove_emissions_prefix('Emissions|XXX|foo'))
-    nt.assert_equal('Emissions|bar|foo',
-                    utils.remove_emissions_prefix('Emissions|bar|foo'))
-    nt.assert_equal('foo', utils.remove_emissions_prefix(
-        'Emissions|bar|foo', gas='bar'))
+    assert 'foo' == utils.remove_emissions_prefix('foo')
+    assert 'foo' == utils.remove_emissions_prefix('Emissions|XXX|foo')
+    assert 'Emissions|bar|foo' == \
+        utils.remove_emissions_prefix('Emissions|bar|foo')
+    assert 'foo' == \
+        utils.remove_emissions_prefix('Emissions|bar|foo', gas='bar')
 
 
 def test_region_agg_funky_name():
@@ -102,7 +100,7 @@ def test_formatter_to_template():
     }).set_index(utils.iamc_idx)
     fmt = utils.FormatTranslator(df, prefix='CEDS+|9+ Sectors',
                                  suffix='Unharmonized')
-    std = fmt.to_std()
+    fmt.to_std()
     obs = fmt.to_template()
     exp = df.reindex_axis(obs.columns, axis=1)
     pdt.assert_frame_equal(obs, exp)

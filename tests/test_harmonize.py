@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 
-import nose.tools as nt
 import numpy.testing as npt
 import pandas.util.testing as pdt
 
