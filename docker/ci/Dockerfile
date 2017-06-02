@@ -1,6 +1,9 @@
 FROM gidden/aneris-base
 
 COPY . /aneris
-ADD http://data.ene.iiasa.ac.at/gidden/aneris_regression_data.tar.gz /aneris/tests
-RUN tar xvf /aneris/tests/aneris_regression_data.tar.gz -C /aneris/tests/ 
+RUN ls
+RUN wget -q -c --no-check-certificate http://data.ene.iiasa.ac.at/gidden/aneris_regression_data.tar.gz 
+RUN tar xvf aneris_regression_data.tar.gz -C /aneris/tests/ 
 WORKDIR /aneris
+RUN python2 setup.py install
+RUN python3 setup.py install

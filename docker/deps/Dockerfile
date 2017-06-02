@@ -27,3 +27,6 @@ RUN pip3 install \
     pyyaml
 
 RUN apt-get install -y --force-yes wget 
+
+RUN pip install xlsxwriter
+RUN pip3 install xlsxwriter
