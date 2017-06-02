@@ -37,7 +37,7 @@ def test_region_agg_funky_name():
 
 def test_no_repeat_gases():
     gases = utils.all_gases
-    assert_equal len(gases) == len(set(gases))
+    assert len(gases) == len(set(gases))
 
 
 def test_gases():
