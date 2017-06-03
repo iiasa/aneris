@@ -8,3 +8,5 @@ RUN tar xvf aneris_regression_data.tar.gz -C /aneris/tests/
 WORKDIR /aneris
 RUN python2 setup.py install
 RUN python3 setup.py install
+
+ENV COVERALLS_REPO_TOKEN uwv4564ZW7b6XGOEX4luJ9yummfqeUle1
