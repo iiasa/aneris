@@ -11,4 +11,4 @@ test:
       - docker run aneris/aneris:latest python2 -m pytest /aneris/tests --cov=aneris --cov-report term-missing --runslow 
       - docker run aneris/aneris:latest python3 -m pytest /aneris/tests --cov=aneris --cov-report term-missing --runslow
   post:
-      - coveralls
+      - docker run aneris/aneris:latest coveralls

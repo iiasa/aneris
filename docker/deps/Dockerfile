@@ -38,3 +38,4 @@ RUN pip3 install python-coveralls
 RUN pip install pytest-cov
 RUN pip3 install pytest-cov
 
+RUN apt-get install -y git
