@@ -1,11 +1,13 @@
 FROM ubuntu:16.04
 
 # get add-apt-repository
-RUN apt-get update 
-RUN apt-get install -y --force-yes wget 
-RUN apt-get install -y --force-yes software-properties-common python-software-properties
+RUN apt-get -qq update && apt-get install -y --force-yes \
+    wget \
+    software-properties-common \
+    python-software-properties \
+    python-pip \
+    python3-pip
 
-RUN apt-get install -y --force-yes python-pip
 RUN pip install argparse
 RUN pip install cython
 RUN pip install numpy
@@ -16,7 +18,6 @@ RUN pip install xlrd
 RUN pip install xlsxwriter
 RUN pip install python-coveralls
 
-RUN apt-get install -y --force-yes python3-pip 
 RUN pip3 install argparse
 RUN pip3 install cython
 RUN pip3 install numpy
