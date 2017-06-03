@@ -14,6 +14,7 @@ RUN pip install pytest
 RUN pip install pyyaml
 RUN pip install xlrd
 RUN pip install xlsxwriter
+RUN pip install python-coveralls
 
 RUN apt-get install -y --force-yes python3-pip 
 RUN pip3 install argparse
@@ -24,4 +25,5 @@ RUN pip3 install pytest
 RUN pip3 install pyyaml
 RUN pip3 install xlrd
 RUN pip3 install xlsxwriter
+RUN pip3 install python-coveralls
 

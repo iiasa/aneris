@@ -8,5 +8,7 @@ dependencies:
 
 test:
   override:
-      - docker run aneris/aneris:latest python2 -m pytest /aneris/tests
-      - docker run aneris/aneris:latest python3 -m pytest /aneris/tests
+      - docker run aneris/aneris:latest python2 -m pytest /aneris/tests --cov=aneris --cov-report --runslow 
+      - docker run aneris/aneris:latest python3 -m pytest /aneris/tests --cov=aneris --cov-report --runslow
+  post:
+      - coveralls
