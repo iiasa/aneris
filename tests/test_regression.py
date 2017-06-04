@@ -13,7 +13,14 @@ slow = pytest.mark.skipif(
 )
 
 
-class TestRegression():
+# This is a class that runs all tests through the harmonize CLI Note that it
+# uses the actual harmonize API rather than subprocessing the CLI because
+# coveralls does not pick up the lines covered in CLI calls when in a docker
+# container.
+#
+# I don't know why. I spent 4+ hours digging. I am done. I hope I never have to
+# worry about this again.
+class TestHarmonizeRegression():
 
     def _run(self, prefix, inf, checkf, reg='message.csv'):
         # path setup
