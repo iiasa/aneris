@@ -8,7 +8,8 @@ dependencies:
 
 test:
   override:
-      - docker run aneris/aneris:latest python2 -m pytest /aneris/tests --cov=aneris --cov-report term-missing --runslow 
+      # there is some extra rigamaroll in order to get the .coverage file back onto the host machine
+      - docker run -v $PWD:/aneris/transfer aneris/aneris:latest /bin/bash -c "python2 -m pytest /aneris/tests --cov=aneris && cp .coverage /aneris/transfer" 
       - docker run aneris/aneris:latest python3 -m pytest /aneris/tests --cov=aneris --cov-report term-missing --runslow
   post:
-      - docker run aneris/aneris:latest coveralls --base_dir /aneris
+      - coveralls

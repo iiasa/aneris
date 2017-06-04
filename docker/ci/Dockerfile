@@ -9,4 +9,8 @@ WORKDIR /aneris
 RUN python2 setup.py install
 RUN python3 setup.py install
 
+# this should probably be removed, but I'm lazy and tired
 ENV COVERALLS_REPO_TOKEN uwv4564ZW7b6XGOEX4luJ9yummfqeUle1
+
+# this is a directory for mounting and file transfer
+RUN mkdir /aneris/transfer
