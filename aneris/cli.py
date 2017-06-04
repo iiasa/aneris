@@ -8,7 +8,7 @@ import aneris
 from aneris.utils import hist_path, region_path, logger
 
 
-def main():
+def read_args():
     # construct parser
     descr = """
     Harmonize historical trajectories to data in the IAMC template format.
@@ -36,15 +36,11 @@ def main():
     output_prefix = 'Prefix to use for output file names.'
     parser.add_argument('--output_prefix', help=output_prefix, default=None)
 
-    # parse cli
     args = parser.parse_args()
-    inf = args.input_file
-    history = args.history
-    regions = args.regions
-    rc = args.rc
-    output_path = args.output_path
-    output_prefix = args.output_prefix
+    return args
 
+
+def harmonize(inf, history, regions, rc, output_path, output_prefix):
     # read input
     hist = aneris.pd_read(history)
     if hist.empty:
@@ -72,6 +68,15 @@ def main():
     fname = os.path.join(output_path, '{}_metadata.xlsx'.format(prefix))
     logger().info('Writing metadata to: {}'.format(fname))
     aneris.pd_write(metadata, fname)
+
+
+def main():
+    # parse cli
+    args = read_args()
+
+    # run program
+    harmonize(args.inf, args.history, args.regions,
+              args.rc, args.output_path, args.output_prefix)
 
 
 if __name__ == '__main__':

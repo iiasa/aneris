@@ -1,15 +1,12 @@
 import pytest
-import subprocess
 import os
 
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
 
+from aneris import cli
 
-here = os.path.join(os.path.dirname(os.path.realpath(__file__)))
-cmd = 'aneris {} --history {} --regions {} --rc {} --output_path {} --output_prefix test'
-
-
+# decorator for slow-running tests
 slow = pytest.mark.skipif(
     not pytest.config.getoption("--runslow"),
     reason="need --runslow option to run"
@@ -19,25 +16,28 @@ slow = pytest.mark.skipif(
 class TestRegression():
 
     def _run(self, prefix, inf, checkf, reg='message.csv'):
+        # path setup
+        here = os.path.join(os.path.dirname(os.path.realpath(__file__)))
         prefix = os.path.join(here, prefix)
         add_prefix = lambda f: os.path.join(prefix, f)
+
+        # get all arguments
         hist = add_prefix('history.csv')
         reg = add_prefix(reg)
         rc = add_prefix('aneris.yaml')
-
         inf = add_prefix(inf)
         outf = add_prefix('test_harmonized.xlsx')
         if os.path.exists(outf):
             os.remove(outf)
 
-        _cmd = cmd.format(inf, hist, reg, rc, prefix)
-        print(_cmd)
-        subprocess.check_call(_cmd.split())
+        # run
+        print(inf, hist, reg, rc, prefix, 'test')
+        cli.harmonize(inf, hist, reg, rc, prefix, 'test')
 
+        # test
         xfile = os.path.join(prefix, checkf)
         x = pd.read_excel(xfile, sheetname='data')
         y = pd.read_excel(outf, sheetname='data')
-
         assert_frame_equal(x, y)
 
     def test_basic_run(self):
