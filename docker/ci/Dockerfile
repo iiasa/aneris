@@ -6,3 +6,5 @@ RUN wget -q -c --no-check-certificate http://data.ene.iiasa.ac.at/gidden/aneris_
 RUN tar xvf aneris_regression_data.tar.gz -C /aneris/tests/ 
 
 WORKDIR /aneris
+RUN python2 setup.py install
+RUN python3 setup.py install

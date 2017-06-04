@@ -10,5 +10,5 @@ test:
   override:
       # run coveralls on the first go-around
       - echo $COVERALLS_REPO_TOKEN
-      - docker run -e COVERALLS_REPO_TOKEN aneris/aneris:latest /bin/bash -c "python2 setup.py install && cd tests && python2 -m pytest --cov=aneris --cov-report term-missing --runslow && coveralls" 
-      - docker run -e COVERALLS_REPO_TOKEN aneris/aneris:latest /bin/bash -c "python3 setup.py install && cd tests && python3 -m pytest --cov=aneris --cov-report term-missing --runslow"
+      - docker run -e COVERALLS_REPO_TOKEN aneris/aneris:latest /bin/bash -c "python2 -m pytest --cov=aneris --cov-report term-missing --runslow && coveralls" 
+      - docker run -e COVERALLS_REPO_TOKEN aneris/aneris:latest /bin/bash -c "python3 -m pytest --cov=aneris --cov-report term-missing --runslow"
