@@ -9,6 +9,26 @@
 
 Time to fill this out!
 
+Build the Docs
+--------------
+
+Requirements
+************
+
+0. `cloud_sptheme`
+0. `numpydoc`
+0. `nbsphinx`
+
+Build and Serve
+***************
+
+```
+$ cd doc
+$ make html
+```
+
+Then point you browser to `http://127.0.0.1:8000/`.
+
 License
 -------
 

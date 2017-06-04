@@ -13,7 +13,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   examples
+   tutorial.ipynb
    install
    cli
    config

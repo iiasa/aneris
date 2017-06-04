@@ -40,6 +40,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'cloud_sptheme.ext.table_styling',
     'numpydoc',
+    'nbsphinx',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

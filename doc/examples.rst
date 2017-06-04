@@ -1,4 +1,4 @@
 Examples
 ********
 
-foo
+- :ref:`Getting Started <_static/tutorial.ipynb>`
