@@ -9,5 +9,6 @@ dependencies:
 test:
   override:
       # run coveralls on the first go-around
-      - docker run aneris/aneris:latest /bin/bash -c "python2 -m pytest /aneris/tests --cov=aneris --cov-report term-missing --runslow && coveralls" 
+      - echo $COVERALLS_REPO_TOKEN
+      - docker run -e aneris/aneris:latest /bin/bash -c "python2 -m pytest /aneris/tests --cov=aneris --cov-report term-missing --runslow && coveralls" 
       - docker run aneris/aneris:latest python3 -m pytest /aneris/tests --cov=aneris --cov-report term-missing --runslow
