@@ -52,7 +52,10 @@ co2_eq_gases = [
 
 # gases reported in Mt of species
 mt_gases = [
+    # IAMC names
     'BC', 'CH4', 'CO2', 'CO', 'NOx', 'OC', 'Sulfur', 'NH3', 'VOC',
+    # non-IAMC names
+    'SO2', 'NOX', 'NMVOC',
 ]
 
 all_gases = sorted(kt_gases + co2_eq_gases + mt_gases)
@@ -65,6 +68,15 @@ harmonize_total_gases = ['N2O'] + total_gases
 
 # gases for which full sectoral breakdown is reported
 sector_gases = sorted(set(all_gases) - set(total_gases))
+
+# mapping for some gases whose names have changed recently
+# TODO: can we remove this?
+# TODO: should probably be a dictionary..
+std_to_iamc_gases = [
+    ('SO2', 'Sulfur'),
+    ('NOX', 'NOx'),
+    ('NMVOC', 'VOC'),
+]
 
 # mapping from gas name to name to use in units
 unit_gas_names = {
@@ -166,7 +178,7 @@ def remove_recalculated_sectors(df, prefix='', suffix=''):
     # harmonization
     df = df.reset_index()
     # TODO: THIS IS A HACK, CURRENT GASES DEFINITION ASSUME IAMC NAMES
-    gases = df.gas.isin(sector_gases + ['SO2', 'NOX'])
+    gases = df.gas.isin(sector_gases)
     sepcount = 2 + prefix.count('|') + suffix.count('|')
     sectors = df.sector.apply(lambda x: len(x.split('|')) == sepcount)
     keep = ~(gases & sectors)
@@ -580,11 +592,7 @@ class FormatTranslator(object):
 
     def _convert_gases(self, df, tostd=True):
         # std to template
-        convert = [
-            ('SO2', 'Sulfur'),
-            ('NOX', 'NOx'),
-            ('NMVOC', 'VOC'),
-        ]
+        convert = std_to_iamc_gases
 
         if tostd:  # template to std
             convert = [(t, s) for s, t in convert]
