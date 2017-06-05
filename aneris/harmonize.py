@@ -410,7 +410,7 @@ class HarmonizationDriver(object):
             raise ValueError(msg.format(y, model.columns))
         if y not in hist.columns:
             msg = 'Base year {} not found in hist data. Existing columns are {}.'
-            raise ValueError(y, msg.format(hist.columns))
+            raise ValueError(msg.format(y, hist.columns))
 
     def _exogenous_trajectories(self):
         # add exogenous variables

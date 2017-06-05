@@ -29,7 +29,7 @@ class TestHarmonizeRegression():
         add_prefix = lambda f: os.path.join(prefix, f)
 
         # get all arguments
-        hist = add_prefix('history.csv')
+        hist = add_prefix('history.xls')
         reg = add_prefix(reg)
         rc = add_prefix('aneris.yaml')
         inf = add_prefix(inf)
@@ -49,7 +49,7 @@ class TestHarmonizeRegression():
 
     def test_basic_run(self):
         prefix = 'test_data'
-        inf = 'model.xlsx'
+        inf = 'model.xls'
         checkf = 'test_basic_run.xlsx'
         self._run(prefix, inf, checkf, reg='regions.csv')
 

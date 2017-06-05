@@ -42,10 +42,10 @@ def read_args():
 
 def harmonize(inf, history, regions, rc, output_path, output_prefix):
     # read input
-    hist = aneris.pd_read(history)
+    hist = aneris.pd_read(history, str_cols=True)
     if hist.empty:
         raise ValueError('History file is empty')
-    regions = aneris.pd_read(regions)
+    regions = aneris.pd_read(regions, str_cols=True)
     if regions.empty:
         raise ValueError('Region definition is empty')
     model, overrides, config = aneris.read_excel(inf)
