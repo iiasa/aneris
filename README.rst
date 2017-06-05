@@ -14,7 +14,7 @@
     :target: https://coveralls.io/github/gidden/aneris?branch=master
 
 
-**Please note that :code:`aneris` is still in early developmental stages, thus all interfaces are subject to change.**
+**Please note that aneris is still in early developmental stages, thus all interfaces are subject to change.**
 
 Install
 -------
