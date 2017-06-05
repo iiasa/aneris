@@ -16,6 +16,11 @@
 
 **Please note that aneris is still in early developmental stages, thus all interfaces are subject to change.**
 
+Documentation
+-------------
+
+All documentation can be found at http://mattgidden.com/aneris
+
 Install
 -------
 
