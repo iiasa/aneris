@@ -26,19 +26,19 @@ Build the Docs
 Requirements
 ************
 
-0. `cloud_sptheme`
-0. `numpydoc`
-0. `nbsphinx`
-0. `sphinxcontrib-programoutput`
-0. `sphinxcontrib-exceltable`
+- `cloud_sptheme`
+- `numpydoc`
+- `nbsphinx`
+- `sphinxcontrib-programoutput`
+- `sphinxcontrib-exceltable`
 
 Build and Serve
 ***************
 
-```
-$ cd doc
-$ make html
-```
+.. code-block:: bash
+
+    cd doc
+    make html
 
 Then point you browser to `http://127.0.0.1:8000/`.
 
