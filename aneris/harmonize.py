@@ -83,7 +83,7 @@ class Harmonizer(object):
         history : pd.DataFrame
             history data in standard calculation format
         config : dict, optional
-            configuration dictionary (see <WEBSITE> for options)
+            configuration dictionary (see http://mattgidden.com/aneris/config.html for options)
         verify_indicies : bool, optional
             check indicies of data and history, provide warning message if 
             different

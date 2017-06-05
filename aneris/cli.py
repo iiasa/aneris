@@ -29,7 +29,7 @@ def read_args():
     regions = 'Mapping of country iso-codes to native regions.'
     parser.add_argument('--regions', help=regions,
                         default=region_path('message.csv'))
-    rc = 'Runcontrol YAML file (see <WEBSITE> for examples).'
+    rc = 'Runcontrol YAML file (see http://mattgidden.com/aneris/config.html for examples).'
     parser.add_argument('--rc', help=rc, default=None)
     output_path = 'Path to use for output file names.'
     parser.add_argument('--output_path', help=output_path, default='.')

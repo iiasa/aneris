@@ -217,7 +217,8 @@ def coeff_of_var(s):
 def default_methods(hist, model, base_year, luc_method=None):
     """Determine default harmonization methods to use.
 
-    See <WEBSITE> for a graphical description of the decision tree.
+    See http://mattgidden.com/aneris/theory.html#default-decision-tree for a
+    graphical description of the decision tree.
 
     Parameters
     ----------
@@ -236,6 +237,7 @@ def default_methods(hist, model, base_year, luc_method=None):
        default harmonization methods
     metadata : pd.DataFrame
        metadata regarding why each method was chosen
+
     """
     luc_method = luc_method or 'reduce_offset_2150_cov'
     y = str(base_year)
