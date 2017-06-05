@@ -3,10 +3,15 @@
 Install
 *******
 
+Via Pip
+~~~~~~~
+
+.. code-block:: bash
+
+    pip install -r aneris-iamc
+
 From Source
 ~~~~~~~~~~~
-
-Installing from source is as easy as
 
 .. code-block:: bash
 

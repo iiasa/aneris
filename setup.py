@@ -39,7 +39,7 @@ def main():
         ],
     }
     setup_kwargs = {
-        "name": "aneris",
+        "name": "aneris-iamc",
         "version": INFO['version'],
         "description": 'Harmonize Integrated Assessment Model Emissions '
         'Trajectories',
