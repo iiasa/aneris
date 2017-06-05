@@ -13,7 +13,9 @@
 .. image:: https://coveralls.io/repos/github/gidden/aneris/badge.svg?branch=master
     :target: https://coveralls.io/github/gidden/aneris?branch=master
 
-
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.802832.svg
+   :target: https://doi.org/10.5281/zenodo.802832
+   
 **Please note that aneris is still in early developmental stages, thus all interfaces are subject to change.**
 
 Documentation

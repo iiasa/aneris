@@ -16,7 +16,9 @@ Release v\ |version|.
 .. image:: https://coveralls.io/repos/github/gidden/aneris/badge.svg?branch=master
     :target: https://coveralls.io/github/gidden/aneris?branch=master
 
-
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.802832.svg
+   :target: https://doi.org/10.5281/zenodo.802832
+   
 **aneris** is a Python package and Command Line Interface (CLI) for
 harmonization of IAM results with historical data sources. Currently, emissions
 trajectories are supported.

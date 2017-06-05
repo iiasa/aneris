@@ -3,7 +3,8 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINXBUILD   = sphinx-autobuild
+SPHINXBUILD   = sphinx-build
+SPHINXAUTOBUILD   = sphinx-autobuild
 PAPER         =
 BUILDDIR      = build
 
@@ -18,6 +19,13 @@ PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
+
+# doc publishing variables
+DOCREPOURL      = git@github.com:gidden/gidden.github.io
+DOCREPODIR      = ~/personal/site
+DOCUPDATENAME   = aneris-docs
+DOCHTMLDIR      = $(DOCREPODIR)/aneris
+TMPDOCDIR       = $(DOCREPODIR)/.$(DOCUPDATENAME)tmpdocs
 
 .PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext
 
@@ -46,6 +54,7 @@ help:
 	@echo "  linkcheck  to check all external links for integrity"
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 	@echo "  serve      serve a local version of the website on the default port for SimpleHTTPServer"
+	@echo "  publish    publish docs to mattgidden.com"
 
 clean:
 	rm -rf $(BUILDDIR)/*
@@ -177,6 +186,11 @@ pseudoxml:
 	@echo
 	@echo "Build finished. The pseudo-XML files are in $(BUILDDIR)/pseudoxml."
 
+serve:
+	$(SPHINXAUTOBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	@echo
+	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
+
 publish:
 	@echo
 	@echo "Updating $(DOCHTMLDIR) with current documentation."
@@ -198,9 +212,3 @@ publish:
 
 html-publish: html publish
 .PHONY: html-publish
-
-serve: html
-	cd $(BUILDDIR)/html
-	@echo
-	@echo "Serving from $(BUILDDIR)/html."
-	python -m SimpleHTTPServer
