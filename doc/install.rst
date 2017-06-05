@@ -8,7 +8,7 @@ Via Pip
 
 .. code-block:: bash
 
-    pip install -r aneris-iamc
+    pip install aneris-iamc
 
 From Source
 ~~~~~~~~~~~
