@@ -22,14 +22,14 @@ slow = pytest.mark.skipif(
 # worry about this again.
 class TestHarmonizeRegression():
 
-    def _run(self, prefix, inf, checkf, reg='message.csv'):
+    def _run(self, prefix, inf, checkf, hist='history.csv', reg='message.csv'):
         # path setup
         here = os.path.join(os.path.dirname(os.path.realpath(__file__)))
         prefix = os.path.join(here, prefix)
         add_prefix = lambda f: os.path.join(prefix, f)
 
         # get all arguments
-        hist = add_prefix('history.xls')
+        hist = add_prefix(hist)
         reg = add_prefix(reg)
         rc = add_prefix('aneris.yaml')
         inf = add_prefix(inf)
@@ -51,7 +51,7 @@ class TestHarmonizeRegression():
         prefix = 'test_data'
         inf = 'model.xls'
         checkf = 'test_basic_run.xlsx'
-        self._run(prefix, inf, checkf, reg='regions.csv')
+        self._run(prefix, inf, checkf, hist='history.xls', reg='regions.csv')
 
     @slow
     def test_message_ref(self):
