@@ -43,6 +43,7 @@ extensions = [
     'nbsphinx',
     'sphinxcontrib.programoutput',
     'sphinxcontrib.exceltable',
+    'sphinx.ext.mathbase',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

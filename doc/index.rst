@@ -13,9 +13,10 @@ Documentation
 
    tutorial.ipynb
    install
-   cli
+   theory
    data
    config
+   cli
    api
 
 
