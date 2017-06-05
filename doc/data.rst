@@ -1,3 +1,5 @@
+.. _data:
+
 Data Model
 **********
 
@@ -29,12 +31,23 @@ names exactly**.
 Unharmonized IAM Data
 ~~~~~~~~~~~~~~~~~~~~~
 
-Data from IAMs is expected to be in the following format
+Data from IAMs is expected to be in the following format with a sheetname "data".
 
 .. exceltable:: Example Model Input
    :file: ../tests/test_data/model.xls
    :header: 1
    :selection: A1:I4
+
+If overrides are provided, they are expected to be in the following formay with
+a sheetname "harmonization".
+
+.. exceltable:: Example Harmonization Overrides
+   :file: ../tests/test_data/model.xls
+   :sheet: 1
+
+Additionally, configuration parameters (described in :ref:`config`) can be set
+by two columns titled "Configuration" and "Value" in the harmonization sheet.
+
 
 Historical Data
 ~~~~~~~~~~~~~~~
