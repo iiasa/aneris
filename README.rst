@@ -7,6 +7,10 @@
 .. image:: https://coveralls.io/repos/github/gidden/aneris/badge.svg?branch=master
     :target: https://coveralls.io/github/gidden/aneris?branch=master
 
+.. warning::
+
+    Please note that :code:`aneris` is still in early developmental stages, thus
+    all interfaces are subject to change.
 
 Install
 -------

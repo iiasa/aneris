@@ -3,6 +3,9 @@
 Python API
 ==========
 
+Please note that :code:`aneris` is still in early developmental stages, thus all
+interfaces are subject to change.
+
 Input/Output: :code:`aneris._io`
 --------------------------------
 
