@@ -8,16 +8,16 @@ IAM emissions trajectories.
 Documentation
 -------------
 
-Contents:
-
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    tutorial.ipynb
    install
    cli
+   data
    config
    api
+
 
 
 Get in touch
@@ -32,7 +32,7 @@ Get in touch
 License
 -------
 
-aneris is available under the open source `Apache License`__.
+aneris is available under the open source `Apache License`_.
 
-__ http://www.apache.org/licenses/LICENSE-2.0.html
+.. _Apache LIcense: http://www.apache.org/licenses/LICENSE-2.0.html
 

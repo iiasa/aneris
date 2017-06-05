@@ -7,6 +7,7 @@
 .. image:: https://coveralls.io/repos/github/gidden/aneris/badge.svg?branch=master
     :target: https://coveralls.io/github/gidden/aneris?branch=master
 
+
 Time to fill this out!
 
 Build the Docs
@@ -18,6 +19,8 @@ Requirements
 0. `cloud_sptheme`
 0. `numpydoc`
 0. `nbsphinx`
+0. `sphinxcontrib-programoutput`
+0. `sphinxcontrib-exceltable`
 
 Build and Serve
 ***************
