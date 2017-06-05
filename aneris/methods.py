@@ -198,7 +198,7 @@ def hist_zero(df, *args, **kwargs):
 def coeff_of_var(s):
     """Returns coefficient of variation of a Series 
 
-    .. math:: c_v =  \frac{\sigma(s^{\prime}(t))}{\mu(s^{\prime}(t))}
+    .. math:: c_v = \\frac{\\sigma(s^{\\prime}(t))}{\\mu(s^{\\prime}(t))}
 
     Parameters
     ----------

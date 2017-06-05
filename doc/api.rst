@@ -3,11 +3,28 @@
 Python API
 ==========
 
-Input/Output
-------------
+Input/Output: :code:`aneris._io`
+--------------------------------
 
+.. automodule:: aneris._io
+   :members:
+   :special-members:
 
+Harmonization: :code:`aneris.harmonize`
+---------------------------------------
 
-.. autoclass:: aneris.RunControl
-   :members: __init__, recursive_update
+.. automodule:: aneris.harmonize
+   :members:
 
+Methods: :code:`aneris.methods`
+-------------------------------
+
+.. automodule:: aneris.methods
+   :members:
+   
+
+Tools/Utilities: :code:`aneris.utils`
+-------------------------------------
+
+.. automodule:: aneris.utils
+   :members:
