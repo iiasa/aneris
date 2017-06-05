@@ -1,9 +1,10 @@
 
-aneris: Emissions Trajectory Harmonization for Integrated Assessment Models 
-===========================================================================
+aneris: Harmonization for Integrated Assessment Models 
+======================================================
 
-**aneris** is a Python package and Command Line Interface (CLI) for harmonizing
-IAM emissions trajectories.
+**aneris** is a Python package and Command Line Interface (CLI) for
+harmonization of IAM results with historical data sources. Currently, emissions
+trajectories are supported.
 
 Documentation
 -------------
