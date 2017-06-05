@@ -1,6 +1,12 @@
 `aneris` - Harmonization for IAMs
 =================================
 
+.. image:: https://img.shields.io/pypi/v/aneris-iamc.svg
+   :target: https://pypi.python.org/pypi/aneris-iamc/
+   
+.. image:: https://img.shields.io/pypi/l/aneris-iamc.svg
+    :target: https://pypi.python.org/pypi/aneris-iamc
+
 .. image:: https://circleci.com/gh/gidden/aneris.svg?style=shield&circle-token=:circle-token
     :target: https://circleci.com/gh/gidden/aneris
 
