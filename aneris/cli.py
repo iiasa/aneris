@@ -41,6 +41,12 @@ def read_args():
 
 
 def harmonize(inf, history, regions, rc, output_path, output_prefix):
+    # check files exist
+    check = [inf, history, regions, rc]
+    for f in check:
+        if f and not os.path.exists(f):
+            raise IOError('{} does not exist on the filesystem.'.format(f))
+
     # read input
     hist = aneris.pd_read(history, str_cols=True)
     if hist.empty:
@@ -56,7 +62,7 @@ def harmonize(inf, history, regions, rc, output_path, output_prefix):
     driver = aneris.HarmonizationDriver(rc, hist, model, overrides, regions)
     for scenario in driver.scenarios():
         driver.harmonize(scenario)
-    model, metadata = driver.harmonized_results()
+    model, metadata, diagnostics = driver.harmonized_results()
 
     # write to excel
     prefix = output_prefix or inf.split('.')[0]
@@ -69,13 +75,19 @@ def harmonize(inf, history, regions, rc, output_path, output_prefix):
     logger().info('Writing metadata to: {}'.format(fname))
     aneris.pd_write(metadata, fname)
 
+    # save data about harmonization
+    if not diagnostics.empty:
+        fname = os.path.join(output_path, '{}_diagnostics.xlsx'.format(prefix))
+        logger().info('Writing diagnostics to: {}'.format(fname))
+        aneris.pd_write(diagnostics, fname)
+
 
 def main():
     # parse cli
     args = read_args()
 
     # run program
-    harmonize(args.inf, args.history, args.regions,
+    harmonize(args.input_file, args.history, args.regions,
               args.rc, args.output_path, args.output_prefix)
 
 

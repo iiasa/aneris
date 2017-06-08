@@ -1,3 +1,6 @@
+from __future__ import division
+
+import numpy as np
 import pandas as pd
 
 from aneris import utils
@@ -400,6 +403,7 @@ class HarmonizationDriver(object):
                                               suffix=self.suffix)
         self._model_dfs = []
         self._metadata_dfs = []
+        self._diagnostic_dfs = []
         self.exogenous_trajectories = self._exogenous_trajectories()
 
         # TODO better type checking?
@@ -463,6 +467,8 @@ class HarmonizationDriver(object):
         self._hist, self._model, self._overrides = pp.process(
             scenario).results()
 
+        unharmonized = self._model.copy()
+
         # global only gases
         self._glb_model, self._glb_meta = _harmonize_global_total(
             self.config, self.prefix, self.suffix,
@@ -482,7 +488,7 @@ class HarmonizationDriver(object):
             self._meta = self._glb_meta.combine_first(self._meta)
 
         # perform any automated diagnostics/analysis
-        diagnostics(self._model, self._meta)
+        self._diag = diagnostics(unharmonized, self._model, self._meta)
 
         # collect metadata
         self._meta = self._meta.reset_index()
@@ -494,6 +500,7 @@ class HarmonizationDriver(object):
         # store results
         self._model_dfs.append(self._model)
         self._metadata_dfs.append(self._meta)
+        self._diagnostic_dfs.append(self._diag)
 
     def scenarios(self):
         """Return all known scenarios"""
@@ -506,6 +513,7 @@ class HarmonizationDriver(object):
         return (
             pd.concat(self._model_dfs),
             pd.concat(self._metadata_dfs),
+            pd.concat(self._diagnostic_dfs),
         )
 
 
@@ -631,7 +639,7 @@ def _harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
     return model, metadata
 
 
-def diagnostics(model, metadata):
+def diagnostics(unharmonized, model, metadata):
     """Provide warnings or throw errors based on harmonized model data and 
     metadata
 
@@ -644,6 +652,8 @@ def diagnostics(model, metadata):
 
     Parameters
     ----------
+    unharmonized : pd.DataFrame
+        unharmonized model data in standard calculation format
     model : pd.DataFrame
         harmonized model data in standard calculation format
     metadata : pd.DataFrame
@@ -673,6 +683,25 @@ def diagnostics(model, metadata):
         _warn('LARGE MISSING Values Found!!:\n {}'.format(report))
 
     #
+    # report on large medium an dlong-term differences
+    #
+    cols = utils.numcols(model)
+    report = model.copy()
+    mid, end = cols[len(cols) // 2 - 1], cols[-1]
+
+    bigmid = np.abs(model[mid] - unharmonized[mid]) / unharmonized[mid]
+    bigmid = bigmid[bigmid > 4.]
+    report['{}_diff'.format(mid)] = bigmid
+
+    bigend = np.abs(model[end] - unharmonized[end]) / unharmonized[end]
+    bigend = bigend[bigend > 2.]
+    report['{}_diff'.format(end)] = bigend
+
+    report = report.drop(cols, axis=1).dropna(how='all')
+    report['method'] = metadata.loc[report.index, 'method']
+    report = report[~report['method'].isin(['model_zero', np.nan])]
+
+    #
     # Detect non-negative CO2 emissions
     #
     m = model.reset_index()
@@ -683,3 +712,5 @@ def diagnostics(model, metadata):
         _warn(
             'Negative Emissions found for non-CO2 gases:\n {}'.format(neg))
         raise ValueError('Harmonization failed due to negative non-CO2 gases')
+
+    return report

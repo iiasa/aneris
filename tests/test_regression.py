@@ -47,9 +47,14 @@ class TestHarmonizeRegression():
         y = pd.read_excel(outf, sheetname='data')
         assert_frame_equal(x, y)
 
-        clean = [outf, add_prefix('test_metadata.xlsx')]
+        clean = [
+            outf,
+            add_prefix('test_metadata.xlsx'),
+            add_prefix('test_diagnostics.xlsx'),
+        ]
         for f in clean:
-            os.remove(f)
+            if os.path.exists(f):
+                os.remove(f)
 
     def test_basic_run(self):
         prefix = 'test_data'
