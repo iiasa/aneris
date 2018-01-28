@@ -3,11 +3,11 @@ from __future__ import print_function
 
 import glob
 import os
+import shutil
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import setup, Command, find_packages
+from setuptools.command.install import install
+
 
 # Thanks to http://patorjk.com/software/taag/
 logo = r"""
@@ -24,12 +24,29 @@ INFO = {
 }
 
 
+class Cmd(install):
+    """Custom clean command to tidy up the project root."""
+
+    def initialize_options(self):
+        install.initialize_options(self)
+
+    def finalize_options(self):
+        install.finalize_options(self)
+
+    def run(self):
+        install.run(self)
+        dirs = [
+            'aneris_iamc.egg-info'
+        ]
+        for d in dirs:
+            print('removing {}'.format(d))
+            shutil.rmtree(d)
+
+
 def main():
     print(logo)
 
-    packages = [
-        'aneris',
-    ]
+    packages = find_packages()
     pack_dir = {
         'aneris': 'aneris',
     }
@@ -37,6 +54,9 @@ def main():
         'console_scripts': [
             'aneris=aneris.cli:main',
         ],
+    }
+    cmdclass = {
+        'install': Cmd,
     }
     setup_kwargs = {
         "name": "aneris-iamc",
@@ -49,7 +69,7 @@ def main():
         "packages": packages,
         "package_dir": pack_dir,
         "entry_points": entry_points,
-        "zip_safe": False,
+        "cmdclass": cmdclass,
     }
     rtn = setup(**setup_kwargs)
 

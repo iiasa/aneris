@@ -1,5 +1,9 @@
 import os
-import urllib
+
+try:
+    from urllib.request import urlretrieve  # py3
+except ImportError:
+    from urllib import urlretrieve  # py2
 
 import aneris
 
@@ -29,8 +33,8 @@ def load_data(cache_dir=_default_cache_dir, cache=True,
 
     files = {
         'rc': 'aneris.yaml',
-        'hist': 'history.csv',
-        'model': 'model.xlsx',
+        'hist': 'history.xls',
+        'model': 'model.xls',
         'regions': 'regions.csv',
     }
     files = {k: os.path.join(longdir, f) for k, f in files.items()}
@@ -40,16 +44,18 @@ def load_data(cache_dir=_default_cache_dir, cache=True,
             fname = os.path.basename(localfile)
             url = '/'.join((github_url, 'raw', 'master',
                             'tests', 'test_data', fname))
-            urllib.urlretrieve(url, localfile)
+            urlretrieve(url, localfile)
 
     # read input
     hist = aneris.pd_read(files['hist'])
     if hist.empty:
         raise ValueError('History file is empty')
+    hist.columns = hist.columns.astype(str)  # make sure they're all strings
     regions = aneris.pd_read(files['regions'])
     if regions.empty:
         raise ValueError('Region definition is empty')
     model, overrides, config = aneris.read_excel(files['model'])
+    model.columns = model.columns.astype(str)  # make sure they're all strings
     rc = aneris.RunControl(rc=files['rc'])
     rc.recursive_update('config', config)
 
