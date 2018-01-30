@@ -451,9 +451,16 @@ class HarmonizationDriver(object):
         exog = exog[cols]
         self._model = pd.concat([self._model, exog])
 
-    def harmonize(self, scenario):
+    def harmonize(self, scenario, diagnostic_config=None):
         """Harmonize a given scneario. Get results from 
         aneris.harmonize.HarmonizationDriver.results()
+
+        Parameters
+        ----------
+        scenario : string
+            a scenario name listed in the model data
+        diagnostic_conifg: dictionary, optional
+            configuration for use in the aneris.diagnostics() function
         """
         # need to specify model and scenario in xlator to template
         self._hist = self.hist.copy()
@@ -488,7 +495,8 @@ class HarmonizationDriver(object):
             self._meta = self._glb_meta.combine_first(self._meta)
 
         # perform any automated diagnostics/analysis
-        self._diag = diagnostics(unharmonized, self._model, self._meta)
+        self._diag = diagnostics(
+            unharmonized, self._model, self._meta, config=diagnostic_config)
 
         # collect metadata
         self._meta = self._meta.reset_index()
@@ -639,7 +647,7 @@ def _harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
     return model, metadata
 
 
-def diagnostics(unharmonized, model, metadata):
+def diagnostics(unharmonized, model, metadata, config=None):
     """Provide warnings or throw errors based on harmonized model data and 
     metadata
 
@@ -658,7 +666,11 @@ def diagnostics(unharmonized, model, metadata):
         harmonized model data in standard calculation format
     metadata : pd.DataFrame
         harmonization metadata
+    config : dictionary, optional
+        ratio values to use in diagnostics, key options include 'mid' and 'end'. 
     """
+    config = config or {'mid': 4.0, 'end': 2.0}
+
     #
     # Detect Large Missing Values
     #
@@ -689,13 +701,15 @@ def diagnostics(unharmonized, model, metadata):
     report = model.copy()
     mid, end = cols[len(cols) // 2 - 1], cols[-1]
 
-    bigmid = np.abs(model[mid] - unharmonized[mid]) / unharmonized[mid]
-    bigmid = bigmid[bigmid > 4.]
-    report['{}_diff'.format(mid)] = bigmid
+    if 'mid' in config:
+        bigmid = np.abs(model[mid] - unharmonized[mid]) / unharmonized[mid]
+        bigmid = bigmid[bigmid > config['mid']]
+        report['{}_diff'.format(mid)] = bigmid
 
-    bigend = np.abs(model[end] - unharmonized[end]) / unharmonized[end]
-    bigend = bigend[bigend > 2.]
-    report['{}_diff'.format(end)] = bigend
+    if 'end' in config:
+        bigend = np.abs(model[end] - unharmonized[end]) / unharmonized[end]
+        bigend = bigend[bigend > config['end']]
+        report['{}_diff'.format(end)] = bigend
 
     report = report.drop(cols, axis=1).dropna(how='all')
     report['method'] = metadata.loc[report.index, 'method']
