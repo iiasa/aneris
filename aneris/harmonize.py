@@ -515,8 +515,8 @@ class HarmonizationDriver(object):
         return self.model['Scenario'].unique()
 
     def harmonized_results(self):
-        """Return 2-tuple of (pd.DataFrame of harmonized trajectories, 
-        pd.DataFrame of metadata)
+        """Return 3-tuple of (pd.DataFrame of harmonized trajectories, 
+        pd.DataFrame of metadata, and similar of diagnostic information)
         """
         return (
             pd.concat(self._model_dfs),

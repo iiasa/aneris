@@ -73,4 +73,4 @@ if __name__ == '__main__':
     model, hist, driver = load_data(cache=False)
     for scenario in driver.scenarios():
         driver.harmonize(scenario)
-    harmonized, metadata = driver.harmonized_results()
+    harmonized, metadata, diagnostics = driver.harmonized_results()
