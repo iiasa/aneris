@@ -430,7 +430,7 @@ class EmissionsAggregator(object):
 
     def _add_aggregates(self):
         mapping = pd_read(iamc_path('sector_mapping.xlsx'),
-                          sheetname='Aggregates')
+                          sheet_name='Aggregates')
         mapping = mapping.applymap(remove_emissions_prefix)
 
         rows = pd.DataFrame(columns=self.df.columns)

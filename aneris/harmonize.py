@@ -420,7 +420,7 @@ class HarmonizationDriver(object):
         # add exogenous variables
         dfs = []
         for fname in self.exog_files:
-            exog = pd_read(fname, sheetname='data')
+            exog = pd_read(fname, sheet_name='data')
             exog.columns = [str(x) for x in exog.columns]
             exog['Model'] = self.model_name
             dfs.append(exog)
