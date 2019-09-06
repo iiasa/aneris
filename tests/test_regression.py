@@ -43,8 +43,8 @@ class TestHarmonizeRegression():
 
         # test
         xfile = os.path.join(prefix, checkf)
-        x = pd.read_excel(xfile, sheetname='data')
-        y = pd.read_excel(outf, sheetname='data')
+        x = pd.read_excel(xfile, sheet_name='data')
+        y = pd.read_excel(outf, sheet_name='data')
         assert_frame_equal(x, y)
 
         clean = [

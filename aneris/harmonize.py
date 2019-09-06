@@ -550,10 +550,9 @@ def _harmonize_global_total(config, prefix, suffix, hist, model, overrides):
             gases = gases if len(gases) > 1 else gases[0]
         except IndexError:  # thrown if no harmonize_total_gases
             o = None
-        idx = (pd.IndexSlice['World', gases, sector],
-               pd.IndexSlice[:])
+        idx = ('World', gases, sector)
         try:
-            o = overrides.loc[idx].copy()
+            o = overrides.xs(idx, drop_level=False).copy()
         except TypeError:  # thrown if gases not
             o = None
 
