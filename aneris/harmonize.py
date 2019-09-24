@@ -466,10 +466,11 @@ class HarmonizationDriver(object):
         self._hist = self.hist.copy()
         self._model = self.model.copy()
         self._overrides = self.overrides.copy()
+        self._regions = self.regions.copy()
 
         # preprocess
         pp = _TrajectoryPreprocessor(self._hist, self._model, self._overrides,
-                                     self.regions, self.prefix, self.suffix)
+                                     self._regions, self.prefix, self.suffix)
         # TODO, preprocess in init, just process here
         self._hist, self._model, self._overrides = pp.process(
             scenario).results()
@@ -484,7 +485,7 @@ class HarmonizationDriver(object):
 
         # regional gases
         self._model, self._meta = _harmonize_regions(
-            self.config, self.prefix, self.suffix, self.regions,
+            self.config, self.prefix, self.suffix, self._regions,
             self._hist, self._model.copy(), self._overrides,
             self.config['harmonize_year'], self.add_5regions
         )
@@ -525,6 +526,22 @@ class HarmonizationDriver(object):
         )
 
 
+def _get_global_overrides(overrides, gases, sector):
+    # None if no overlap with gases
+    if overrides is None:
+        return None
+    gases = overrides.index.get_level_values('gas').intersection(gases)
+    gases = list(set(gases))  # single instance for each gas
+    if len(gases) == 0:
+        return None
+
+    # None if no overlap with gas & region
+    try:
+        return overrides.loc[('World', gases, sector)].copy()
+    except TypeError:
+        return None
+
+
 def _harmonize_global_total(config, prefix, suffix, hist, model, overrides):
     gases = utils.harmonize_total_gases
     sector = '|'.join([prefix, suffix])
@@ -541,16 +558,8 @@ def _harmonize_global_total(config, prefix, suffix, hist, model, overrides):
     if m.empty:
         return None, None
 
-    # catch empty dfs if no global toatls are overriden
-    if overrides is None:
-        o = None
-    else:
-        gases = overrides.index.get_level_values('gas').intersection(gases)
-        gases = list(set(gases))  # single instance for each gas
-        try:
-            o = overrides.loc[('World', gases, sector)].copy()
-        except KeyError:  # thrown if index not found
-            o = None
+    # match override methods with global gases, None if no match
+    o = _get_global_overrides(overrides, gases, sector)
 
     utils.check_null(m, 'model')
     utils.check_null(h, 'hist', fail=True)
