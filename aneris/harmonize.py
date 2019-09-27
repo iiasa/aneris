@@ -535,11 +535,20 @@ def _get_global_overrides(overrides, gases, sector):
     if len(gases) == 0:
         return None
 
-    # None if no overlap with gas & region
-    try:
-        return overrides.loc[('World', gases, sector)].copy()
-    except TypeError:
+    # This tried to be fancy with multi index slicing at one point, but caused
+    # too much trouble. Now it is just done brute force.
+
+    # Downselect overrides that match global gas values
+    o = overrides
+    idx = o.index.names
+    o = o.reset_index()
+    o = o[o.region == 'World']
+    o = o[o.sector == sector]
+    o = o[o.gas.isin(gases)]
+    if o.empty:
         return None
+    else:
+        return o.set_index(idx)['method']
 
 
 def _harmonize_global_total(config, prefix, suffix, hist, model, overrides):
