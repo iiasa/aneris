@@ -4,19 +4,35 @@ aneris: Harmonization for Integrated Assessment Models
 
 Release v\ |version|.
 
-.. image:: https://img.shields.io/pypi/v/aneris-iamc.svg
+|pypi| |conda| |license| |latest|
+
+|rtd| |travis| |coveralls|
+
+|doi|
+
+.. |pypi| image:: https://img.shields.io/pypi/v/aneris-iamc.svg
    :target: https://pypi.python.org/pypi/aneris-iamc/
-   
-.. image:: https://img.shields.io/pypi/l/aneris-iamc.svg
-    :target: https://pypi.python.org/pypi/aneris-iamc
 
-.. image:: https://circleci.com/gh/gidden/aneris.svg?style=shield&circle-token=:circle-token
-    :target: https://circleci.com/gh/gidden/aneris
+.. |conda| image:: https://anaconda.org/conda-forge/aneris/badges/version.svg
+   :target: https://anaconda.org/conda-forge/aneris
 
-.. image:: https://coveralls.io/repos/github/gidden/aneris/badge.svg?branch=master
-    :target: https://coveralls.io/github/gidden/aneris?branch=master
+.. |license| image:: https://anaconda.org/conda-forge/aneris/badges/license.svg
+   :target: https://anaconda.org/conda-forge/aneris
 
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.802832.svg
+.. |latest| image:: https://anaconda.org/conda-forge/aneris/badges/latest_release_date.svg
+   :target: https://anaconda.org/conda-forge/aneris
+
+.. |rtd| image:: https://readthedocs.org/projects/aneris-iamc/badge/?version=latest
+   :target: https://aneris-iamc.readthedocs.io/en/latest/?badge=latest
+   :alt: Documentation Status
+
+.. |travis| image:: https://travis-ci.org/iiasa/aneris.svg?branch=master
+   :target: https://travis-ci.org/iiasa/aneris
+
+.. |coveralls| image:: https://coveralls.io/repos/github/iiasa/aneris/badge.svg?branch=master
+   :target: https://coveralls.io/github/iiasa/aneris?branch=master
+
+.. |doi| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.802832.svg
    :target: https://doi.org/10.5281/zenodo.802832
    
 **aneris** is a Python package and Command Line Interface (CLI) for
