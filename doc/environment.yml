@@ -1,4 +1,4 @@
-name: aneris-docs
+name: testing
 dependencies:
   - numpy
   - pandas
