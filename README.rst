@@ -21,7 +21,7 @@
 Documentation
 -------------
 
-All documentation can be found at http://mattgidden.com/aneris
+All documentation can be found at https://pyam-iamc.readthedocs.io/
 
 Install
 -------
