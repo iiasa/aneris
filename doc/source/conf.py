@@ -42,6 +42,7 @@ extensions = [
     'cloud_sptheme.ext.table_styling',
     'numpydoc',
     'nbsphinx',
+    'sphinxcontrib.bibtex',
     'sphinxcontrib.programoutput',
     'sphinxcontrib.exceltable',
     'sphinx.ext.mathbase',
