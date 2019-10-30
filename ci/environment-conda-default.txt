@@ -5,4 +5,4 @@ xlrd
 xlsxwriter
 pytest
 jupyter
-nbconvert
+nbconvert==5.4.1
