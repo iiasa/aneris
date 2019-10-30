@@ -3,6 +3,13 @@
 Install
 *******
 
+Via Conda (installs depedencies for you)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+    conda install -c conda-forge aneris
+
 Via Pip
 ~~~~~~~
 
@@ -10,18 +17,18 @@ Via Pip
 
     pip install aneris-iamc
 
-From Source
-~~~~~~~~~~~
+From Source (`master branch)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
-    pip install -r requirements.txt && python setup.py install
+    pip install git+https://github.com/iiasa/aneris.git
 
 Depedencies
 ~~~~~~~~~~~
 
 The depedencies for :code:`aneris` are:
 
-  .. include:: ../requirements.txt
-	  :start-line: 1
+  .. include:: ../../ci/environment-conda-default.txt
+	  :start-line: 0
 	  :literal:
