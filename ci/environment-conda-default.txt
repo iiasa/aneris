@@ -3,6 +3,8 @@ pandas
 pyyaml
 xlrd
 xlsxwriter
+matplotlib
+seaborn
 pytest
 jupyter
 nbconvert==5.4.1

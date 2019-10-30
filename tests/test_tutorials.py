@@ -18,7 +18,6 @@ def _notebook_run(path, kernel=None, capsys=None):
     """Execute a notebook via nbconvert and collect output.
     :returns (parsed nb object, execution errors)
     """
-    print(path)
     assert os.path.exists(path)
     major_version = sys.version_info[0]
     kernel = kernel or 'python{}'.format(major_version)
