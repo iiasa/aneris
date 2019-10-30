@@ -62,23 +62,12 @@ class TestHarmonizeRegression():
         checkf = 'test_basic_run.xlsx'
         self._run(prefix, inf, checkf, hist='history.xls', reg='regions.csv')
 
-    @slow
-    def test_message_ref(self):
-        prefix = 'regression_data'
-        inf = 'MESSAGE-GLOBIOM_SSP2-Ref-SPA0-V25_unharmonized.xlsx'
-        checkf = 'test_regress_ssp2_ref.xlsx'
-        self._run(prefix, inf, checkf)
-
-    @slow
-    def test_message_no_sheet(self):
-        prefix = 'regression_data'
-        inf = 'no_sheet.xlsx'
-        checkf = 'test_regress_ssp2_no_sheet.xlsx'
-        self._run(prefix, inf, checkf)
-
-    @slow
-    def test_message_empty_sheet(self):
-        prefix = 'regression_data'
-        inf = 'empty_sheet.xlsx'
-        checkf = 'test_regress_ssp2_empty_sheet.xlsx'
-        self._run(prefix, inf, checkf)
+    # there were a number of these tests. I now no longer know where the regression files exist.
+    # the best option here is to use a token on CI to test this by downloading an existing file.
+    #
+    # @slow
+    # def test_message_ref(self):
+    #     prefix = 'regression_data'
+    #     inf = 'MESSAGE-GLOBIOM_SSP2-Ref-SPA0-V25_unharmonized.xlsx'
+    #     checkf = 'test_regress_ssp2_ref.xlsx'
+    #     self._run(prefix, inf, checkf)
