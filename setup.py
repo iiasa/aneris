@@ -4,9 +4,10 @@ from __future__ import print_function
 import glob
 import os
 import shutil
+import versioneer
 
-from setuptools import setup, Command, find_packages
-from setuptools.command.install import install
+from setuptools import setup, Command
+from subprocess import call
 
 
 # Thanks to http://patorjk.com/software/taag/
@@ -19,57 +20,80 @@ logo = r"""
 /__/     \__\ |__| \__| |_______|| _| `._____||__| |_______/    
 """
 
-INFO = {
-    'version': '0.1.0',
+REQUIREMENTS = [
+    'argparse',
+    'numpy',
+    'pandas>0.24',
+    'PyYAML',
+    'xlrd',
+    'xlsxwriter',
+    'matplotlib',
+]
+
+EXTRA_REQUIREMENTS = {
+    'tests': ['coverage', 'coveralls', 'pytest', 'pytest-cov', 'pytest-mpl'],
+    'deploy': ['twine', 'setuptools', 'wheel'],
 }
 
 
-class Cmd(install):
-    """Custom clean command to tidy up the project root."""
+# thank you https://stormpath.com/blog/building-simple-cli-interfaces-in-python
+class RunTests(Command):
+    """Run all tests."""
+    description = 'run tests'
+    user_options = []
 
     def initialize_options(self):
-        install.initialize_options(self)
+        pass
 
     def finalize_options(self):
-        install.finalize_options(self)
+        pass
 
     def run(self):
-        install.run(self)
-        dirs = [
-            'aneris_iamc.egg-info'
-        ]
-        for d in dirs:
-            print('removing {}'.format(d))
-            shutil.rmtree(d)
+        """Run all tests!"""
+        errno = call(['py.test', '--cov=skele', '--cov-report=term-missing'])
+        raise SystemExit(errno)
+
+
+CMDCLASS = versioneer.get_cmdclass()
+CMDCLASS.update({'test': RunTests})
 
 
 def main():
     print(logo)
-
-    packages = find_packages()
+    classifiers = [
+        'License :: OSI Approved :: Apache Software License',
+    ]
+    packages = [
+        'aneris',
+    ]
     pack_dir = {
         'aneris': 'aneris',
     }
     entry_points = {
         'console_scripts': [
+            # list CLIs here
             'aneris=aneris.cli:main',
         ],
     }
-    cmdclass = {
-        'install': Cmd,
-    }
+    install_requirements = REQUIREMENTS
+    extra_requirements = EXTRA_REQUIREMENTS
     setup_kwargs = {
         "name": "aneris-iamc",
-        "version": INFO['version'],
+        'version': versioneer.get_version(),
         "description": 'Harmonize Integrated Assessment Model Emissions '
         'Trajectories',
         "author": 'Matthew Gidden',
         "author_email": 'matthew.gidden@gmail.com',
-        "url": 'http://github.com/gidden/aneris',
-        "packages": packages,
-        "package_dir": pack_dir,
-        "entry_points": entry_points,
-        "cmdclass": cmdclass,
+        "url": 'http://github.com/iiasa/aneris',
+        'cmdclass': CMDCLASS,
+        'classifiers': classifiers,
+        'license': 'Apache License 2.0',
+        'packages': packages,
+        'package_dir': pack_dir,
+        'entry_points': entry_points,
+        'package_data': package_data,
+        'install_requires': install_requirements,
+        'extras_require': extra_requirements,
     }
     rtn = setup(**setup_kwargs)
 
