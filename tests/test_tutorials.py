@@ -8,7 +8,7 @@ import pytest
 import jupyter
 
 here = os.path.dirname(os.path.realpath(__file__))
-tut_path = os.path.join(here, '..', '..', 'doc')
+tut_path = os.path.join(here, '..', 'doc', 'source')
 
 # taken from the execellent example here:
 # https://blog.thedataincubator.com/2016/06/testing-jupyter-notebooks/
@@ -18,6 +18,7 @@ def _notebook_run(path, kernel=None, capsys=None):
     """Execute a notebook via nbconvert and collect output.
     :returns (parsed nb object, execution errors)
     """
+    print(path)
     assert os.path.exists(path)
     major_version = sys.version_info[0]
     kernel = kernel or 'python{}'.format(major_version)
