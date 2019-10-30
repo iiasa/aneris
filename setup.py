@@ -75,6 +75,10 @@ def main():
             'aneris=aneris.cli:main',
         ],
     }
+    package_data = {
+        # add explicit data files here
+        # 'aneris': [],
+    }
     install_requirements = REQUIREMENTS
     extra_requirements = EXTRA_REQUIREMENTS
     setup_kwargs = {
