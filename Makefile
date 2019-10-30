@@ -89,7 +89,7 @@ $(VENV_DIR):  $(CI_ENVIRONMENT_CONDA_DEFAULT_FILE) $(CI_ENVIRONMENT_CONDA_FORGE_
 	# Install development setup
 	$(VENV_DIR)/bin/pip install -e .[tests,deploy]
 	# install docs requirements
-	cd doc; $(VENV_DIR)/bin/pip install -r requirements.txt
+	$(CONDA_EXE) env update --file doc/environment.yml
 	touch $(VENV_DIR)
 
 .PHONY: release-on-conda
