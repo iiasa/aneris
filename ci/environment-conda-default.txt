@@ -3,3 +3,6 @@ pandas
 pyyaml
 xlrd
 xlsxwriter
+pytest
+jupyter
+nbconvert

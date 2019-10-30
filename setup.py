@@ -31,7 +31,7 @@ REQUIREMENTS = [
 ]
 
 EXTRA_REQUIREMENTS = {
-    'tests': ['coverage', 'coveralls', 'pytest', 'pytest-cov', 'pytest-mpl'],
+    'tests': ['pytest', 'coverage', 'coveralls', 'pytest', 'pytest-cov'],
     'deploy': ['twine', 'setuptools', 'wheel'],
 }
 
