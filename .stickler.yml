@@ -9,3 +9,5 @@ linters:
 files:
   ignore:
     - doc/**/*.py
+  shellcheck:
+    shell: bash
