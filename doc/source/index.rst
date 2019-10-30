@@ -35,9 +35,9 @@ Release v\ |version|.
 .. |doi| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.802832.svg
    :target: https://doi.org/10.5281/zenodo.802832
    
-**aneris** is a Python package and Command Line Interface (CLI) for
-harmonization of IAM results with historical data sources. Currently, emissions
-trajectories are supported.
+The open-source Python package |aneris| :cite:`Gidden:2019:aneris` is a library
+and Command Line Interface (CLI) for harmonization of IAM results with
+historical data sources. Currently, emissions trajectories are supported.
 
 Documentation
 -------------
@@ -71,3 +71,10 @@ aneris is available under the open source `Apache License`_.
 
 .. _Apache LIcense: http://www.apache.org/licenses/LICENSE-2.0.html
 
+
+Scientific reference
+--------------------
+
+.. bibliography:: _bib/index.bib
+   :style: plain
+   :all:
