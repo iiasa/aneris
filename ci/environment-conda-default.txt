@@ -7,4 +7,4 @@ matplotlib
 seaborn
 pytest
 jupyter
-nbconvert==5.4.1
+nbconvert
