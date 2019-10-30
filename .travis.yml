@@ -27,7 +27,6 @@ before_install:
   - conda create -n testing python=$PYVERSION --yes
   - source activate testing
   - make -B virtual-environment
-  - sphinx-build -h
 
 install:
   - make install

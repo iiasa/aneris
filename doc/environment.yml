@@ -7,9 +7,8 @@ dependencies:
   - xlsxwriter
   - matplotlib
   - seaborn
-  - sphinx
-  - pip
   - pip:
+    - sphinx
     - sphinxcontrib-exceltable
     - sphinxcontrib-bibtex
     - sphinxcontrib-fulltoc
