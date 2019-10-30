@@ -67,13 +67,9 @@ publish-on-pypi: $(VENV_DIR)  ## publish release on PyPI
 		echo run git status --porcelain to find dirty files >&2; \
 	fi;
 
-.PHONY: regenerate-test-figures
-regenerate-test-figures: $(VENV_DIR)  ## re-generate all test figures
-	$(VENV_DIR)/bin/pytest --mpl-generate-path=tests/expected_figs tests/test_plotting.py
-
 .PHONY: test
 test: $(VENV_DIR)  ## run all the tests
-	cd tests; $(VENV_DIR)/bin/pytest --mpl --cov=aneris --cov-config ../ci/.coveragerc -rfsxEX --cov-report term-missing
+	cd tests; $(VENV_DIR)/bin/pytest --cov=aneris --cov-config ../ci/.coveragerc -rfsxEX --cov-report term-missing
 
 .PHONY: install
 install: $(VENV_DIR)  ## install aneris in virtual env
