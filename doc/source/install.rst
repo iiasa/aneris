@@ -17,8 +17,8 @@ Via Pip
 
     pip install aneris-iamc
 
-From Source (`master branch)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+From Source
+~~~~~~~~~~~
 
 .. code-block:: bash
 

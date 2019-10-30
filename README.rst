@@ -33,7 +33,9 @@ Installing from source is as easy as
 
 .. code-block:: bash
 
-    pip install -r requirements.txt && python setup.py install
+    python setup.py install
+
+See required dependencies via the online documentation.
 
 Build the Docs
 --------------
@@ -41,11 +43,7 @@ Build the Docs
 Requirements
 ************
 
-- `cloud_sptheme`
-- `numpydoc`
-- `nbsphinx`
-- `sphinxcontrib-programoutput`
-- `sphinxcontrib-exceltable`
+See `doc/environment.yml`
 
 Build and Serve
 ***************
