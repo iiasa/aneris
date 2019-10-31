@@ -29,6 +29,4 @@ Depedencies
 
 The depedencies for :code:`aneris` are:
 
-  .. include:: ../../ci/environment-conda-default.txt
-	  :start-line: 0
-	  :literal:
+  .. program-output:: python -c 'import sys, os; sys.path.append("../.."); import setup; print("\n".join([r for r in setup.REQUIREMENTS]))'
