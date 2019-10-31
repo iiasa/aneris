@@ -33,6 +33,7 @@ script:
   - python -c "import sys; print(sys.version)"
   - python -c "import os, sys; assert os.environ['PYVERSION'] == '.'.join([sys.version[0], sys.version[2]])"
   - make test
+  - echo "${ANERIS_CI_USER}"
   - cd tests/ci
   - if [[ ! -z "${ANERIS_CI_USER}" ]]; then echo "hi" && ./run_on_ci.sh; fi
   - cd ../..
