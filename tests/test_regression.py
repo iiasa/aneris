@@ -1,7 +1,9 @@
 import pytest
 import os
+import shutil
 
 import pandas as pd
+
 from pandas.util.testing import assert_frame_equal
 from os.path import join
 
@@ -21,7 +23,7 @@ ci_path = join(here, 'ci')
 
 class TestHarmonizeRegression():
 
-    def _run(self, inf, checkf, hist, reg, rc, outf, prefix, skip_if_missing=True):
+    def _run(self, inf, checkf, hist, reg, rc, outf, prefix):
         # path setup
         prefix = join(here, prefix)
         hist = join(prefix, hist)
@@ -29,9 +31,6 @@ class TestHarmonizeRegression():
         rc = join(prefix, rc)
         inf = join(prefix, inf)
         outf = join(prefix, outf)
-
-        if skip_if_missing and not os.path.exists(inf):
-            pytest.skip('Expected file does not exist: {}'.format(inf))
 
         if os.path.exists(outf):
             os.remove(outf)
@@ -66,8 +65,7 @@ class TestHarmonizeRegression():
         outf = 'test_harmonized.xlsx'
 
         # get all arguments
-        self._run(inf, checkf, hist, reg, rc, outf, prefix,
-                  skip_if_missing=False)
+        self._run(inf, checkf, hist, reg, rc, outf, prefix)
 
     #
     # the following are run only on CI, this should be parameterized in the
@@ -83,10 +81,15 @@ class TestHarmonizeRegression():
         inf = 'inputfile.xlsx'
         outf = 'obs.xlsx'
 
+        # TODO, this need to be activated ONLY if not actually on CI
+        # IE, adding an option here to declare if its expected
+        if not os.path.exists(join(ci_path, hist):
+            pytest.skip('Not on CI (expected files missing)')
+
         # copy needed files
         for fname in [hist, rc, checkf]:
-            src = join(ci_path, fname)
-            dst = join(prefix, fname)
+            src=join(ci_path, fname)
+            dst=join(prefix, fname)
             shutil.copyfile(src, dst)
 
         # get all arguments
@@ -94,10 +97,10 @@ class TestHarmonizeRegression():
 
     def test_msg(self):
         # file setup
-        name = 'msg'
+        name='msg'
         self._run_ci(name)
 
     def test_gcam(self):
         # file setup
-        name = 'gcam'
+        name='gcam'
         self._run_ci(name)
