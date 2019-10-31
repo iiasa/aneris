@@ -1,0 +1,2 @@
+include versioneer.py
+include aneris/_version.py

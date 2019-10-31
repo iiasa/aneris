@@ -19,7 +19,7 @@ def _warn(msg, *args, **kwargs):
 
 
 class Harmonizer(object):
-    """A class used to harmonize model data to historical data in the 
+    """A class used to harmonize model data to historical data in the
     standard calculation format
     """
     # WARNING: it is not possible to programmatically do the offset methods
@@ -88,7 +88,7 @@ class Harmonizer(object):
         config : dict, optional
             configuration dictionary (see http://mattgidden.com/aneris/config.html for options)
         verify_indicies : bool, optional
-            check indicies of data and history, provide warning message if 
+            check indicies of data and history, provide warning message if
             different
         """
         if not isinstance(data.index, pd.MultiIndex):
@@ -188,7 +188,7 @@ class Harmonizer(object):
         return model
 
     def methods(self, overrides=None):
-        """Return pd.DataFrame of methods to use for harmonization given 
+        """Return pd.DataFrame of methods to use for harmonization given
         pd.DataFrame of overrides
         """
         # get method listing
@@ -221,7 +221,7 @@ class Harmonizer(object):
         return methods
 
     def harmonize(self, overrides=None):
-        """Return pd.DataFrame of harmonized trajectories given pd.DataFrame 
+        """Return pd.DataFrame of harmonized trajectories given pd.DataFrame
         overrides
         """
         # get special configurations
@@ -420,7 +420,7 @@ class HarmonizationDriver(object):
         # add exogenous variables
         dfs = []
         for fname in self.exog_files:
-            exog = pd_read(fname, sheetname='data')
+            exog = pd_read(fname, sheet_name='data')
             exog.columns = [str(x) for x in exog.columns]
             exog['Model'] = self.model_name
             dfs.append(exog)
@@ -452,7 +452,7 @@ class HarmonizationDriver(object):
         self._model = pd.concat([self._model, exog])
 
     def harmonize(self, scenario, diagnostic_config=None):
-        """Harmonize a given scneario. Get results from 
+        """Harmonize a given scneario. Get results from
         aneris.harmonize.HarmonizationDriver.results()
 
         Parameters
@@ -466,10 +466,11 @@ class HarmonizationDriver(object):
         self._hist = self.hist.copy()
         self._model = self.model.copy()
         self._overrides = self.overrides.copy()
+        self._regions = self.regions.copy()
 
         # preprocess
         pp = _TrajectoryPreprocessor(self._hist, self._model, self._overrides,
-                                     self.regions, self.prefix, self.suffix)
+                                     self._regions, self.prefix, self.suffix)
         # TODO, preprocess in init, just process here
         self._hist, self._model, self._overrides = pp.process(
             scenario).results()
@@ -484,7 +485,7 @@ class HarmonizationDriver(object):
 
         # regional gases
         self._model, self._meta = _harmonize_regions(
-            self.config, self.prefix, self.suffix, self.regions,
+            self.config, self.prefix, self.suffix, self._regions,
             self._hist, self._model.copy(), self._overrides,
             self.config['harmonize_year'], self.add_5regions
         )
@@ -515,7 +516,7 @@ class HarmonizationDriver(object):
         return self.model['Scenario'].unique()
 
     def harmonized_results(self):
-        """Return 3-tuple of (pd.DataFrame of harmonized trajectories, 
+        """Return 3-tuple of (pd.DataFrame of harmonized trajectories,
         pd.DataFrame of metadata, and similar of diagnostic information)
         """
         return (
@@ -523,6 +524,31 @@ class HarmonizationDriver(object):
             pd.concat(self._metadata_dfs),
             pd.concat(self._diagnostic_dfs),
         )
+
+
+def _get_global_overrides(overrides, gases, sector):
+    # None if no overlap with gases
+    if overrides is None:
+        return None
+    gases = overrides.index.get_level_values('gas').intersection(gases)
+    gases = list(set(gases))  # single instance for each gas
+    if len(gases) == 0:
+        return None
+
+    # This tried to be fancy with multi index slicing at one point, but caused
+    # too much trouble. Now it is just done brute force.
+
+    # Downselect overrides that match global gas values
+    o = overrides
+    idx = o.index.names
+    o = o.reset_index()
+    o = o[o.region == 'World']
+    o = o[o.sector == sector]
+    o = o[o.gas.isin(gases)]
+    if o.empty:
+        return None
+    else:
+        return o.set_index(idx)['method']
 
 
 def _harmonize_global_total(config, prefix, suffix, hist, model, overrides):
@@ -541,21 +567,8 @@ def _harmonize_global_total(config, prefix, suffix, hist, model, overrides):
     if m.empty:
         return None, None
 
-    # catch empty dfs if no global toatls are overriden
-    if overrides is None:
-        o = None
-    else:
-        gases = overrides.index.get_level_values('gas').intersection(gases)
-        try:
-            gases = gases if len(gases) > 1 else gases[0]
-        except IndexError:  # thrown if no harmonize_total_gases
-            o = None
-        idx = (pd.IndexSlice['World', gases, sector],
-               pd.IndexSlice[:])
-        try:
-            o = overrides.loc[idx].copy()
-        except TypeError:  # thrown if gases not
-            o = None
+    # match override methods with global gases, None if no match
+    o = _get_global_overrides(overrides, gases, sector)
 
     utils.check_null(m, 'model')
     utils.check_null(h, 'hist', fail=True)
@@ -648,12 +661,12 @@ def _harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
 
 
 def diagnostics(unharmonized, model, metadata, config=None):
-    """Provide warnings or throw errors based on harmonized model data and 
+    """Provide warnings or throw errors based on harmonized model data and
     metadata
 
     Current diagnostics are:
-    - large missing values (sector has 20% or more contribution to 
-      history and model does not report sector) 
+    - large missing values (sector has 20% or more contribution to
+      history and model does not report sector)
       - Warning provided
     - non-negative CO2 emissions (values other than CO2 are < 0)
       - Error thrown
@@ -667,7 +680,7 @@ def diagnostics(unharmonized, model, metadata, config=None):
     metadata : pd.DataFrame
         harmonization metadata
     config : dictionary, optional
-        ratio values to use in diagnostics, key options include 'mid' and 'end'. 
+        ratio values to use in diagnostics, key options include 'mid' and 'end'.
     """
     config = config or {'mid': 4.0, 'end': 2.0}
 

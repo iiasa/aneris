@@ -1,0 +1,10 @@
+numpy
+pandas
+pyyaml
+xlrd
+xlsxwriter
+matplotlib
+seaborn
+pytest
+jupyter
+nbconvert

@@ -1,12 +1,14 @@
 # Makefile for Sphinx documentation
 #
-
-# You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
-SPHINXAUTOBUILD   = sphinx-autobuild
 PAPER         =
 BUILDDIR      = build
+
+GHCONFIG      = .gh-config
+DOCREPODIR    = build/aneris
+DOCREPOURL    = git@github.com:iiasa/aneris.github.io
+DOCUPDATENAME = aneris.github.io
 
 # User-friendly check for sphinx-build
 ifeq ($(shell which $(SPHINXBUILD) >/dev/null 2>&1; echo $$?), 1)
@@ -16,16 +18,9 @@ endif
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
-ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
+ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
 # the i18n builder cannot share the environment and doctrees with the others
-I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
-
-# doc publishing variables
-DOCREPOURL      = git@github.com:gidden/gidden.github.io
-DOCREPODIR      = ~/personal/site
-DOCUPDATENAME   = aneris-docs
-DOCHTMLDIR      = $(DOCREPODIR)/aneris
-TMPDOCDIR       = $(DOCREPODIR)/.$(DOCUPDATENAME)tmpdocs
+I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
 
 .PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext
 
@@ -54,13 +49,15 @@ help:
 	@echo "  linkcheck  to check all external links for integrity"
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 	@echo "  serve      serve a local version of the website on the default port for SimpleHTTPServer"
-	@echo "  publish    publish docs to mattgidden.com"
 
 clean:
-	rm -rf $(BUILDDIR)/*
+	rm -rf $(BUILDDIR)
+	rm -rf source/examples
+	rm -rf source/tutorials/.ipynb_checkpoints/
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	cp $(GHCONFIG) $(BUILDDIR)/html/_config.yml
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
@@ -186,23 +183,14 @@ pseudoxml:
 	@echo
 	@echo "Build finished. The pseudo-XML files are in $(BUILDDIR)/pseudoxml."
 
-serve:
-	$(SPHINXAUTOBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
-	@echo
-	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
-
 publish:
 	@echo
 	@echo "Updating $(DOCHTMLDIR) with current documentation."
-	test -d $(DOCREPODIR) || git clone $(DOCREPOURL) $(DOCREPONAME) && \
-	test ! -d $(TMPDOCDIR) || rm -r $(TMPDOCDIR) && \
-	mkdir -p $(TMPDOCDIR) && \
-	cp -r $(BUILDDIR)/html/* $(TMPDOCDIR) && \
-	cd $(DOCREPODIR) && git pull origin master && \
-	test ! -d $(DOCHTMLDIR) || rm -r $(DOCHTMLDIR) && \
-	mkdir -p $(DOCHTMLDIR) && mv $(TMPDOCDIR)/* $(DOCHTMLDIR) && \
-	rm -r $(TMPDOCDIR)/ && \
-	cd $(DOCREPODIR) && git add $(DOCHTMLDIR) && \
+	HERE="$(shell pwd)" \
+	test -d $(DOCREPODIR) || git clone $(DOCREPOURL) $(DOCREPODIR) && \
+	cd $(DOCREPODIR) && git pull origin master && rm -rf * && cd ../.. && \
+	rsync -a $(BUILDDIR)/html/* $(DOCREPODIR) && \
+	cd $(DOCREPODIR) && touch .nojekyll && git add . && \
 	if [ -n "$$(git status $(DOCHTMLDIR) --porcelain)" ]; \
 	then git commit -m "updated $(DOCUPDATENAME) html" && git push origin master; \
 	fi
@@ -212,3 +200,8 @@ publish:
 
 html-publish: html publish
 .PHONY: html-publish
+
+serve: html
+	@echo
+	@echo "Serving from $(BUILDDIR)/html."
+	cd $(BUILDDIR)/html && python3 -m http.server || python3 -m http.server 8040

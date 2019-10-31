@@ -1,0 +1,3 @@
+[report]
+omit =
+    aneris/_version.py

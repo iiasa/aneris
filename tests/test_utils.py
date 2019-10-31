@@ -102,7 +102,7 @@ def test_formatter_to_template():
                                  suffix='Unharmonized')
     fmt.to_std()
     obs = fmt.to_template()
-    exp = df.reindex_axis(obs.columns, axis=1)
+    exp = df.reindex(columns=obs.columns)
     pdt.assert_frame_equal(obs, exp)
 
 
@@ -141,7 +141,7 @@ def test_combine_rows_default():
     }).set_index(utils.df_idx)
     obs = utils.combine_rows(df, 'region', 'a', ['b'])
 
-    exp = exp.reindex_axis(obs.columns, axis=1)
+    exp = exp.reindex(columns=obs.columns)
     clean = lambda df: df.sort_index().reset_index()
     pdt.assert_frame_equal(clean(obs), clean(exp))
 
@@ -165,7 +165,7 @@ def test_combine_rows_dropothers():
     }).set_index(utils.df_idx)
     obs = utils.combine_rows(df, 'region', 'a', ['b'], dropothers=False)
 
-    exp = exp.reindex_axis(obs.columns, axis=1)
+    exp = exp.reindex(columns=obs.columns)
     clean = lambda df: df.sort_index().reset_index()
     pdt.assert_frame_equal(clean(obs), clean(exp))
 
@@ -186,6 +186,6 @@ def test_combine_rows_sumall():
     }).set_index(utils.df_idx)
     obs = utils.combine_rows(df, 'region', 'a', ['b'], sumall=False)
 
-    exp = exp.reindex_axis(obs.columns, axis=1)
+    exp = exp.reindex(columns=obs.columns)
     clean = lambda df: df.sort_index().reset_index()
     pdt.assert_frame_equal(clean(obs), clean(exp))

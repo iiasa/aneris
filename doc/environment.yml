@@ -1,0 +1,24 @@
+name: testing
+dependencies:
+  - numpy
+  - pandas
+  - pyyaml
+  - xlrd
+  - xlsxwriter
+  - matplotlib
+  - seaborn
+  - pip:
+    - sphinx
+    - sphinxcontrib-exceltable
+    - sphinxcontrib-bibtex
+    - sphinxcontrib-fulltoc
+    - sphinxcontrib-programoutput
+    - sphinx-gallery
+    - nbsphinx
+    - numpydoc
+    - cloud_sptheme
+    - nbformat
+    - ipython
+    - jupyter
+    - jupyter_contrib_nbextensions
+    - pillow  

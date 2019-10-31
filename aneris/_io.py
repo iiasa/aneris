@@ -103,7 +103,7 @@ def read_excel(f):
     config : dictionary
         configuration overrides (if any)
     """
-    indfs = pd_read(f, sheetname=None, encoding='utf-8')
+    indfs = pd_read(f, sheet_name=None, encoding='utf-8')
     model = _read_data(indfs)
 
     # make an empty df which will be caught later
