@@ -83,13 +83,13 @@ class TestHarmonizeRegression():
 
         # TODO, this need to be activated ONLY if not actually on CI
         # IE, adding an option here to declare if its expected
-        if not os.path.exists(join(ci_path, hist):
+        if not os.path.exists(join(ci_path, hist)):
             pytest.skip('Not on CI (expected files missing)')
 
         # copy needed files
         for fname in [hist, rc, checkf]:
-            src=join(ci_path, fname)
-            dst=join(prefix, fname)
+            src = join(ci_path, fname)
+            dst = join(prefix, fname)
             shutil.copyfile(src, dst)
 
         # get all arguments
@@ -97,10 +97,10 @@ class TestHarmonizeRegression():
 
     def test_msg(self):
         # file setup
-        name='msg'
+        name = 'msg'
         self._run_ci(name)
 
     def test_gcam(self):
         # file setup
-        name='gcam'
+        name = 'gcam'
         self._run_ci(name)
