@@ -1,4 +1,3 @@
-name: testing
 dependencies:
   - numpy
   - pandas
