@@ -69,7 +69,7 @@ publish-on-pypi: $(VENV_DIR)  ## publish release on PyPI
 
 .PHONY: ci_dl
 ci_dl: $(VENV_DIR)  ## run all the tests
-	cd tests/ci; $(VENV_DIR)/bin/bash ./run_on_ci.sh
+	cd tests/ci; bash ./run_on_ci.sh
 
 .PHONY: test
 test: $(VENV_DIR)  ## run all the tests
