@@ -79,12 +79,7 @@ class TestHarmonizeRegression():
         reg = 'regiondef.xlsx'
         rc = 'rc.yaml'
         inf = 'inputfile.xlsx'
-        outf = 'obs.xlsx'
-
-        # TODO, this need to be activated ONLY if not actually on CI
-        # IE, adding an option here to declare if its expected
-        if not os.path.exists(join(ci_path, hist)):
-            pytest.skip('Not on CI (expected files missing)')
+        outf = 'test_harmonized.xlsx'
 
         # copy needed files
         for fname in [hist, rc, checkf]:
@@ -95,11 +90,15 @@ class TestHarmonizeRegression():
         # get all arguments
         self._run(inf, checkf, hist, reg, rc, outf, prefix)
 
+    # only runs if access to regression data is available
+    @pytest.mark.skipif(not os.environ['ANERIS_CI_USER'])
     def test_msg(self):
         # file setup
         name = 'msg'
         self._run_ci(name)
 
+    # only runs if access to regression data is available
+    @pytest.mark.skipif(not os.environ['ANERIS_CI_USER'])
     def test_gcam(self):
         # file setup
         name = 'gcam'
