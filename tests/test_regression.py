@@ -1,19 +1,13 @@
 import pytest
 import os
+import shutil
 
 import pandas as pd
+
 from pandas.util.testing import assert_frame_equal
+from os.path import join
 
 from aneris import cli
-
-
-# TODO: utilize this for regression or take it out completely
-# # decorator for slow-running tests
-# slow = pytest.mark.skipif(
-#     not pytest.config.getoption("--runslow"),
-#     reason="need --runslow option to run"
-# )
-
 
 # This is a class that runs all tests through the harmonize CLI Note that it
 # uses the actual harmonize API rather than subprocessing the CLI because
@@ -22,55 +16,90 @@ from aneris import cli
 #
 # I don't know why. I spent 4+ hours digging. I am done. I hope I never have to
 # worry about this again.
+
+here = join(os.path.dirname(os.path.realpath(__file__)))
+ci_path = join(here, 'ci')
+
+
 class TestHarmonizeRegression():
 
-    def _run(self, prefix, inf, checkf, hist='history.csv', reg='message.csv'):
+    def _run(self, inf, checkf, hist, reg, rc, outf, prefix):
         # path setup
-        here = os.path.join(os.path.dirname(os.path.realpath(__file__)))
-        prefix = os.path.join(here, prefix)
-        add_prefix = lambda f: os.path.join(prefix, f)
+        prefix = join(here, prefix)
+        hist = join(prefix, hist)
+        reg = join(prefix, reg)
+        rc = join(prefix, rc)
+        inf = join(prefix, inf)
+        outf = join(prefix, outf)
 
-        # get all arguments
-        hist = add_prefix(hist)
-        reg = add_prefix(reg)
-        rc = add_prefix('aneris.yaml')
-        inf = add_prefix(inf)
-        outf = add_prefix('test_harmonized.xlsx')
         if os.path.exists(outf):
             os.remove(outf)
 
         # run
-        print(inf, hist, reg, rc, prefix, 'test')
+        print(inf, hist, reg, rc, 'test')
         cli.harmonize(inf, hist, reg, rc, prefix, 'test')
 
         # test
-        xfile = os.path.join(prefix, checkf)
+        xfile = join(prefix, checkf)
         x = pd.read_excel(xfile, sheet_name='data')
         y = pd.read_excel(outf, sheet_name='data')
         assert_frame_equal(x, y)
 
         clean = [
             outf,
-            add_prefix('test_metadata.xlsx'),
-            add_prefix('test_diagnostics.xlsx'),
+            join(prefix, 'test_metadata.xlsx'),
+            join(prefix, 'test_diagnostics.xlsx'),
         ]
         for f in clean:
             if os.path.exists(f):
                 os.remove(f)
 
     def test_basic_run(self):
+        # this is run no matter what
         prefix = 'test_data'
-        inf = 'model.xls'
         checkf = 'test_basic_run.xlsx'
-        self._run(prefix, inf, checkf, hist='history.xls', reg='regions.csv')
+        hist = 'history.xls'
+        reg = 'regions.csv'
+        rc = 'aneris.yaml'
+        inf = 'model.xls'
+        outf = 'test_harmonized.xlsx'
 
-    # TODO: utilize this for regression or take it out completely
-    # there were a number of these tests. I now no longer know where the regression files exist.
-    # the best option here is to use a token on CI to test this by downloading an existing file.
+        # get all arguments
+        self._run(inf, checkf, hist, reg, rc, outf, prefix)
+
     #
-    # @slow
-    # def test_message_ref(self):
-    #     prefix = 'regression_data'
-    #     inf = 'MESSAGE-GLOBIOM_SSP2-Ref-SPA0-V25_unharmonized.xlsx'
-    #     checkf = 'test_regress_ssp2_ref.xlsx'
-    #     self._run(prefix, inf, checkf)
+    # the following are run only on CI, this should be parameterized in the
+    # future
+    #
+
+    def _run_ci(self, name):
+        prefix = join(ci_path, 'test-{}'.format(name))
+        checkf = '{}_harmonized.xlsx'.format(name)
+        hist = 'history.csv'
+        reg = 'regiondef.xlsx'
+        rc = 'rc.yaml'
+        inf = 'inputfile.xlsx'
+        outf = 'test_harmonized.xlsx'
+
+        # copy needed files
+        for fname in [hist, rc, checkf]:
+            src = join(ci_path, fname)
+            dst = join(prefix, fname)
+            shutil.copyfile(src, dst)
+
+        # get all arguments
+        self._run(inf, checkf, hist, reg, rc, outf, prefix)
+
+    # only runs if access to regression data is available
+    @pytest.mark.skipif(not os.environ['ANERIS_CI_USER'], reason='No access to regression test credentials')
+    def test_msg(self):
+        # file setup
+        name = 'msg'
+        self._run_ci(name)
+
+    # only runs if access to regression data is available
+    @pytest.mark.skipif(not os.environ['ANERIS_CI_USER'], reason='No access to regression test credentials')
+    def test_gcam(self):
+        # file setup
+        name = 'gcam'
+        self._run_ci(name)

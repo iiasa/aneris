@@ -6,6 +6,10 @@ matrix:
           env: PYENV=py36
         - os: linux
           env: PYENV=py37
+# There is a problem with this os/py version that is unable to be replicated at the moment.
+# ERROR: Cannot uninstall 'certifi'. It is a distutils installed project and thus we cannot accurately determine which files belong to it which would lead to only a partial uninstall.
+#        - os: osx
+#          env: PYENV=py36
         - os: osx
           env: PYENV=py37
 # Observed on 10-Feb-19, choclatey builds for miniconda3 break
@@ -32,6 +36,7 @@ script:
   - python -c "import os; print(os.environ['PYVERSION'])"
   - python -c "import sys; print(sys.version)"
   - python -c "import os, sys; assert os.environ['PYVERSION'] == '.'.join([sys.version[0], sys.version[2]])"
+  - if [[ ! -z "${ANERIS_CI_USER}" ]]; then make ci_dl; fi
   - make test
   - cd doc
   - if [[ "${PYENV}" == "py37" && "${TRAVIS_OS_NAME}" != 'windows' ]]; then make html; fi
