@@ -32,7 +32,6 @@ script:
   - python -c "import os; print(os.environ['PYVERSION'])"
   - python -c "import sys; print(sys.version)"
   - python -c "import os, sys; assert os.environ['PYVERSION'] == '.'.join([sys.version[0], sys.version[2]])"
-  - if [[ ! -z "${ANERIS_CI_USER}" ]]; then cd tests/ci && ./run_on_ci.sh && cd ../..; fi
   - make test
   - cd doc
   - if [[ "${PYENV}" == "py37" && "${TRAVIS_OS_NAME}" != 'windows' ]]; then make html; fi
