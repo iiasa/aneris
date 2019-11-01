@@ -3,6 +3,11 @@
 These tests rerun scenarios harmonized with previous versions of `aneris` and
 confirm similar results.
 
+# TODO
+
+1. The listing of datasets should be housed in one location. At the moment, it is explicitly listed in three.
+2. After that, the tests in `test_regression.py` should be parameterized on that list
+
 # Test Data Location
 
 This folder is used for generating a database of testable scenario
@@ -20,8 +25,8 @@ The values for these variables can be found in the internal IIASA document
 
 To generate and upload the database execute the follow files in order:
 
-1. `download_data.sh`
-2. `make_output.py`
+1. `download_data.py`
+2. `make_output.sh`
 3. `upload_output.sh`
 
 ## `upload_output.sh`
@@ -29,11 +34,34 @@ To generate and upload the database execute the follow files in order:
 This command must be run by passing your ssh information, so either
 
 ```
-./upload_db.sh <user>@data.ene.iiasa.ac.at
+./upload_output.sh <user>@data.ene.iiasa.ac.at
 ```
 
 or
 
 ```
-./upload_db.sh <ssh alias>
+./upload_output.sh <ssh alias>
+```
+
+# Change Input Data
+
+If input data needs to be changed you can do so by:
+
+
+1. `download_data.py`
+2. Do adjustments to input data as needed
+3. `upload_input.sh`
+
+## `upload_input.sh`
+
+This command must be run by passing your ssh information, so either
+
+```
+./upload_input.sh <user>@data.ene.iiasa.ac.at
+```
+
+or
+
+```
+./upload_input.sh <ssh alias>
 ```
