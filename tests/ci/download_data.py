@@ -2,8 +2,11 @@ import os
 import requests
 import tarfile
 
+print('FOO')
 username = os.environ['ANERIS_CI_USER']
+print('BAR', username)
 password = os.environ['ANERIS_CI_PW']
+print('BAZ')
 
 url = 'https://data.ene.iiasa.ac.at/continuous_integration/aneris/'
 
