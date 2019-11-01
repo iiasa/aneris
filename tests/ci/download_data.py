@@ -16,6 +16,7 @@ def download(filename):
         with open(filename, 'wb') as out:
             for bits in r.iter_content():
                 out.write(bits)
+        assert os.path.exists(filename)
         print('Untarring {}'.format(filename))
         tar = tarfile.open(filename, "r:gz")
         tar.extractall()
