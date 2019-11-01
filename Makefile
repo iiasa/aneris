@@ -69,11 +69,11 @@ publish-on-pypi: $(VENV_DIR)  ## publish release on PyPI
 
 .PHONY: ci_dl
 ci_dl: $(VENV_DIR)  ## run all the tests
-	cd tests/ci; bash ./run_on_ci.sh
+	cd tests/ci; python download_data.py
 
 .PHONY: test
 test: $(VENV_DIR)  ## run all the tests
-	cd tests; $(VENV_DIR)/bin/pytest --cov=aneris --cov-config ../ci/.coveragerc -rfsxEX --cov-report term-missing
+	cd tests; $(VENV_DIR)/bin/pytest --cov=aneris --cov-config ../ci/.coveragerc -vrfsxEX --cov-report term-missing
 
 .PHONY: install
 install: $(VENV_DIR)  ## install aneris in virtual env
