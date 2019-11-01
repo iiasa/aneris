@@ -91,14 +91,14 @@ class TestHarmonizeRegression():
         self._run(inf, checkf, hist, reg, rc, outf, prefix)
 
     # only runs if access to regression data is available
-    @pytest.mark.skipif(not os.environ['ANERIS_CI_USER'])
+    @pytest.mark.skipif(not os.environ['ANERIS_CI_USER'], reason='No access to regression test credentials')
     def test_msg(self):
         # file setup
         name = 'msg'
         self._run_ci(name)
 
     # only runs if access to regression data is available
-    @pytest.mark.skipif(not os.environ['ANERIS_CI_USER'])
+    @pytest.mark.skipif(not os.environ['ANERIS_CI_USER'], reason='No access to regression test credentials')
     def test_gcam(self):
         # file setup
         name = 'gcam'
