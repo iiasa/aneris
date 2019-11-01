@@ -74,7 +74,7 @@ class TestHarmonizeRegression():
 
     def _run_ci(self, name):
         prefix = join(ci_path, 'test-{}'.format(name))
-        checkf = '{}_harmonized.xlsx'
+        checkf = '{}_harmonized.xlsx'.format(name)
         hist = 'history.csv'
         reg = 'regiondef.xlsx'
         rc = 'rc.yaml'
