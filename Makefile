@@ -67,11 +67,13 @@ publish-on-pypi: $(VENV_DIR)  ## publish release on PyPI
 		echo run git status --porcelain to find dirty files >&2; \
 	fi;
 
+.PHONY: ci_dl
+ci_dl: $(VENV_DIR)  ## run all the tests
+	cd tests/ci; $(VENV_DIR)/bin/bash ./run_on_ci.sh
+
 .PHONY: test
 test: $(VENV_DIR)  ## run all the tests
-	cd tests
-	if [[ ! -z "${ANERIS_CI_USER}" ]]; then cd ci && ./run_on_ci.sh && cd ..; fi
-	$(VENV_DIR)/bin/pytest --cov=aneris --cov-config ../ci/.coveragerc -rfsxEX --cov-report term-missing
+	cd tests; $(VENV_DIR)/bin/pytest --cov=aneris --cov-config ../ci/.coveragerc -rfsxEX --cov-report term-missing
 
 .PHONY: install
 install: $(VENV_DIR)  ## install aneris in virtual env
