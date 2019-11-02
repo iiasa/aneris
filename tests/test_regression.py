@@ -20,6 +20,14 @@ from aneris import cli
 here = join(os.path.dirname(os.path.realpath(__file__)))
 ci_path = join(here, 'ci')
 
+# check variables for if we are on CI (will then run regression tests)
+ON_CI_REASON = 'No access to regression test credentials'
+try:
+    os.environ['ANERIS_CI_USER']
+    ON_CI = True
+except KeyError:
+    ON_CI = False
+
 
 class TestHarmonizeRegression():
 
@@ -91,14 +99,14 @@ class TestHarmonizeRegression():
         self._run(inf, checkf, hist, reg, rc, outf, prefix)
 
     # only runs if access to regression data is available
-    @pytest.mark.skipif(not os.environ['ANERIS_CI_USER'], reason='No access to regression test credentials')
+    @pytest.mark.skipif(not ON_CI, reason=ON_CI_REASON)
     def test_msg(self):
         # file setup
         name = 'msg'
         self._run_ci(name)
 
     # only runs if access to regression data is available
-    @pytest.mark.skipif(not os.environ['ANERIS_CI_USER'], reason='No access to regression test credentials')
+    @pytest.mark.skipif(not ON_CI, reason=ON_CI_REASON)
     def test_gcam(self):
         # file setup
         name = 'gcam'
