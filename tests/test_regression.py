@@ -76,13 +76,8 @@ class TestHarmonizeRegression():
         # get all arguments
         self._run(inf, checkf, hist, reg, rc, outf, prefix)
 
-    #
-    # the following are run only on CI, this should be parameterized in the
-    # future
-    #
-
-    @pytest.mark.parametrize("name", ['msg', 'gcam'])
     @pytest.mark.skipif(not ON_CI, reason=ON_CI_REASON)
+    @pytest.mark.parametrize("name", ['msg', 'gcam'])
     def test_regression_ci(self, name):
         prefix = join(ci_path, 'test-{}'.format(name))
         checkf = '{}_harmonized.xlsx'.format(name)
