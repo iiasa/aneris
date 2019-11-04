@@ -62,14 +62,15 @@ class TestHarmonizeRegression():
             if os.path.exists(f):
                 os.remove(f)
 
-    def test_basic_run(self):
+    @pytest.mark.parametrize("file_suffix", ['regions_sectors', ])
+    def test_basic_run(self, file_suffix):
         # this is run no matter what
         prefix = 'test_data'
-        checkf = 'test_basic_run.xlsx'
-        hist = 'history.xls'
-        reg = 'regions.csv'
+        checkf = 'test_{}.xlsx'.format(file_suffix)
+        hist = 'history_{}.xls'.format(file_suffix)
+        reg = 'regions_{}.csv'.format(file_suffix)
+        inf = 'model_{}.xls'.format(file_suffix)
         rc = 'aneris.yaml'
-        inf = 'model.xls'
         outf = 'test_harmonized.xlsx'
 
         # get all arguments
