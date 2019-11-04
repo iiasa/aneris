@@ -81,7 +81,9 @@ class TestHarmonizeRegression():
     # future
     #
 
-    def _run_ci(self, name):
+    @pytest.mark.parametrize("name", ['msg', 'gcam'])
+    @pytest.mark.skipif(not ON_CI, reason=ON_CI_REASON)
+    def test_regression_ci(self, name):
         prefix = join(ci_path, 'test-{}'.format(name))
         checkf = '{}_harmonized.xlsx'.format(name)
         hist = 'history.csv'
@@ -98,17 +100,3 @@ class TestHarmonizeRegression():
 
         # get all arguments
         self._run(inf, checkf, hist, reg, rc, outf, prefix)
-
-    # only runs if access to regression data is available
-    @pytest.mark.skipif(not ON_CI, reason=ON_CI_REASON)
-    def test_msg(self):
-        # file setup
-        name = 'msg'
-        self._run_ci(name)
-
-    # only runs if access to regression data is available
-    @pytest.mark.skipif(not ON_CI, reason=ON_CI_REASON)
-    def test_gcam(self):
-        # file setup
-        name = 'gcam'
-        self._run_ci(name)
