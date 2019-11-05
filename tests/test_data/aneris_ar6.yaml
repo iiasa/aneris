@@ -1,0 +1,6 @@
+config:
+    harmonize_year: 2005
+    global_harmonization_only: true
+prefix: AR6 climate diagnostics
+suffix: Unharmonized
+add_5regions: false
