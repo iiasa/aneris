@@ -52,11 +52,11 @@ class TestHarmonizeRegression():
         print(inf, hist, reg, rc, name)
         cli.harmonize(inf, hist, reg, rc, prefix, name)
 
-        # # test
-        # xfile = join(prefix, checkf)
-        # x = pd.read_excel(xfile, sheet_name='data')
-        # y = pd.read_excel(outf, sheet_name='data')
-        # assert_frame_equal(x, y)
+        # test
+        xfile = join(prefix, checkf)
+        x = pd.read_excel(xfile, sheet_name='data')
+        y = pd.read_excel(outf, sheet_name='data')
+        assert_frame_equal(x, y)
 
         # tidy up after
         for f in clean:
