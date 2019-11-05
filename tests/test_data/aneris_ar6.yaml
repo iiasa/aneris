@@ -1,5 +1,5 @@
 config:
-    harmonize_year: 2005
+    harmonize_year: 2015
     global_harmonization_only: true
 prefix: AR6 climate diagnostics
 suffix: Unharmonized
