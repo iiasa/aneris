@@ -477,23 +477,32 @@ class HarmonizationDriver(object):
 
         unharmonized = self._model.copy()
 
+        # flag if this run will be with only global trajectories. if so, then
+        # only global totals are harmonized, rest is skipped.
+        global_harmonization_only = self.config['global_harmonization_only']
+
         # global only gases
         self._glb_model, self._glb_meta = _harmonize_global_total(
             self.config, self.prefix, self.suffix,
-            self._hist, self._model.copy(), self._overrides
-        )
-
-        # regional gases
-        self._model, self._meta = _harmonize_regions(
-            self.config, self.prefix, self.suffix, self._regions,
             self._hist, self._model.copy(), self._overrides,
-            self.config['harmonize_year'], self.add_5regions
+            default_global_gases=not global_harmonization_only,
         )
 
-        # combine special case results with harmonized results
-        if self._glb_model is not None:
-            self._model = self._glb_model.combine_first(self._model)
-            self._meta = self._glb_meta.combine_first(self._meta)
+        if global_harmonization_only:
+            self._model = self._glb_model
+            self._meta = self._glb_meta
+        else:
+            # regional gases
+            self._model, self._meta = _harmonize_regions(
+                self.config, self.prefix, self.suffix, self._regions,
+                self._hist, self._model.copy(), self._overrides,
+                self.config['harmonize_year'], self.add_5regions
+            )
+
+            # combine special case results with harmonized results
+            if self._glb_model is not None:
+                self._model = self._glb_model.combine_first(self._model)
+                self._meta = self._glb_meta.combine_first(self._meta)
 
         # perform any automated diagnostics/analysis
         self._diag = diagnostics(
@@ -551,8 +560,10 @@ def _get_global_overrides(overrides, gases, sector):
         return o.set_index(idx)['method']
 
 
-def _harmonize_global_total(config, prefix, suffix, hist, model, overrides):
-    gases = utils.harmonize_total_gases
+def _harmonize_global_total(config, prefix, suffix, hist, model, overrides,
+                            default_global_gases=True):
+    all_gases = list(model.index.get_level_values('gas').unique())
+    gases = utils.harmonize_total_gases if default_global_gases else all_gases
     sector = '|'.join([prefix, suffix])
     idx = (pd.IndexSlice['World', gases, sector],
            pd.IndexSlice[:])

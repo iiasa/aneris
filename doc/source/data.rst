@@ -34,7 +34,7 @@ Unharmonized IAM Data
 Data from IAMs is expected to be in the following format with a sheetname "data".
 
 .. exceltable:: Example Model Input
-   :file: ../../tests/test_data/model.xls
+   :file: ../../tests/test_data/model_regions_sectors.xls
    :header: 1
    :selection: A1:I4
 
@@ -42,7 +42,7 @@ If overrides are provided, they are expected to be in the following formay with
 a sheetname "harmonization".
 
 .. exceltable:: Example Harmonization Overrides
-   :file: ../../tests/test_data/model.xls
+   :file: ../../tests/test_data/model_regions_sectors.xls
    :sheet: 1
 
 Additionally, configuration parameters (described in :ref:`config`) can be set
@@ -55,7 +55,7 @@ Historical Data
 Historical data is expected to be in the following format
 
 .. exceltable:: Example Historical Data
-   :file: ../../tests/test_data/history.xls
+   :file: ../../tests/test_data/history_regions_sectors.xls
    :header: 1
    :selection: A1:I4
 
@@ -66,5 +66,5 @@ Data for regional mappings (countries to IAM regions) is expected to be in the
 following format
 
 .. csv-table:: Example Regional Definitions
-   :file: ../../tests/test_data/regions.csv
+   :file: ../../tests/test_data/regions_regions_sectors.csv
    :header-rows: 1

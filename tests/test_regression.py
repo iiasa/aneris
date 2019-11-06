@@ -31,21 +31,26 @@ except KeyError:
 
 class TestHarmonizeRegression():
 
-    def _run(self, inf, checkf, hist, reg, rc, outf, prefix):
+    def _run(self, inf, checkf, hist, reg, rc, prefix, name):
         # path setup
         prefix = join(here, prefix)
         hist = join(prefix, hist)
         reg = join(prefix, reg)
         rc = join(prefix, rc)
         inf = join(prefix, inf)
-        outf = join(prefix, outf)
+        outf = join(prefix, '{}_harmonized.xlsx'.format(name))
+        outf_meta = join(prefix, '{}_metadata.xlsx'.format(name))
+        outf_diag = join(prefix, '{}_diagnostics.xlsx'.format(name))
+        clean = [outf, outf_meta, outf_diag]
 
-        if os.path.exists(outf):
-            os.remove(outf)
+        # make sure we're fresh
+        for f in clean:
+            if os.path.exists(f):
+                os.remove(f)
 
         # run
-        print(inf, hist, reg, rc, 'test')
-        cli.harmonize(inf, hist, reg, rc, prefix, 'test')
+        print(inf, hist, reg, rc, name)
+        cli.harmonize(inf, hist, reg, rc, prefix, name)
 
         # test
         xfile = join(prefix, checkf)
@@ -53,41 +58,33 @@ class TestHarmonizeRegression():
         y = pd.read_excel(outf, sheet_name='data')
         assert_frame_equal(x, y)
 
-        clean = [
-            outf,
-            join(prefix, 'test_metadata.xlsx'),
-            join(prefix, 'test_diagnostics.xlsx'),
-        ]
+        # tidy up after
         for f in clean:
             if os.path.exists(f):
                 os.remove(f)
 
-    def test_basic_run(self):
+    @pytest.mark.parametrize("file_suffix", ['global_only', 'global_sectors', 'regions_sectors'])
+    def test_basic_run(self, file_suffix):
         # this is run no matter what
         prefix = 'test_data'
-        checkf = 'test_basic_run.xlsx'
-        hist = 'history.xls'
-        reg = 'regions.csv'
-        rc = 'aneris.yaml'
-        inf = 'model.xls'
-        outf = 'test_harmonized.xlsx'
+        checkf = 'test_{}.xlsx'.format(file_suffix)
+        hist = 'history_{}.xls'.format(file_suffix)
+        reg = 'regions_{}.csv'.format(file_suffix)
+        inf = 'model_{}.xls'.format(file_suffix)
+        rc = 'aneris_{}.yaml'.format(file_suffix)
 
         # get all arguments
-        self._run(inf, checkf, hist, reg, rc, outf, prefix)
+        self._run(inf, checkf, hist, reg, rc, prefix, file_suffix)
 
-    #
-    # the following are run only on CI, this should be parameterized in the
-    # future
-    #
-
-    def _run_ci(self, name):
+    @pytest.mark.skipif(not ON_CI, reason=ON_CI_REASON)
+    @pytest.mark.parametrize("name", ['msg', 'gcam'])
+    def test_regression_ci(self, name):
         prefix = join(ci_path, 'test-{}'.format(name))
         checkf = '{}_harmonized.xlsx'.format(name)
         hist = 'history.csv'
         reg = 'regiondef.xlsx'
         rc = 'rc.yaml'
         inf = 'inputfile.xlsx'
-        outf = 'test_harmonized.xlsx'
 
         # copy needed files
         for fname in [hist, rc, checkf]:
@@ -96,18 +93,4 @@ class TestHarmonizeRegression():
             shutil.copyfile(src, dst)
 
         # get all arguments
-        self._run(inf, checkf, hist, reg, rc, outf, prefix)
-
-    # only runs if access to regression data is available
-    @pytest.mark.skipif(not ON_CI, reason=ON_CI_REASON)
-    def test_msg(self):
-        # file setup
-        name = 'msg'
-        self._run_ci(name)
-
-    # only runs if access to regression data is available
-    @pytest.mark.skipif(not ON_CI, reason=ON_CI_REASON)
-    def test_gcam(self):
-        # file setup
-        name = 'gcam'
-        self._run_ci(name)
+        self._run(inf, checkf, hist, reg, rc, prefix, name)
