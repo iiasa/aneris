@@ -433,7 +433,8 @@ class HarmonizationDriver(object):
         # update variable name
         self._model = self._model.reset_index()
         self._model.sector = self._model.sector.str.replace(
-            self.suffix, 'Harmonized-DB')
+            self.suffix, 'Harmonized') # N.B. needs to be altered
+        # N.B. prefix needs to be added.
         self._model = self._model.set_index(utils.df_idx)
         # from native to iamc format
         self._model = (

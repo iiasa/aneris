@@ -81,6 +81,32 @@ def harmonize(inf, history, regions, rc, output_path, output_prefix):
         logger().info('Writing diagnostics to: {}'.format(fname))
         aneris.pd_write(diagnostics, fname)
 
+def harmonize_db(inf, history, regions, rc, output_path, output_prefix):
+    # check files exist
+    check = [inf, history, regions, rc]
+    for f in check:
+        if f and not os.path.exists(f):
+            raise IOError('{} does not exist on the filesystem.'.format(f))
+
+    # read input
+    hist = aneris.pd_read(history, str_cols=True)
+    if hist.empty:
+        raise ValueError('History file is empty')
+    regions = aneris.pd_read(regions, str_cols=True)
+    if regions.empty:
+        raise ValueError('Region definition is empty')
+    model, overrides, config = aneris.read_excel(inf)
+    rc = aneris.RunControl(rc=rc)
+    rc.recursive_update('config', config)
+
+    # do core harmonization
+    driver = aneris.HarmonizationDriver(rc, hist, model, overrides, regions)
+    for scenario in driver.scenarios():
+        driver.harmonize(scenario)
+    model, metadata, diagnostics = driver.harmonized_results()
+
+    return model, metadata, diagnostics
+
 
 def main():
     # parse cli
