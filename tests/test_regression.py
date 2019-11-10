@@ -71,9 +71,6 @@ class TestHarmonizeRegression():
         exp.columns = exp.columns.astype(str)
         obs = pd.read_excel(outf, sheet_name='data',
                             index_col=list(range(ncols))).sort_index()
-        print('FOOTEST')
-        print(exp)
-        print(obs)
         assert_frame_equal(exp, obs, check_dtype=False)
 
         # tidy up after
