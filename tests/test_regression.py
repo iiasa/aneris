@@ -33,7 +33,7 @@ FILE_SUFFIXES = [
     'regions_sectors',
     'global_sectors',
     'mock_pipeline_prototype',
-    # 'pipeline_progress',
+    'pipeline_progress',
     # 'full_ar6',
 ]
 
