@@ -488,6 +488,7 @@ class HarmonizationDriver(object):
             self._hist, self._model.copy(), self._overrides,
             default_global_gases=not global_harmonization_only,
         )
+        self._glb_model, self._glb_meta = None, None
 
         if global_harmonization_only:
             self._model = self._glb_model
