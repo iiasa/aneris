@@ -9,6 +9,7 @@ _defaults = {
         'cov_threshold': 20,
         'harmonize_year': 2015,
         'global_harmonization_only': False,
+        'replace_suffix': 'Harmonized-DB',
     },
     'prefix': 'CEDS+|9+ Sectors',
     'suffix': 'Unharmonized',

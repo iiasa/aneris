@@ -432,8 +432,9 @@ class HarmonizationDriver(object):
         _log('Translating to IAMC template')
         # update variable name
         self._model = self._model.reset_index()
+        print('FOO', self.config)
         self._model.sector = self._model.sector.str.replace(
-            self.suffix, 'Harmonized-DB')
+            self.suffix, self.config['replace_suffix'])
         self._model = self._model.set_index(utils.df_idx)
         # from native to iamc format
         self._model = (

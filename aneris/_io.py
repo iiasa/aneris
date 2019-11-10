@@ -16,6 +16,7 @@ config:
     cov_threshold: 20
     harmonize_year: 2015
     global_harmonization_only: false
+    replace_suffix: Harmonized-DB
 prefix: CEDS+|9+ Sectors
 suffix: Unharmonized
 add_5regions: true
