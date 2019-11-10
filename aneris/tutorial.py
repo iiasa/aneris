@@ -32,10 +32,10 @@ def load_data(cache_dir=_default_cache_dir, cache=True,
         os.mkdir(longdir)
 
     files = {
-        'rc': 'aneris.yaml',
-        'hist': 'history.xls',
-        'model': 'model.xls',
-        'regions': 'regions.csv',
+        'rc': 'aneris_regions_sectors.yaml',
+        'hist': 'history_regions_sectors.xls',
+        'model': 'model_regions_sectors.xls',
+        'regions': 'regions_regions_sectors.csv',
     }
     files = {k: os.path.join(longdir, f) for k, f in files.items()}
 
