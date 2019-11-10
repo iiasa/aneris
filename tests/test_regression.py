@@ -29,10 +29,10 @@ except KeyError:
     ON_CI = False
 
 FILE_SUFFIXES = [
-    'global_only',
-    'regions_sectors',
-    'global_sectors',
-    'mock_pipeline_prototype',
+    # 'global_only',
+    # 'regions_sectors',
+    # 'global_sectors',
+    # 'mock_pipeline_prototype',
     'pipeline_progress',
     # 'full_ar6',
 ]
@@ -62,10 +62,15 @@ class TestHarmonizeRegression():
         cli.harmonize(inf, hist, reg, rc, prefix, name)
 
         # test
-        xfile = join(prefix, checkf)
-        x = pd.read_excel(xfile, sheet_name='data')
-        y = pd.read_excel(outf, sheet_name='data')
-        assert_frame_equal(x, y)
+        expfile = join(prefix, checkf)
+        exp = pd.read_excel(expfile, sheet_name='data',
+                            index_col=list(range(5))).sort_index()
+        obs = pd.read_excel(outf, sheet_name='data',
+                            index_col=list(range(5))).sort_index()
+        print('FOOTEST')
+        print(exp)
+        print(obs)
+        assert_frame_equal(exp, obs)
 
         # tidy up after
         for f in clean:
