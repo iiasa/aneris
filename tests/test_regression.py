@@ -29,11 +29,11 @@ except KeyError:
     ON_CI = False
 
 FILE_SUFFIXES = [
-    # 'global_only',
-    # 'regions_sectors',
-    # 'global_sectors',
-    # 'mock_pipeline_prototype',
-    # 'pipeline_progress',
+    'global_only',
+    'regions_sectors',
+    'global_sectors',
+    'mock_pipeline_prototype',
+    'pipeline_progress',
     'full_ar6',
 ]
 
