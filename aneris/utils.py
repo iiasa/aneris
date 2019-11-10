@@ -171,18 +171,30 @@ def remove_emissions_prefix(x, gas='XXX'):
     return re.sub('^Emissions\|{}\|'.format(gas), '', x)
 
 
+def recalculated_row_idx(df, prefix='', suffix=''):
+    """Return a boolean array with rows that need to be recalculated.
+       These are rows with total values for a gas species which is a sum of subsectors.
+       During harmonization, subsector totals change, thus this summation must be 
+       recalculated.
+    """
+    df = df.reset_index()
+
+    gas_sec_pairs = df[['gas', 'sector']].drop_duplicates()
+    total_sector = '|'.join([prefix, suffix])
+    gases_with_subsectors = df.gas.isin(
+        gas_sec_pairs[gas_sec_pairs.sector != total_sector]
+        .gas
+        .unique()
+    )
+    is_sector_total = df.sector == total_sector
+    return np.array(gases_with_subsectors & is_sector_total)
+
+
 def remove_recalculated_sectors(df, prefix='', suffix=''):
     """Return df with Total gas (sum of all sectors) removed
     """
-    # remove sectoral totals which will need to be recalculated after
-    # harmonization
-    df = df.reset_index()
-    # TODO: THIS IS A HACK, CURRENT GASES DEFINITION ASSUME IAMC NAMES
-    gases = df.gas.isin(sector_gases)
-    sepcount = 2 + prefix.count('|') + suffix.count('|')
-    sectors = df.sector.apply(lambda x: len(x.split('|')) == sepcount)
-    keep = ~(gases & sectors)
-    return df[keep].set_index(df_idx)
+    idx = recalculated_row_idx(df, prefix='', suffix='')
+    return df[~idx]
 
 
 def subtract_regions_from_world(df, name=None, base_year='2015', threshold=5e-2):

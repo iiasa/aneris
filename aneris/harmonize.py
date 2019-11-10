@@ -608,6 +608,7 @@ def _harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
     # clean hist
     hist = utils.subtract_regions_from_world(hist, 'hist', base_year)
     hist = utils.remove_recalculated_sectors(hist, prefix, suffix)
+
     # remove rows with all 0s
     hist = hist[(hist.T > 0).any()]
 
@@ -629,18 +630,26 @@ def _harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
     utils.check_null(model, 'model')
     metadata = harmonizer.metadata()
 
-    # add aggregate variables
-    totals = '|'.join([prefix, suffix])
-    if model.index.get_level_values('sector').isin([totals]).any():
+    # add aggregate variables. this works in three steps:
+    # step 1: remove any sector total trajectories that also have subsectors to be recalculated
+    idx = utils.recalculated_row_idx(model, prefix, suffix)
+    if idx.any():
         msg = 'Removing sector aggregates. Recalculating with harmonized totals.'
         _warn(msg)
-        model.drop(totals, level='sector', inplace=True)
-    model = (
-        utils.EmissionsAggregator(model)
+        model = model[~idx]
+    totals = '|'.join([prefix, suffix])
+    sector_total_idx = model.index.get_level_values('sector').isin([totals])
+    subsector_idx = ~sector_total_idx
+    # step 2: on the "clean" df, recalculate those totals
+    subsectors_with_total_df = (
+        utils.EmissionsAggregator(model[subsector_idx])
         .add_variables(totals=totals, aggregates=False)
         .df
         .set_index(utils.df_idx)
     )
+    # step 3: recombine with model data that was sector total only
+    sector_total_df = model[sector_total_idx]
+    model = pd.concat([sector_total_df, subsectors_with_total_df])
     utils.check_null(model, 'model')
 
     # combine regional values to send back into template form
