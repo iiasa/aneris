@@ -28,6 +28,15 @@ try:
 except KeyError:
     ON_CI = False
 
+FILE_SUFFIXES = [
+    'global_only',
+    'regions_sectors',
+    'global_sectors',
+    'mock_pipeline_prototype',
+    'pipeline_progress',
+    'full_ar6',
+]
+
 
 class TestHarmonizeRegression():
 
@@ -63,7 +72,7 @@ class TestHarmonizeRegression():
             if os.path.exists(f):
                 os.remove(f)
 
-    @pytest.mark.parametrize("file_suffix", ['global_only', 'regions_sectors', 'global_sectors', 'mock_pipeline_prototype', 'pipeline_progress', 'full_ar6'])
+    @pytest.mark.parametrize("file_suffix", FILE_SUFFIXES)
     def test_basic_run(self, file_suffix):
         # this is run no matter what
         prefix = 'test_data'
