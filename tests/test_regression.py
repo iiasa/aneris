@@ -29,11 +29,11 @@ except KeyError:
     ON_CI = False
 
 FILE_SUFFIXES = [
-    'global_only',
-    'regions_sectors',
-    'global_sectors',
-    'mock_pipeline_prototype',
-    # 'pipeline_progress',
+    # 'global_only',
+    # 'regions_sectors',
+    # 'global_sectors',
+    # 'mock_pipeline_prototype',
+    'pipeline_progress',
     # 'full_ar6',
 ]
 
@@ -59,8 +59,8 @@ class TestHarmonizeRegression():
 
         # run
         print(inf, hist, reg, rc, name)
-        model, metadata, diagnostics = cli.harmonize(
-            inf, hist, reg, rc, prefix, name, return_result=True
+        cli.harmonize(
+            inf, hist, reg, rc, prefix, name, return_result=False,
         )
 
         # test
@@ -68,7 +68,8 @@ class TestHarmonizeRegression():
         expfile = join(prefix, checkf)
         exp = pd.read_excel(expfile, sheet_name='data',
                             index_col=list(range(ncols))).sort_index()
-        obs = model.set_index(list(model.columns[:ncols])).sort_index()
+        obs = pd.read_excel(outf, sheet_name='data',
+                            index_col=list(range(ncols))).sort_index()
         print('FOOTEST')
         print(exp)
         print(obs)
