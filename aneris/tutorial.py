@@ -12,7 +12,7 @@ _default_cache_dir = os.path.join('~', '.aneris_tutorial_data')
 
 # idea borrowed from Seaborn
 def load_data(cache_dir=_default_cache_dir, cache=True,
-              github_url='https://github.com/gidden/aneris'):
+              github_url='https://github.com/iiasa/aneris'):
     """
     Load a dataset from the online repository (requires internet).
 
