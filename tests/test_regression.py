@@ -33,8 +33,8 @@ FILE_SUFFIXES = [
     # 'regions_sectors',
     # 'global_sectors',
     # 'mock_pipeline_prototype',
-    'pipeline_progress',
-    # 'full_ar6',
+    # 'pipeline_progress',
+    'full_ar6',
 ]
 
 
@@ -68,6 +68,7 @@ class TestHarmonizeRegression():
         expfile = join(prefix, checkf)
         exp = pd.read_excel(expfile, sheet_name='data',
                             index_col=list(range(ncols))).sort_index()
+        exp.columns = exp.columns.astype(str)
         obs = pd.read_excel(outf, sheet_name='data',
                             index_col=list(range(ncols))).sort_index()
         print('FOOTEST')
