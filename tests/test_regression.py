@@ -35,6 +35,7 @@ FILE_SUFFIXES = [
     'mock_pipeline_prototype',
     'pipeline_progress',
     'full_ar6',
+    'global_ar6',
 ]
 
 
