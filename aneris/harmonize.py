@@ -632,8 +632,7 @@ def _harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
     metadata = harmonizer.metadata()
 
     # add aggregate variables. this works in three steps:
-    # step 1: remove any sector total trajectories that also have subsectors
-    #   to be recalculated
+    # step 1: remove any sector total trajectories that also have subsectors to be recalculated
     idx = utils.recalculated_row_idx(model, prefix, suffix)
     if idx.any():
         msg = 'Removing sector aggregates. Recalculating with harmonized totals.'
