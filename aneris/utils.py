@@ -173,9 +173,10 @@ def remove_emissions_prefix(x, gas='XXX'):
 
 def recalculated_row_idx(df, prefix='', suffix=''):
     """Return a boolean array with rows that need to be recalculated.
-       These are rows with total values for a gas species which is a sum of subsectors.
-       During harmonization, subsector totals change, thus this summation must be 
-       recalculated.
+       These are rows with total values for a gas species which is a sum of
+       subsectors.
+       During harmonization, subsector totals change, thus this summation must
+       be recalculated.
     """
     df = df.reset_index()
 
@@ -198,7 +199,7 @@ def remove_recalculated_sectors(df, prefix='', suffix=''):
 
 
 def subtract_regions_from_world(df, name=None, base_year='2015', threshold=5e-2):
-    """Subtract the sum of regional results in each variable from the World total. 
+    """Subtract the sum of regional results in each variable from the World total.
     If the result is a World total below a threshold, set those values to 0.
 
     Parameters
@@ -212,7 +213,7 @@ def subtract_regions_from_world(df, name=None, base_year='2015', threshold=5e-2)
         threshold below which to set values to 0
     """
     # make global only global (not global + sum of regions)
-    check_null(df, name)
+    # check_null(df, name)
     if (df.loc['World'][base_year] == 0).all():
         # some models (gcam) are not reporting any values in World
         # without this, you get `0 - sum(other regions)`
@@ -413,7 +414,7 @@ class EmissionsAggregator(object):
         ----------
         totals : list, optional
              sectors to compute totals for
-        add_aggregates : bool, optional 
+        add_aggregates : bool, optional
             whether to add aggregate variables
         """
         if totals is not None:
