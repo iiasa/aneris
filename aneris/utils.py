@@ -142,7 +142,7 @@ def check_null(df, name=None, fail=False):
         msg = 'Null (missing) values found for {} indicies: \n{}'
         _df = df[df.isnull().any(axis=1)].reset_index()[df_idx]
         logger().warning(msg.format(name, _df))
-        df.dropna(inplace=True)
+        df.dropna(inplace=True, axis=1)
 
 
 def gases(var_col):
@@ -213,7 +213,7 @@ def subtract_regions_from_world(df, name=None, base_year='2015', threshold=5e-2)
         threshold below which to set values to 0
     """
     # make global only global (not global + sum of regions)
-    # check_null(df, name)
+    check_null(df, name)
     if (df.loc['World'][base_year] == 0).all():
         # some models (gcam) are not reporting any values in World
         # without this, you get `0 - sum(other regions)`
