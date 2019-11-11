@@ -65,9 +65,6 @@ def harmonize(inf, history, regions, rc, output_path, output_prefix,
         driver.harmonize(scenario)
     model, metadata, diagnostics = driver.harmonized_results()
 
-    if return_result:
-        return model, metadata, diagnostics
-
     if write_output:
         # write to excel
         prefix = output_prefix or inf.split('.')[0]
@@ -86,6 +83,11 @@ def harmonize(inf, history, regions, rc, output_path, output_prefix,
                                  '{}_diagnostics.xlsx'.format(prefix))
             logger().info('Writing diagnostics to: {}'.format(fname))
             aneris.pd_write(diagnostics, fname)
+
+    if return_result:
+        return model, metadata, diagnostics
+
+
 
 
 def main():
