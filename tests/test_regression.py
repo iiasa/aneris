@@ -28,6 +28,16 @@ try:
 except KeyError:
     ON_CI = False
 
+FILE_SUFFIXES = [
+    'global_only',
+    'regions_sectors',
+    'global_sectors',
+    'mock_pipeline_prototype',
+    'pipeline_progress',
+    'full_ar6',
+    'global_ar6',
+]
+
 
 class TestHarmonizeRegression():
 
@@ -50,20 +60,26 @@ class TestHarmonizeRegression():
 
         # run
         print(inf, hist, reg, rc, name)
-        cli.harmonize(inf, hist, reg, rc, prefix, name)
+        cli.harmonize(
+            inf, hist, reg, rc, prefix, name, return_result=False,
+        )
 
         # test
-        xfile = join(prefix, checkf)
-        x = pd.read_excel(xfile, sheet_name='data')
-        y = pd.read_excel(outf, sheet_name='data')
-        assert_frame_equal(x, y)
+        ncols = 5
+        expfile = join(prefix, checkf)
+        exp = pd.read_excel(expfile, sheet_name='data',
+                            index_col=list(range(ncols))).sort_index()
+        exp.columns = exp.columns.astype(str)
+        obs = pd.read_excel(outf, sheet_name='data',
+                            index_col=list(range(ncols))).sort_index()
+        assert_frame_equal(exp, obs, check_dtype=False)
 
         # tidy up after
         for f in clean:
             if os.path.exists(f):
                 os.remove(f)
 
-    @pytest.mark.parametrize("file_suffix", ['global_only', 'global_sectors', 'regions_sectors'])
+    @pytest.mark.parametrize("file_suffix", FILE_SUFFIXES)
     def test_basic_run(self, file_suffix):
         # this is run no matter what
         prefix = 'test_data'

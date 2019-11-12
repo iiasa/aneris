@@ -1,0 +1,6 @@
+config:
+    harmonize_year: 2005
+    global_harmonization_only: false
+prefix: prefix
+suffix: suffix
+add_5regions: false
