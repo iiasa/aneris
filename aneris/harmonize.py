@@ -37,10 +37,16 @@ class Harmonizer(object):
         lambda df, ratios: reduce_ratio(df, ratios, final_year='2150'),
         'reduce_offset_2020':
         lambda df, offsets: reduce_offset(df, offsets, final_year='2020'),
+        'reduce_offset_2030':
+        lambda df, offsets: reduce_offset(df, offsets, final_year='2030'),
         'reduce_offset_2040':
         lambda df, offsets: reduce_offset(df, offsets, final_year='2040'),
         'reduce_offset_2050':
         lambda df, offsets: reduce_offset(df, offsets, final_year='2050'),
+        'reduce_offset_2060':
+        lambda df, offsets: reduce_offset(df, offsets, final_year='2060'),
+        'reduce_offset_2070':
+        lambda df, offsets: reduce_offset(df, offsets, final_year='2070'),
         'reduce_offset_2080':
         lambda df, offsets: reduce_offset(df, offsets, final_year='2080'),
         'reduce_offset_2090':
@@ -51,8 +57,16 @@ class Harmonizer(object):
         lambda df, offsets: reduce_offset(df, offsets, final_year='2150'),
         'reduce_ratio_2020':
         lambda df, ratios: reduce_ratio(df, ratios, final_year='2020'),
+        'reduce_ratio_2030':
+        lambda df, ratios: reduce_ratio(df, ratios, final_year='2030'),
+        'reduce_ratio_2040':
+        lambda df, ratios: reduce_ratio(df, ratios, final_year='2040'),
         'reduce_ratio_2050':
         lambda df, ratios: reduce_ratio(df, ratios, final_year='2050'),
+        'reduce_ratio_2060':
+        lambda df, ratios: reduce_ratio(df, ratios, final_year='2060'),
+        'reduce_ratio_2070':
+        lambda df, ratios: reduce_ratio(df, ratios, final_year='2070'),
         'reduce_ratio_2080':
         lambda df, ratios: reduce_ratio(df, ratios, final_year='2080'),
         'reduce_ratio_2090':
@@ -63,10 +77,16 @@ class Harmonizer(object):
         lambda df, ratios: reduce_ratio(df, ratios, final_year='2150'),
         'linear_interpolate_2020':
         lambda df, offsets: linear_interpolate(df, offsets, final_year='2020'),
+        'linear_interpolate_2030':
+        lambda df, offsets: linear_interpolate(df, offsets, final_year='2030'),
+        'linear_interpolate_2040':
+        lambda df, offsets: linear_interpolate(df, offsets, final_year='2040'),
         'linear_interpolate_2050':
         lambda df, offsets: linear_interpolate(df, offsets, final_year='2050'),
         'linear_interpolate_2060':
         lambda df, offsets: linear_interpolate(df, offsets, final_year='2060'),
+        'linear_interpolate_2070':
+        lambda df, offsets: linear_interpolate(df, offsets, final_year='2070'),
         'linear_interpolate_2080':
         lambda df, offsets: linear_interpolate(df, offsets, final_year='2080'),
         'linear_interpolate_2090':
