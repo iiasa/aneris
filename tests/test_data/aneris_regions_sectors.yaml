@@ -1,5 +1,7 @@
 config:
     harmonize_year: 2005
+    default_offset_method: 'reduce_offset_2050'
+    default_ratio_method: 'reduce_ratio_2050'
 prefix: prefix
 suffix: suffix
 add_5regions: false

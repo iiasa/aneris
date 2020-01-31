@@ -214,7 +214,7 @@ def coeff_of_var(s):
     return np.abs(np.std(x) / np.mean(x))
 
 
-def default_methods(hist, model, base_year, luc_method=None):
+def default_methods(hist, model, base_year, luc_method=None, offset_method=None, ratio_method=None):
     """Determine default harmonization methods to use.
 
     See http://mattgidden.com/aneris/theory.html#default-decision-tree for a
@@ -230,6 +230,10 @@ def default_methods(hist, model, base_year, luc_method=None):
         column name of harmonization year 
     luc_method : string, optional
         method to use for high coefficient of variation
+    offset_method : string, optional
+        method to use for offset harmonization
+    ratio_method : string, optional
+        method to use for ratio harmonization
 
     Returns
     -------
@@ -240,6 +244,8 @@ def default_methods(hist, model, base_year, luc_method=None):
 
     """
     luc_method = luc_method or 'reduce_offset_2150_cov'
+    offset_method = offset_method or 'reduce_offset_2080'
+    ratio_method = ratio_method or 'reduce_ratio_2080'
     y = str(base_year)
     h = hist[y]
     m = model[y]
@@ -285,20 +291,20 @@ def default_methods(hist, model, base_year, luc_method=None):
         if np.isclose(row.m, 0):
             # goes negative?
             if row.neg_m:
-                return 'reduce_offset_2080'
+                return offset_method
             else:
                 return 'constant_offset'
         else:
             # is this co2?
             if row['isco2']:
-                return 'reduce_ratio_2080'
+                return ratio_method
             # is cov big?
             if np.isfinite(row['cov']) and row['cov'] > 10:
                 return luc_method
             else:
                 # dH small?
                 if row.dH < 0.5:
-                    return 'reduce_ratio_2080'
+                    return ratio_method
                 else:
                     # goes negative?
                     if row.neg_m:

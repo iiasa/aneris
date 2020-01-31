@@ -76,8 +76,9 @@ class TestHarmonizeRegression():
 
         # tidy up after
         for f in clean:
-            if os.path.exists(f):
-                os.remove(f)
+            print(f)
+            # if os.path.exists(f):
+            #     os.remove(f)
 
     @pytest.mark.parametrize("file_suffix", FILE_SUFFIXES)
     def test_basic_run(self, file_suffix):

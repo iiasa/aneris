@@ -136,8 +136,13 @@ class Harmonizer(object):
         self.offsets, self.ratios = harmonize_factors(
             self.data, self.history, self.base_year)
 
+        # get default methods to use in decision tree
         key = 'default_luc_method'
         self.luc_method = config[key] if key in config else None
+        key = 'default_offset_method'
+        self.offset_method = config[key] if key in config else None
+        key = 'default_ratio_method'
+        self.ratio_method = config[key] if key in config else None
 
     def metadata(self):
         """Return pd.DataFrame of method choice metadata"""
@@ -173,7 +178,9 @@ class Harmonizer(object):
 
     def _default_methods(self):
         methods, diagnostics = default_methods(
-            self.history, self.data, self.base_year, self.luc_method)
+            self.history, self.data, self.base_year,
+            self.luc_method, self.offset_method, self.ratio_method
+        )
         return methods
 
     def _harmonize(self, method, idx, check_len):
@@ -405,6 +412,7 @@ class HarmonizationDriver(object):
         self.model = model
         self.hist = hist
         self.overrides = overrides
+        
         self.regions = regions
         if not self.regions['ISO Code'].isin(['World']).any():
             glb = {
