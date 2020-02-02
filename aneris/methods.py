@@ -214,7 +214,8 @@ def coeff_of_var(s):
     return np.abs(np.std(x) / np.mean(x))
 
 
-def default_methods(hist, model, base_year, luc_method=None, offset_method=None, ratio_method=None):
+def default_methods(hist, model, base_year,
+                    luc_method=None, offset_method=None, ratio_method=None):
     """Determine default harmonization methods to use.
 
     See http://mattgidden.com/aneris/theory.html#default-decision-tree for a

@@ -412,7 +412,7 @@ class HarmonizationDriver(object):
         self.model = model
         self.hist = hist
         self.overrides = overrides
-        
+
         self.regions = regions
         if not self.regions['ISO Code'].isin(['World']).any():
             glb = {
