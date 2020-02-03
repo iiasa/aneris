@@ -6,6 +6,8 @@ from aneris import _io
 _defaults = {
     'config': {
         'default_luc_method': 'reduce_ratio_2150_cov',
+        'default_offset_method': 'reduce_offset_2080',
+        'default_ratio_method': 'reduce_ratio_2080',
         'cov_threshold': 20,
         'harmonize_year': 2015,
         'global_harmonization_only': False,

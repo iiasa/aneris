@@ -36,6 +36,11 @@ def test_branch1():
     exp = pd.Series(['reduce_offset_2080'], name='methods')
     pdt.assert_series_equal(exp, obs, check_names=False)
 
+    obs, diags = harmonize.default_methods(hist, df, '2015',
+                                           offset_method='reduce_offset_2050')
+    exp = pd.Series(['reduce_offset_2050'], name='methods')
+    pdt.assert_series_equal(exp, obs, check_names=False)
+
 
 def test_branch2():
     hist = pd.DataFrame({'2015': [1.]})
@@ -60,6 +65,11 @@ def test_branch3():
 
     obs, diags = harmonize.default_methods(hist, df, '2015')
     exp = pd.Series(['reduce_ratio_2080'], name='methods')
+    pdt.assert_series_equal(exp, obs, check_names=False)
+
+    obs, diags = harmonize.default_methods(hist, df, '2015',
+                                           ratio_method='reduce_ratio_2050')
+    exp = pd.Series(['reduce_ratio_2050'], name='methods')
     pdt.assert_series_equal(exp, obs, check_names=False)
 
 
