@@ -628,7 +628,7 @@ def _harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
                        base_year, add_5regions):
 
     # clean model
-    model = utils.subtract_regions_from_world(model, 'model', base_year)
+    # model = utils.subtract_regions_from_world(model, 'model', base_year)
     model = utils.remove_recalculated_sectors(model, prefix, suffix)
     # remove rows with all 0s
     model = model[(model.T > 0).any()]
