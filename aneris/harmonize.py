@@ -627,7 +627,7 @@ def _harmonize_global_total(config, prefix, suffix, hist, model, overrides,
 def _harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
                        base_year, add_5regions):
     # clean model
-    if ((len(regions) == 1 and regions.Country == "World").all() == False):
+    if not (len(regions) == 1 and regions.Country == "World").all():
         model = utils.subtract_regions_from_world(model, 'model',
                                                   base_year, 'World')
     model = utils.remove_recalculated_sectors(model, prefix, suffix)
