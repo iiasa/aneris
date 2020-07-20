@@ -219,6 +219,11 @@ def subtract_regions_from_world(df, name=None, base_year='2015', threshold=5e-2)
         # without this, you get `0 - sum(other regions)`
         logger().warning('Empty global region found in ' + name)
         return df
+    if (df.loc['World'][base_year] != 0).all():
+        # some models (gcam) are not reporting any values in World
+        # without this, you get `0 - sum(other regions)`
+        logger().warning('Only World region reported in ' + name)
+        return df
 
     # sum all rows where region == World
     total = combine_rows(df, 'region', 'World', sumall=True,
