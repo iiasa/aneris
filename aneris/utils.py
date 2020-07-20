@@ -121,7 +121,10 @@ def isnum(s):
 def numcols(df):
     """Returns all columns in df that have data types of floats or ints"""
     dtypes = df.dtypes
-    return [i for i in dtypes.index if dtypes.loc[i].name.startswith(('float', 'int'))]
+    numcols = [i for i in dtypes.index if dtypes.loc[i].name.startswith(('float', 'int'))]
+    if 'Exclude' in numcols:
+        numcols.remove('Exclude')
+    return numcols
 
 
 def check_null(df, name=None, fail=False):
