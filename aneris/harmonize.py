@@ -2,6 +2,8 @@ from __future__ import division
 
 import numpy as np
 import pandas as pd
+from itertools import chain
+from functools import partial
 
 from aneris import utils
 from aneris import pd_read
@@ -22,80 +24,18 @@ class Harmonizer(object):
     """A class used to harmonize model data to historical data in the
     standard calculation format
     """
-    # WARNING: it is not possible to programmatically do the offset methods
-    # because they use lambdas. you can't do `for y in years: lambda x: f(x,
-    # kwarg=str(y))` because y is evaluated when the lambda is executed, not in
-    # this block
     _methods = {
         'model_zero': model_zero,
         'hist_zero': hist_zero,
         'constant_ratio': constant_ratio,
         'constant_offset': constant_offset,
-        'reduce_offset_2150_cov':
-        lambda df, offsets: reduce_offset(df, offsets, final_year='2150'),
-        'reduce_ratio_2150_cov':
-        lambda df, ratios: reduce_ratio(df, ratios, final_year='2150'),
-        'reduce_offset_2020':
-        lambda df, offsets: reduce_offset(df, offsets, final_year='2020'),
-        'reduce_offset_2030':
-        lambda df, offsets: reduce_offset(df, offsets, final_year='2030'),
-        'reduce_offset_2040':
-        lambda df, offsets: reduce_offset(df, offsets, final_year='2040'),
-        'reduce_offset_2050':
-        lambda df, offsets: reduce_offset(df, offsets, final_year='2050'),
-        'reduce_offset_2060':
-        lambda df, offsets: reduce_offset(df, offsets, final_year='2060'),
-        'reduce_offset_2070':
-        lambda df, offsets: reduce_offset(df, offsets, final_year='2070'),
-        'reduce_offset_2080':
-        lambda df, offsets: reduce_offset(df, offsets, final_year='2080'),
-        'reduce_offset_2090':
-        lambda df, offsets: reduce_offset(df, offsets, final_year='2090'),
-        'reduce_offset_2100':
-        lambda df, offsets: reduce_offset(df, offsets, final_year='2100'),
-        'reduce_offset_2150':
-        lambda df, offsets: reduce_offset(df, offsets, final_year='2150'),
-        'reduce_ratio_2020':
-        lambda df, ratios: reduce_ratio(df, ratios, final_year='2020'),
-        'reduce_ratio_2030':
-        lambda df, ratios: reduce_ratio(df, ratios, final_year='2030'),
-        'reduce_ratio_2040':
-        lambda df, ratios: reduce_ratio(df, ratios, final_year='2040'),
-        'reduce_ratio_2050':
-        lambda df, ratios: reduce_ratio(df, ratios, final_year='2050'),
-        'reduce_ratio_2060':
-        lambda df, ratios: reduce_ratio(df, ratios, final_year='2060'),
-        'reduce_ratio_2070':
-        lambda df, ratios: reduce_ratio(df, ratios, final_year='2070'),
-        'reduce_ratio_2080':
-        lambda df, ratios: reduce_ratio(df, ratios, final_year='2080'),
-        'reduce_ratio_2090':
-        lambda df, ratios: reduce_ratio(df, ratios, final_year='2090'),
-        'reduce_ratio_2100':
-        lambda df, ratios: reduce_ratio(df, ratios, final_year='2100'),
-        'reduce_ratio_2150':
-        lambda df, ratios: reduce_ratio(df, ratios, final_year='2150'),
-        'linear_interpolate_2020':
-        lambda df, offsets: linear_interpolate(df, offsets, final_year='2020'),
-        'linear_interpolate_2030':
-        lambda df, offsets: linear_interpolate(df, offsets, final_year='2030'),
-        'linear_interpolate_2040':
-        lambda df, offsets: linear_interpolate(df, offsets, final_year='2040'),
-        'linear_interpolate_2050':
-        lambda df, offsets: linear_interpolate(df, offsets, final_year='2050'),
-        'linear_interpolate_2060':
-        lambda df, offsets: linear_interpolate(df, offsets, final_year='2060'),
-        'linear_interpolate_2070':
-        lambda df, offsets: linear_interpolate(df, offsets, final_year='2070'),
-        'linear_interpolate_2080':
-        lambda df, offsets: linear_interpolate(df, offsets, final_year='2080'),
-        'linear_interpolate_2090':
-        lambda df, offsets: linear_interpolate(df, offsets, final_year='2090'),
-        'linear_interpolate_2100':
-        lambda df, offsets: linear_interpolate(df, offsets, final_year='2100'),
-        'linear_interpolate_2150':
-        lambda df, offsets: linear_interpolate(df, offsets, final_year='2150'),
-
+        'reduce_offset_2150_cov': partial(reduce_offset, final_year='2150'),
+        'reduce_ratio_2150_cov': partial(reduce_ratio, final_year='2150'),
+        **{
+            f'{method.__name__}_{year}': partial(method, final_year=str(year))
+            for year in chain(range(2020, 2101, 10), [2150])
+            for method in (reduce_offset, reduce_ratio, linear_interpolate)
+        }
     }
 
     def __init__(self, data, history, config={}, verify_indicies=True):
