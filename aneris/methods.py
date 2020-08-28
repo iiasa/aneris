@@ -5,6 +5,9 @@ and the default decision tree for choosing which method to use.
 
 import pandas as pd
 import numpy as np
+from bisect import bisect
+import pyomo.environ as pyo
+import pyomo.opt as pyopt
 
 from aneris import utils
 
@@ -182,6 +185,127 @@ def reduce_ratio(df, ratios, final_year='2050', harmonize_year='2015'):
                           columns=numcols, index=ratios.index) + 1
     df[numcols] = df[numcols] * ratios
     return df
+
+
+def budget(df, df_hist, harmonize_year='2015'):
+    """Calculate budget harmonized trajectory
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        model data
+    df_hist : pd.DataFrame
+        historic data
+    harmonize_year : string, optional
+        column name of harmonization year 
+
+    Returns
+    -------
+    df_harm : pd.DataFrame
+        harmonized trajectories
+    """
+
+    harmonize_year = int(harmonize_year)
+
+    df = df.set_axis(df.columns.astype(int), 'columns', inplace=False)
+    df_hist = df_hist.set_axis(df_hist.columns.astype(int), 'columns', inplace=False)
+
+    data_years = df.columns
+    hist_years = df_hist.columns
+
+    years = data_years[data_years >= harmonize_year]
+
+    if data_years[0] not in hist_years:
+        hist_years = hist_years.insert(bisect(hist_years, data_years[0]), data_years[0])
+        df_hist = df_hist.reindex(columns=hist_years).interpolate(method='slinear', axis=1)
+
+    def carbon_budget(years, emissions):
+        # trapezoid rule
+        dyears = np.diff(years)
+        demissions = np.diff(emissions)
+
+        budget = (dyears * (np.asarray(emissions)[:-1] + demissions / 2)).sum()
+        return budget
+
+    solver = pyo.SolverFactory("ipopt")
+
+    harmonized = []
+
+    for region in df.index:
+
+        # Step 2: Set up the optimisation problem
+
+        # Define model
+        model = pyo.ConcreteModel()
+
+        """
+        SETS
+        """
+
+        """
+        PARAMETERS
+        """
+        data_vals = df.loc[region, years]
+        hist_val = df_hist.loc[region, harmonize_year]
+
+        budget_val = carbon_budget(data_years, df.loc[region, :]) 
+
+        if data_years[0] < harmonize_year:
+            hist_in_overlap = df_hist.loc[region, data_years[0] : harmonize_year]
+            budget_val -= carbon_budget(hist_in_overlap.index, hist_in_overlap)
+
+        """
+        VARIABLES
+        """
+        model.x = pyo.Var(years, initialize=0, domain=pyo.Reals)
+        x = np.array(
+            [model.x[y] for y in years]
+        )  # keeps pyomo VarData objects, ie. modelling vars not numbers
+
+        """
+        OBJECTIVE FUNCTION
+        """
+        delta_years = np.diff(years)
+        delta_x = np.diff(x)
+        delta_m = np.diff(data_vals)
+
+        def l2_norm():
+            return pyo.quicksum((delta_m / delta_years - delta_x / delta_years) ** 2)
+
+        model.obj = pyo.Objective(expr=l2_norm(), sense=pyo.minimize)
+
+        """
+        CONSTRAINTS
+        """
+        # 1
+
+        model.hist_val = pyo.Constraint(expr=model.x[harmonize_year] == hist_val)
+        
+        # 2
+
+        model.budget = pyo.Constraint(expr=carbon_budget(years, x) == budget_val)
+
+        """
+        RUN
+        """
+        results = solver.solve(model)
+
+        assert (results.solver.status == pyo.SolverStatus.ok) and (
+            results.solver.termination_condition == pyo.TerminationCondition.optimal
+        ), (
+            f"ipopt terminated budget optimization with status: "
+            f"{results.solver.status}, {results.solver.termination_condition}"
+        )
+
+        harmonized.append([pyo.value(model.x[y]) for y in years])
+
+    df_harm = pd.DataFrame(
+        harmonized,
+        index=df.index,
+        columns=years.astype(str),
+    )
+
+    return df_harm
 
 
 def model_zero(df, offset, harmonize_year='2015'):

@@ -6,6 +6,7 @@ dependencies:
   - xlsxwriter
   - matplotlib
   - seaborn>=0.8
+  - pyomo>=5
   - pip:
     - sphinx
     - sphinxcontrib-exceltable

@@ -206,3 +206,33 @@ def test_harmonize_linear_interpolation():
     obs = res['2060']
     exp = _df['2060']
     npt.assert_array_almost_equal(obs, exp)
+
+
+def test_harmonize_budget():
+    df = _df.copy()
+    hist = _hist.copy()
+    methods = _methods.copy()
+
+    h = harmonize.Harmonizer(df, hist)
+    methods['method'] = 'budget'
+    res = h.harmonize(overrides=methods['method'])
+
+    # base year
+    obs = res['2015']
+    exp = _hist['2015']
+    npt.assert_array_almost_equal(obs, exp)
+
+    # carbon budget conserved
+    def _carbon_budget(emissions):
+        # trapezoid rule
+        dyears = np.diff(emissions.columns.astype(int))
+        emissions = emissions.values
+        demissions = np.diff(emissions, axis=1)
+
+        budget = (dyears * (emissions[:,:-1] + demissions / 2)).sum(axis=1)
+        return budget
+
+    npt.assert_array_almost_equal(
+        _carbon_budget(res),
+        _carbon_budget(df) - _carbon_budget(hist.loc[:, '2010':'2015']),
+    )
