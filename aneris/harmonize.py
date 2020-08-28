@@ -141,7 +141,7 @@ class Harmonizer(object):
                    (len(hist) < len(self.history)))
 
         # harmonize
-        model = Harmonizer._methods[method](model, delta)
+        model = Harmonizer._methods[method](model, delta, harmonize_year=self.base_year)
 
         y = str(self.base_year)
         if model.isnull().values.any():

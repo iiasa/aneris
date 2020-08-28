@@ -36,7 +36,7 @@ def harmonize_factors(df, hist, harmonize_year='2015'):
     return offset, ratios
 
 
-def constant_offset(df, offset):
+def constant_offset(df, offset, harmonize_year='2015'):
     """Calculate constant offset harmonized trajectory
 
     Parameters
@@ -45,6 +45,8 @@ def constant_offset(df, offset):
         model data
     offset : pd.DataFrame
         offset data
+    harmonize_year : string, optional
+        column name of harmonization year, ignored
 
     Returns
     -------
@@ -58,7 +60,7 @@ def constant_offset(df, offset):
     return df
 
 
-def constant_ratio(df, ratios):
+def constant_ratio(df, ratios, harmonize_year='2015'):
     """Calculate constant ratio harmonized trajectory
 
     Parameters
@@ -67,6 +69,8 @@ def constant_ratio(df, ratios):
         model data
     ratio : pd.DataFrame
         ratio data
+    harmonize_year : string, optional
+        column name of harmonization year, ignored
 
     Returns
     -------
@@ -180,7 +184,7 @@ def reduce_ratio(df, ratios, final_year='2050', harmonize_year='2015'):
     return df
 
 
-def model_zero(df, offset):
+def model_zero(df, offset, harmonize_year='2015'):
     """Returns result of aneris.methods.constant_offset()"""
     # current decision is to return a simple offset, this will be a straight
     # line for all time periods. previous behavior was to set df[numcols] = 0,
