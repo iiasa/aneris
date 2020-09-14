@@ -96,6 +96,7 @@ def main():
         'package_dir': pack_dir,
         'entry_points': entry_points,
         'package_data': package_data,
+        'python_requires': '>=3.6',
         'install_requires': install_requirements,
         'extras_require': extra_requirements,
     }
