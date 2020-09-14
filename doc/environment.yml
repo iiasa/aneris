@@ -1,6 +1,6 @@
 dependencies:
   - numpy
-  - pandas
+  - pandas<=1.0
   - pyyaml
   - xlrd
   - xlsxwriter
