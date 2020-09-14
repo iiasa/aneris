@@ -5,7 +5,7 @@ dependencies:
   - xlrd
   - xlsxwriter
   - matplotlib
-  - seaborn
+  - seaborn>=0.8
   - pip:
     - sphinx
     - sphinxcontrib-exceltable
