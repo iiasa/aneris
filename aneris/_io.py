@@ -2,7 +2,7 @@
 
 The default configuration values are provided in aneris.RC_DEFAULTS.
 """
-import collections
+from collections import abc
 import os
 import yaml
 
@@ -42,7 +42,7 @@ def _read_data(indfs):
 
 def _recursive_update(d, u):
     for k, v in u.items():
-        if isinstance(v, collections.Mapping):
+        if isinstance(v, abc.Mapping):
             r = _recursive_update(d.get(k, {}), v)
             d[k] = r
         else:
@@ -129,7 +129,7 @@ def read_excel(f):
     return model, overrides, config
 
 
-class RunControl(collections.Mapping):
+class RunControl(abc.Mapping):
     """A thin wrapper around a Python Dictionary to support configuration of
     harmonization execution. Input can be provided as dictionaries or YAML
     files.

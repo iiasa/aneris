@@ -119,7 +119,6 @@ def test_harmonize_reduce_offset():
 
         # future year
         obs = res['2040']
-        ratio = _hist['2015'] / _df['2015']
         exp = _df['2040'] + (1 - _t_frac(tf)) * (_hist['2015'] - _df['2015'])
         npt.assert_array_almost_equal(obs, exp)
 

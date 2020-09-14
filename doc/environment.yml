@@ -1,11 +1,11 @@
 dependencies:
   - numpy
-  - pandas
+  - pandas<=1.0
   - pyyaml
   - xlrd
   - xlsxwriter
   - matplotlib
-  - seaborn
+  - seaborn>=0.8
   - pip:
     - sphinx
     - sphinxcontrib-exceltable

@@ -23,7 +23,9 @@ logo = r"""
 REQUIREMENTS = [
     'argparse',
     'numpy',
-    'pandas>0.24',
+    # pin to <=1.0 is due to 1.1.0 regression in
+    # https://github.com/pandas-dev/pandas/issues/35753
+    'pandas>0.24<=1.0',
     'PyYAML',
     'xlrd',
     'xlsxwriter',
@@ -96,6 +98,7 @@ def main():
         'package_dir': pack_dir,
         'entry_points': entry_points,
         'package_data': package_data,
+        'python_requires': '>=3.6',
         'install_requires': install_requirements,
         'extras_require': extra_requirements,
     }
