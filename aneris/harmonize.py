@@ -48,7 +48,8 @@ class Harmonizer(object):
         history : pd.DataFrame
             history data in standard calculation format
         config : dict, optional
-            configuration dictionary (see http://mattgidden.com/aneris/config.html for options)
+            configuration dictionary
+            (see http://mattgidden.com/aneris/config.html for options)
         verify_indicies : bool, optional
             check indicies of data and history, provide warning message if
             different
@@ -123,7 +124,7 @@ class Harmonizer(object):
             self.history, self.data, self.base_year,
             method_choice=self.method_choice,
             ratio_method=self.ratio_method,
-            offset_method=self.offset_method, 
+            offset_method=self.offset_method,
             luc_method=self.luc_method,
             luc_cov_threshold=self.luc_cov_threshold
         )
@@ -143,8 +144,7 @@ class Harmonizer(object):
         assert(not hist.isnull().values.any())
         assert(not delta.isnull().values.any())
         if check_len:
-            assert((len(model) < len(self.data)) &
-                   (len(hist) < len(self.history)))
+            assert((len(model) < len(self.data)) & (len(hist) < len(self.history)))
 
         # harmonize
         model = Harmonizer._methods[method](model, delta, harmonize_year=self.base_year)
@@ -310,7 +310,7 @@ class _TrajectoryPreprocessor(object):
         )
 
     def _fill_model_trajectories(self):
-            # add zeros to model values if not covered
+        # add zeros to model values if not covered
         idx = self.hist.index
         notin = ~idx.isin(self.model.index)
         if notin.any():

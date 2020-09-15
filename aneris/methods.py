@@ -19,7 +19,7 @@ def harmonize_factors(df, hist, harmonize_year='2015'):
     hist : pd.DataFrame
         historical data
     harmonize_year : string, optional
-        column name of harmonization year 
+        column name of harmonization year
 
     Returns
     -------
@@ -94,9 +94,9 @@ def linear_interpolate(df, offset, final_year='2050', harmonize_year='2015'):
     offset : pd.DataFrame
         offset data
     final_year : string, optional
-        column name of convergence year 
+        column name of convergence year
     harmonize_year : string, optional
-        column name of harmonization year 
+        column name of harmonization year
 
     Returns
     -------
@@ -125,9 +125,9 @@ def reduce_offset(df, offset, final_year='2050', harmonize_year='2015'):
     offset : pd.DataFrame
         offset data
     final_year : string, optional
-        column name of convergence year 
+        column name of convergence year
     harmonize_year : string, optional
-        column name of harmonization year 
+        column name of harmonization year
 
     Returns
     -------
@@ -157,9 +157,9 @@ def reduce_ratio(df, ratios, final_year='2050', harmonize_year='2015'):
     ratio : pd.DataFrame
         ratio data
     final_year : string, optional
-        column name of convergence year 
+        column name of convergence year
     harmonize_year : string, optional
-        column name of harmonization year 
+        column name of harmonization year
 
     Returns
     -------
@@ -174,8 +174,8 @@ def reduce_ratio(df, ratios, final_year='2050', harmonize_year='2015'):
     f = lambda year: -(year - yi) / float(yf - yi) + 1
     prefactors = [f(int(harmonize_year))
                   for year in numcols if year < harmonize_year]
-    postfactors = [f(int(year)) if year <=
-                   final_year else 0.0 for year in numcols if year >= harmonize_year]
+    postfactors = [f(int(year)) if year <= final_year else 0.0
+                   for year in numcols if year >= harmonize_year]
     factors = prefactors + postfactors
     # multiply existing values by ratio time series
     ratios = pd.DataFrame(np.outer(ratios - 1, factors),
@@ -200,7 +200,7 @@ def hist_zero(df, *args, **kwargs):
 
 
 def coeff_of_var(s):
-    """Returns coefficient of variation of a Series 
+    """Returns coefficient of variation of a Series
 
     .. math:: c_v = \\frac{\\sigma(s^{\\prime}(t))}{\\mu(s^{\\prime}(t))}
 
@@ -223,7 +223,7 @@ def default_method_choice(
 ):
     """Default decision tree as documented at
 
-    Refer to choice flow chart at 
+    Refer to choice flow chart at
     https://drive.google.com/drive/folders/0B6_Oqvcg8eP9QXVKX2lFVUJiZHc
     for arguments available in row and their definition
     """
