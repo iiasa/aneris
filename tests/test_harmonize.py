@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 
 import numpy.testing as npt
-import pandas.util.testing as pdt
 
 from aneris import harmonize
 from aneris import utils
@@ -229,7 +228,7 @@ def test_harmonize_budget():
         emissions = emissions.values
         demissions = np.diff(emissions, axis=1)
 
-        budget = (dyears * (emissions[:,:-1] + demissions / 2)).sum(axis=1)
+        budget = (dyears * (emissions[:, :-1] + demissions / 2)).sum(axis=1)
         return budget
 
     npt.assert_array_almost_equal(

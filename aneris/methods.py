@@ -7,7 +7,6 @@ import pandas as pd
 import numpy as np
 from bisect import bisect
 import pyomo.environ as pyo
-import pyomo.opt as pyopt
 
 from aneris import utils
 
@@ -197,7 +196,7 @@ def budget(df, df_hist, harmonize_year='2015'):
     df_hist : pd.DataFrame
         historic data
     harmonize_year : string, optional
-        column name of harmonization year 
+        column name of harmonization year
 
     Returns
     -------
@@ -217,7 +216,11 @@ def budget(df, df_hist, harmonize_year='2015'):
 
     if data_years[0] not in hist_years:
         hist_years = hist_years.insert(bisect(hist_years, data_years[0]), data_years[0])
-        df_hist = df_hist.reindex(columns=hist_years).interpolate(method='slinear', axis=1)
+        df_hist = (
+            df_hist
+            .reindex(columns=hist_years)
+            .interpolate(method='slinear', axis=1)
+        )
 
     def carbon_budget(years, emissions):
         # trapezoid rule
@@ -248,7 +251,7 @@ def budget(df, df_hist, harmonize_year='2015'):
         data_vals = df.loc[region, years]
         hist_val = df_hist.loc[region, harmonize_year]
 
-        budget_val = carbon_budget(data_years, df.loc[region, :]) 
+        budget_val = carbon_budget(data_years, df.loc[region, :])
 
         if data_years[0] < harmonize_year:
             hist_in_overlap = df_hist.loc[region, data_years[0] : harmonize_year]
@@ -280,7 +283,7 @@ def budget(df, df_hist, harmonize_year='2015'):
         # 1
 
         model.hist_val = pyo.Constraint(expr=model.x[harmonize_year] == hist_val)
-        
+
         # 2
 
         model.budget = pyo.Constraint(expr=carbon_budget(years, x) == budget_val)
