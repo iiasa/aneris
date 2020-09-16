@@ -194,7 +194,7 @@ class RunControl(abc.Mapping):
             with open(fname) as f:
                 obj = f.read()
         if not isinstance(obj, dict):
-            obj = yaml.load(obj)
+            obj = yaml.safe_load(obj)
         if check_rel_paths:
             self._fill_relative_paths(fname, obj)
         return obj
