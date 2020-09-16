@@ -231,6 +231,12 @@ def budget(df, df_hist, harmonize_year='2015'):
         return budget
 
     solver = pyo.SolverFactory("ipopt")
+    if solver.executable() is None:
+        raise RuntimeError(
+            "No executable for the solver 'ipopt' found "
+            "(necessary for the budget harmonization). "
+            "Install from conda-forge or add to PATH."
+        )
 
     harmonized = []
 
@@ -240,10 +246,6 @@ def budget(df, df_hist, harmonize_year='2015'):
 
         # Define model
         model = pyo.ConcreteModel()
-
-        """
-        SETS
-        """
 
         """
         PARAMETERS
@@ -280,11 +282,7 @@ def budget(df, df_hist, harmonize_year='2015'):
         """
         CONSTRAINTS
         """
-        # 1
-
         model.hist_val = pyo.Constraint(expr=model.x[harmonize_year] == hist_val)
-
-        # 2
 
         model.budget = pyo.Constraint(expr=carbon_budget(years, x) == budget_val)
 
