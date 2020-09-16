@@ -774,7 +774,8 @@ def diagnostics(unharmonized, model, metadata, config=None):
         report['{}_diff'.format(end)] = bigend
 
     report = report.drop(cols, axis=1).dropna(how='all')
-    report['method'] = metadata.loc[report.index, 'method']
+    idx = metadata.index.intersection(report.index)
+    report['method'] = metadata.loc[idx, 'method']
     report = report[~report['method'].isin(['model_zero', np.nan])]
 
     #
