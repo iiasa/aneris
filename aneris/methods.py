@@ -19,7 +19,7 @@ def harmonize_factors(df, hist, harmonize_year='2015'):
     hist : pd.DataFrame
         historical data
     harmonize_year : string, optional
-        column name of harmonization year 
+        column name of harmonization year
 
     Returns
     -------
@@ -94,9 +94,9 @@ def linear_interpolate(df, offset, final_year='2050', harmonize_year='2015'):
     offset : pd.DataFrame
         offset data
     final_year : string, optional
-        column name of convergence year 
+        column name of convergence year
     harmonize_year : string, optional
-        column name of harmonization year 
+        column name of harmonization year
 
     Returns
     -------
@@ -125,9 +125,9 @@ def reduce_offset(df, offset, final_year='2050', harmonize_year='2015'):
     offset : pd.DataFrame
         offset data
     final_year : string, optional
-        column name of convergence year 
+        column name of convergence year
     harmonize_year : string, optional
-        column name of harmonization year 
+        column name of harmonization year
 
     Returns
     -------
@@ -157,9 +157,9 @@ def reduce_ratio(df, ratios, final_year='2050', harmonize_year='2015'):
     ratio : pd.DataFrame
         ratio data
     final_year : string, optional
-        column name of convergence year 
+        column name of convergence year
     harmonize_year : string, optional
-        column name of harmonization year 
+        column name of harmonization year
 
     Returns
     -------
@@ -174,8 +174,8 @@ def reduce_ratio(df, ratios, final_year='2050', harmonize_year='2015'):
     f = lambda year: -(year - yi) / float(yf - yi) + 1
     prefactors = [f(int(harmonize_year))
                   for year in numcols if year < harmonize_year]
-    postfactors = [f(int(year)) if year <=
-                   final_year else 0.0 for year in numcols if year >= harmonize_year]
+    postfactors = [f(int(year)) if year <= final_year else 0.0
+                   for year in numcols if year >= harmonize_year]
     factors = prefactors + postfactors
     # multiply existing values by ratio time series
     ratios = pd.DataFrame(np.outer(ratios - 1, factors),
@@ -200,7 +200,7 @@ def hist_zero(df, *args, **kwargs):
 
 
 def coeff_of_var(s):
-    """Returns coefficient of variation of a Series 
+    """Returns coefficient of variation of a Series
 
     .. math:: c_v = \\frac{\\sigma(s^{\\prime}(t))}{\\mu(s^{\\prime}(t))}
 
@@ -218,8 +218,52 @@ def coeff_of_var(s):
     return np.abs(np.std(x) / np.mean(x))
 
 
-def default_methods(hist, model, base_year,
-                    luc_method=None, offset_method=None, ratio_method=None):
+def default_method_choice(
+    row, ratio_method, offset_method, luc_method, luc_cov_threshold
+):
+    """Default decision tree as documented at
+
+    Refer to choice flow chart at
+    https://drive.google.com/drive/folders/0B6_Oqvcg8eP9QXVKX2lFVUJiZHc
+    for arguments available in row and their definition
+    """
+    # special cases
+    if row.h == 0:
+        return 'hist_zero'
+    if row.zero_m:
+        return 'model_zero'
+    if np.isinf(row.f) and row.neg_m and row.pos_m:
+        # model == 0 in base year, and model goes negative
+        # and positive
+        return 'unicorn'  # this shouldn't exist!
+
+    # model 0 in base year?
+    if np.isclose(row.m, 0):
+        # goes negative?
+        if row.neg_m:
+            return offset_method
+        else:
+            return 'constant_offset'
+    else:
+        # is this co2?
+        if row.gas == 'CO2':
+            return ratio_method
+        # is cov big?
+        if np.isfinite(row['cov']) and row['cov'] > luc_cov_threshold:
+            return luc_method
+        else:
+            # dH small?
+            if row.dH < 0.5:
+                return ratio_method
+            else:
+                # goes negative?
+                if row.neg_m:
+                    return 'reduce_ratio_2100'
+                else:
+                    return 'constant_ratio'
+
+
+def default_methods(hist, model, base_year, method_choice=None, **kwargs):
     """Determine default harmonization methods to use.
 
     See http://mattgidden.com/aneris/theory.html#default-decision-tree for a
@@ -232,13 +276,20 @@ def default_methods(hist, model, base_year,
     model : pd.DataFrame
         model data
     base_year : string, int
-        column name of harmonization year 
-    luc_method : string, optional
-        method to use for high coefficient of variation
-    offset_method : string, optional
-        method to use for offset harmonization
-    ratio_method : string, optional
-        method to use for ratio harmonization
+        harmonization year
+    method_choice : function, optional
+        codified decision tree, see `default_method_choice` function
+    **kwargs :
+        Additional parameters passed on to the choice function:
+
+        ratio_method : string, optional
+            method to use for ratio harmonization, default: reduce_ratio_2080
+        offset_method : string, optional
+            method to use for offset harmonization, default: reduce_offset_2080
+        luc_method : string, optional
+            method to use for high coefficient of variation, reduce_offset_2150_cov
+        luc_cov_threshold : float
+            cov threshold above which to use `luc_method`
 
     Returns
     -------
@@ -247,10 +298,20 @@ def default_methods(hist, model, base_year,
     metadata : pd.DataFrame
        metadata regarding why each method was chosen
 
+    See also
+    --------
+    `default_method_choice`
     """
-    luc_method = luc_method or 'reduce_offset_2150_cov'
-    offset_method = offset_method or 'reduce_offset_2080'
-    ratio_method = ratio_method or 'reduce_ratio_2080'
+
+    if kwargs.get('ratio_method') is None:
+        kwargs['ratio_method'] = 'reduce_ratio_2080'
+    if kwargs.get('offset_method') is None:
+        kwargs['offset_method'] = 'reduce_offset_2080'
+    if kwargs.get('luc_method') is None:
+        kwargs['luc_method'] = 'reduce_offset_2150_cov'
+    if kwargs.get('luc_cov_threshold') is None:
+        kwargs['luc_cov_threshold'] = 10
+
     y = str(base_year)
     h = hist[y]
     m = model[y]
@@ -263,60 +324,17 @@ def default_methods(hist, model, base_year,
     go_neg = ((model.min(axis=1) - h) < 0).any()
     cov = hist.apply(coeff_of_var, axis=1)
 
-    # special override for co2
-    # do this check for testing purposes
-    if isinstance(model.index, pd.MultiIndex) and 'gas' in model.index.names:
-        isco2 = model.reset_index().gas == 'CO2'
-        isco2 = isco2.values
-    else:
-        isco2 = False
-
     df = pd.DataFrame({
         'dH': dH, 'f': f, 'dM': dM,
         'neg_m': neg_m, 'pos_m': pos_m,
         'zero_m': zero_m, 'go_neg': go_neg,
-        'cov': cov, 'isco2': isco2,
+        'cov': cov,
         'h': h, 'm': m,
-    })
+    }).join(model.index.to_frame())
 
-    # for choice flow chart see
-    # https://drive.google.com/drive/folders/0B6_Oqvcg8eP9QXVKX2lFVUJiZHc
-    def choice(row):
-        # special cases
-        if row.h == 0:
-            return 'hist_zero'
-        if row.zero_m:
-            return 'model_zero'
-        if np.isinf(row.f) and row.neg_m and row.pos_m:
-            # model == 0 in base year, and model goes negative
-            # and positive
-            return 'unicorn'  # this shouldn't exist!
+    if method_choice is None:
+        method_choice = default_method_choice
 
-        # model 0 in base year?
-        if np.isclose(row.m, 0):
-            # goes negative?
-            if row.neg_m:
-                return offset_method
-            else:
-                return 'constant_offset'
-        else:
-            # is this co2?
-            if row['isco2']:
-                return ratio_method
-            # is cov big?
-            if np.isfinite(row['cov']) and row['cov'] > 10:
-                return luc_method
-            else:
-                # dH small?
-                if row.dH < 0.5:
-                    return ratio_method
-                else:
-                    # goes negative?
-                    if row.neg_m:
-                        return 'reduce_ratio_2100'
-                    else:
-                        return 'constant_ratio'
-
-    ret = df.apply(choice, axis=1)
+    ret = df.apply(method_choice, axis=1, **kwargs)
     ret.name = 'method'
     return ret, df
