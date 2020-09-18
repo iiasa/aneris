@@ -187,7 +187,7 @@ def reduce_ratio(df, ratios, final_year='2050', harmonize_year='2015'):
 
 
 def budget(df, df_hist, harmonize_year='2015'):
-    """Calculate budget harmonized trajectory
+    r"""Calculate budget harmonized trajectory
 
     Parameters
     ----------
@@ -202,6 +202,38 @@ def budget(df, df_hist, harmonize_year='2015'):
     -------
     df_harm : pd.DataFrame
         harmonized trajectories
+
+    Notes
+    -----
+    Finds an emissions trajectory consistent with a provided historical emissions
+    timeseries that closely matches a modeled result, while maintaining the overall
+    carbon budget.
+
+    An optimization problem is constructed and solved by IPOPT, which minimizes the
+    difference between the rate of change of the model and the harmonized model
+    in each year, while
+    1. preserving the carbon budget of the model, and
+    2. being consistent with the historical value.
+
+    With years $y_i$, model results $m_i$, harmonized results $x_i$, historical
+    value $h_0$ and a remaining carbon budget $B$, the optimization problem can
+    be formulated as
+
+    $$
+    \min_{x_i} \sum_{i \in |I - 1|}
+      \big( \frac{m_{i+1} - m_i}{y_{i + 1} - y_{i}} -
+            \frac{x_{i+1} - x_i}{y_{i + 1} - y_{i}} \big)^2
+    $$
+    s.t.
+    $$
+    \sum_{i} (y_{i + 1} - y_{i}) \big( x_i + 0.5 (x_{i+1} - x_i) \big) = B
+    $$
+    (carbon budget preservation)
+    and
+    $$
+    x_0 = h_0
+    $$
+    (consistency with historical values)
     """
 
     harmonize_year = int(harmonize_year)
@@ -241,10 +273,6 @@ def budget(df, df_hist, harmonize_year='2015'):
     harmonized = []
 
     for region in df.index:
-
-        # Step 2: Set up the optimisation problem
-
-        # Define model
         model = pyo.ConcreteModel()
 
         """
