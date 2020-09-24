@@ -30,6 +30,7 @@ REQUIREMENTS = [
     'xlrd',
     'xlsxwriter',
     'matplotlib',
+    'pyomo>=5'
 ]
 
 EXTRA_REQUIREMENTS = {

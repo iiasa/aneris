@@ -9,7 +9,7 @@ from aneris import utils
 from aneris import pd_read
 from aneris.methods import harmonize_factors, constant_offset, reduce_offset, \
     constant_ratio, reduce_ratio, linear_interpolate, model_zero, hist_zero, \
-    coeff_of_var, default_methods
+    budget, coeff_of_var, default_methods
 
 
 def _log(msg, *args, **kwargs):
@@ -27,6 +27,7 @@ class Harmonizer(object):
     _methods = {
         'model_zero': model_zero,
         'hist_zero': hist_zero,
+        'budget': budget,
         'constant_ratio': constant_ratio,
         'constant_offset': constant_offset,
         'reduce_offset_2150_cov': partial(reduce_offset, final_year='2150'),
@@ -69,9 +70,7 @@ class Harmonizer(object):
         key = 'harmonize_year'
         # TODO type
         self.base_year = str(config[key]) if key in config else '2015'
-        numcols = utils.numcols(data)
-        cols = [x for x in numcols if int(x) >= int(self.base_year)]
-        self.data = data[cols]
+        self.data = data[utils.numcols(data)]
         self.model = pd.Series(index=self.data.index,
                                name=self.base_year).to_frame()
         self.history = history
@@ -137,7 +136,7 @@ class Harmonizer(object):
         offsets = self.offsets.loc[idx]
         ratios = self.ratios.loc[idx]
         # get delta
-        delta = ratios if 'ratio' in method else offsets
+        delta = hist if method == 'budget' else ratios if 'ratio' in method else offsets
 
         # checks
         assert(not model.isnull().values.any())
@@ -233,6 +232,8 @@ class Harmonizer(object):
             dfs.append(df)
 
         df = pd.concat(dfs).sort_index()
+        # only keep columns from base_year
+        df = df[df.columns[df.columns.astype(int) >= int(self.base_year)]]
         self.model = df
         return df
 

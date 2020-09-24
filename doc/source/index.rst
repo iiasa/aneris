@@ -48,6 +48,7 @@ Documentation
    tutorial.ipynb
    install
    theory
+   budget_method.ipynb
    data
    config
    cli
