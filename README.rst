@@ -6,7 +6,7 @@
 Documentation
 -------------
 
-All documentation can be found at https://aneris-iamc.readthedocs.io/
+All documentation can be found at https://aneris.readthedocs.io/en/latest/
 
 Install
 -------

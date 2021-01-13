@@ -68,10 +68,14 @@ class TestHarmonizeRegression():
         ncols = 5
         expfile = join(prefix, checkf)
         exp = pd.read_excel(expfile, sheet_name='data',
-                            index_col=list(range(ncols))).sort_index()
+                            index_col=list(range(ncols)),
+                            engine='openpyxl',
+                            ).sort_index()
         exp.columns = exp.columns.astype(str)
         obs = pd.read_excel(outf, sheet_name='data',
-                            index_col=list(range(ncols))).sort_index()
+                            index_col=list(range(ncols)),
+                            engine='openpyxl',
+                            ).sort_index()
         assert_frame_equal(exp, obs, check_dtype=False)
 
         # tidy up after
