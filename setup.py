@@ -22,10 +22,8 @@ logo = r"""
 
 REQUIREMENTS = [
     'argparse',
-    'numpy<=1.19.1',
-    # pin to <=1.0 is due to 1.1.0 regression in
-    # https://github.com/pandas-dev/pandas/issues/35753
-    'pandas>0.24<=1.0',
+    'numpy',
+    'pandas>=1.1,<1.2',
     'PyYAML',
     'xlrd==1.2.0',
     'xlsxwriter',

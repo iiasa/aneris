@@ -632,7 +632,7 @@ def _harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
     model.reset_index(inplace=True)
     model = model.set_index(utils.df_idx).sort_index()
     glb = utils.combine_rows(model, 'region', 'World',
-                             sumall=True, rowsonly=True)
+                             sumall=False, rowsonly=True)
     model = glb.combine_first(model)
 
     # add 5regions

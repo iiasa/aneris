@@ -73,7 +73,7 @@ ci_dl: $(VENV_DIR)  ## run all the tests
 
 .PHONY: test
 test: $(VENV_DIR)  ## run all the tests
-	cd tests; $(VENV_DIR)/bin/pytest --cov=aneris --cov-config ../ci/.coveragerc -vrfsxEX --cov-report term-missing
+	$(VENV_DIR)/bin/pytest tests --cov=aneris --cov-config $(CI_DIR)/.coveragerc -vrfsxEX --cov-report term-missing
 
 .PHONY: install
 install: $(VENV_DIR)  ## install aneris in virtual env
