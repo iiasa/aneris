@@ -2,7 +2,6 @@ name: aneris CI-CD
 on: push
 push:
     branches: [ 'main' ]
-    tags: [ 'v*' ]
  pull_request:
     branches: [ '**' ]
 
