@@ -1,0 +1,122 @@
+name: aneris CI-CD
+on: push
+# use options below once merged into master
+  # push:
+  #   branches:
+  #     - main
+  #   tags:
+  #     - 'v*'
+  # pull_request:
+
+jobs:
+  linting-and-docs:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: [3.7]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Cache conda
+      uses: actions/cache@v2
+      with:
+        path: ~/conda_pkgs_dir
+        key:
+          ${{ runner.os }}-conda-py${{ matrix.python-version }}-${{
+          hashFiles('ci/**', 'setup.py') }}
+    - name: Setup conda
+      uses: conda-incubator/setup-miniconda@v2.0.1
+      with:
+        channels: conda-forge
+        channel-priority: strict
+        activate-environment: testing
+        auto-update-conda: false
+        python-version: ${{ matrix.python-version }}
+    - name: Conda info
+      shell: bash -l {0}
+      run: conda info
+    - name: Install dependencies
+      shell: bash -l {0}
+      run: |
+        which python
+        conda config --add channels conda-forge
+        conda env update --file ci/environment-conda-default.yml
+        conda env update --file ci/environment-conda-forge.yml
+        conda env update --file doc/environment.yml
+        pip install -e .[tests,deploy]
+    # if we want to remove stickler
+    # - name: Run format and linting tests
+    #   shell: bash -l {0}
+    #   run: |
+    #       black --check mesmer examples tests setup.py
+    #       flake8 mesmer examples tests setup.py
+    - name: Build docs
+      shell: bash -l {0}
+      run: |
+          sphinx-build -M html doc/source docs/build
+        # # if we want more nit picky checks
+        # treat warnings as errors (-W)...
+        # ...but not when being nitpicky (-n)
+        #   sphinx-build -M html doc/source docs/build -qW
+        #   sphinx-build -M html doc/source docs/build -Eqn -b coverage
+        #   if [[ -s doc/build/html/python.txt ]]
+        #   then
+        #       echo
+        #       echo \"Error: Documentation missing:\"
+        #       echo
+        #       cat doc/build/html/python.txt
+        #       exit 1
+        #   fi
+
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest", "macos-latest"] #, "windows-latest"]
+        python-version: [3.6, 3.7, 3.8] #, 3.9]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Cache conda
+      uses: actions/cache@v2
+      with:
+        path: ~/conda_pkgs_dir
+        key:
+          ${{ runner.os }}-conda-py${{ matrix.python-version }}-${{
+          hashFiles('ci/**', 'setup.py') }}
+    - name: Setup conda
+      uses: conda-incubator/setup-miniconda@v2.0.1
+      with:
+        channels: conda-forge
+        channel-priority: strict
+        activate-environment: testing
+        auto-update-conda: false
+        python-version: ${{ matrix.python-version }}
+    - name: Conda info
+      shell: bash -l {0}
+      run: conda info
+    - name: Install dependencies
+      shell: bash -l {0}
+      run: |
+        which python
+        conda config --add channels conda-forge
+        conda env update --file ci/environment-conda-default.yml
+        conda env update --file ci/environment-conda-forge.yml
+        conda env update --file doc/environment.yml
+        pip install -e .[tests,deploy]
+    - name: Run tests
+      shell: bash -l {0}
+      run: |
+          which python
+          which pytest
+          conda list
+          pytest tests --cov=aneris --cov-config ci/.coveragerc -r a --cov-report term-missing
+    - name: Upload coverage to Codecov
+      if: startsWith(runner.os, 'Linux') && matrix.python-version == 3.7
+      uses: codecov/codecov-action@v1
+      with:
+        file: ./coverage.xml
+
