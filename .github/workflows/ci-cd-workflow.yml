@@ -1,12 +1,12 @@
 name: aneris CI-CD
 on: push
-# use options below once merged into master
-  # push:
-  #   branches:
-  #     - main
-  #   tags:
-  #     - 'v*'
-  # pull_request:
+push:
+   branches:
+     - main
+   tags:
+     - 'v*'
+ pull_request:
+    branches: [ '**' ]
 
 jobs:
   linting-and-docs:
