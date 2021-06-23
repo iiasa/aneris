@@ -104,6 +104,12 @@ jobs:
         conda env update --file ci/environment-conda-forge.yml
         conda env update --file doc/environment.yml
         pip install -e .[tests,deploy]
+    - name: Install ipopt (${{ runner.os }})
+      # see https://github.com/conda-forge/ipopt-feedstock/issues/55
+      if: startsWith(runner.os, 'Windows')
+      shell: bash -l {0}
+      run: |
+        conda install -c conda-forge ipopt=3.11.1
     - name: Run tests
       shell: bash -l {0}
       run: |
