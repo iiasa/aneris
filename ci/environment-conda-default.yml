@@ -1,0 +1,12 @@
+dependencies:
+- numpy
+- "pandas<=1.0"
+- pyyaml
+- xlrd
+- xlsxwriter
+- matplotlib
+- seaborn
+- pytest
+- jupyter
+- nbconvert
+- openpyxl
