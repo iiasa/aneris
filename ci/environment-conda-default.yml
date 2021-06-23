@@ -1,5 +1,5 @@
 dependencies:
-- numpy
+- "numpy<=1.19.1"
 - "pandas<=1.0"
 - pyyaml
 - xlrd
