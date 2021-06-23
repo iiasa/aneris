@@ -1,2 +1,4 @@
+channels:
+  - conda-forge
 dependencies:
-- ipopt
+  - ipopt
