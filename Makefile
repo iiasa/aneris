@@ -1,8 +1,8 @@
 .DEFAULT_GOAL := help
 
 CI_DIR=./ci
-CI_ENVIRONMENT_CONDA_DEFAULT_FILE=$(CI_DIR)/environment-conda-default.txt
-CI_ENVIRONMENT_CONDA_FORGE_FILE=$(CI_DIR)/environment-conda-forge.txt
+CI_ENVIRONMENT_CONDA_DEFAULT_FILE=$(CI_DIR)/environment-conda-default.yml
+CI_ENVIRONMENT_CONDA_FORGE_FILE=$(CI_DIR)/environment-conda-forge.yml
 
 
 ifndef CONDA_PREFIX
@@ -87,13 +87,13 @@ docs: $(VENV_DIR)  ## make the docs
 virtual-environment: $(VENV_DIR)  ## make virtual environment for development
 
 $(VENV_DIR):  $(CI_ENVIRONMENT_CONDA_DEFAULT_FILE) $(CI_ENVIRONMENT_CONDA_FORGE_FILE)
-	# TODO: unify with ci install instructions somehow
 	$(CONDA_EXE) config --add channels conda-forge # sets conda-forge as highest priority
-	$(CONDA_EXE) install --yes $(shell cat $(CI_ENVIRONMENT_CONDA_DEFAULT_FILE) $(CI_ENVIRONMENT_CONDA_FORGE_FILE) | tr '\n' ' ')
+	# install requirements
+	$(CONDA_EXE) env update --name $(CONDA_DEFAULT_ENV) --file $(CI_ENVIRONMENT_CONDA_DEFAULT_FILE)
+	$(CONDA_EXE) env update --name $(CONDA_DEFAULT_ENV) --file $(CI_ENVIRONMENT_CONDA_FORGE_FILE)
+	$(CONDA_EXE) env update --name $(CONDA_DEFAULT_ENV) --file doc/environment.yml
 	# Install development setup
 	$(VENV_DIR)/bin/pip install -e .[tests,deploy]
-	# install docs requirements
-	$(CONDA_EXE) env update --file doc/environment.yml
 	touch $(VENV_DIR)
 
 .PHONY: release-on-conda
