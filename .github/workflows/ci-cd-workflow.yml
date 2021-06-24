@@ -161,11 +161,12 @@ jobs:
         ANERIS_CI_USER: ${{ secrets.ANERIS_CI_USER }}
         ANERIS_CI_PW: ${{ secrets.ANERIS_CI_PW }}
       run: |
-        make ci_dl
+        cd tests/ci
+        python download_data.py
     - name: Run full test suite with regression
       shell: bash -l {0}
       env:
         ANERIS_CI_USER: ${{ secrets.ANERIS_CI_USER }}
         ANERIS_CI_PW: ${{ secrets.ANERIS_CI_PW }}
       run: |
-        make test
+        pytest tests -r a
