@@ -4,6 +4,7 @@ CI_DIR=./ci
 CI_ENVIRONMENT_CONDA_DEFAULT_FILE=$(CI_DIR)/environment-conda-default.yml
 CI_ENVIRONMENT_CONDA_FORGE_FILE=$(CI_DIR)/environment-conda-forge.yml
 
+ENVIRONMENT_DOC_FILE=doc/environment.yml
 
 ifndef CONDA_PREFIX
 $(error Conda not active, please install conda and then activate it using \`conda activate\`))
@@ -86,12 +87,12 @@ docs: $(VENV_DIR)  ## make the docs
 .PHONY: virtual-environment
 virtual-environment: $(VENV_DIR)  ## make virtual environment for development
 
-$(VENV_DIR):  $(CI_ENVIRONMENT_CONDA_DEFAULT_FILE) $(CI_ENVIRONMENT_CONDA_FORGE_FILE)
+$(VENV_DIR):  $(CI_ENVIRONMENT_CONDA_DEFAULT_FILE) $(CI_ENVIRONMENT_CONDA_FORGE_FILE) $(ENVIRONMENT_DOC_FILE)
 	$(CONDA_EXE) config --add channels conda-forge # sets conda-forge as highest priority
 	# install requirements
 	$(CONDA_EXE) env update --name $(CONDA_DEFAULT_ENV) --file $(CI_ENVIRONMENT_CONDA_DEFAULT_FILE)
 	$(CONDA_EXE) env update --name $(CONDA_DEFAULT_ENV) --file $(CI_ENVIRONMENT_CONDA_FORGE_FILE)
-	$(CONDA_EXE) env update --name $(CONDA_DEFAULT_ENV) --file doc/environment.yml
+	$(CONDA_EXE) env update --name $(CONDA_DEFAULT_ENV) --file $(ENVIRONMENT_DOC_FILE)
 	# Install development setup
 	$(VENV_DIR)/bin/pip install -e .[tests,deploy]
 	touch $(VENV_DIR)
