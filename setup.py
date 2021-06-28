@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 from __future__ import print_function
 
@@ -23,7 +24,7 @@ logo = r"""
 REQUIREMENTS = [
     'argparse',
     'numpy',
-    'pandas>=1.1,<1.2',
+    'pandas>=1.1',
     'PyYAML',
     'xlrd==1.2.0',
     'xlsxwriter',
