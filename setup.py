@@ -27,7 +27,7 @@ REQUIREMENTS = [
     # https://github.com/pandas-dev/pandas/issues/35753
     'pandas>0.24<=1.0',
     'PyYAML',
-    'xlrd',
+    'xlrd==1.2.0',
     'xlsxwriter',
     'matplotlib',
     'pyomo>=5'

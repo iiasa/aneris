@@ -1,5 +1,4 @@
 name: aneris CI-CD
-
 on:
   push:
     branches: [ 'master' ]
@@ -118,3 +117,55 @@ jobs:
       with:
         file: ./coverage.xml
 
+  regression:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: [3.7]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Cache conda
+      uses: actions/cache@v2
+      with:
+        path: ~/conda_pkgs_dir
+        key:
+          ${{ runner.os }}-conda-py${{ matrix.python-version }}-${{
+          hashFiles('ci/**', 'setup.py') }}
+    - name: Setup conda
+      uses: conda-incubator/setup-miniconda@v2.0.1
+      with:
+        channels: conda-forge
+        channel-priority: strict
+        activate-environment: testing
+        auto-update-conda: false
+        python-version: ${{ matrix.python-version }}
+    - name: Conda info
+      shell: bash -l {0}
+      run: conda info
+    - name: Install dependencies
+      shell: bash -l {0}
+      run: |
+        which python
+        conda config --add channels conda-forge
+        conda env update --file ci/environment-conda-default.yml
+        conda env update --file ci/environment-conda-forge.yml
+        conda env update --file doc/environment.yml
+        pip install -e .[tests,deploy]
+    - name: Download data
+      shell: bash -l {0}
+      env:
+        ANERIS_CI_USER: ${{ secrets.ANERIS_CI_USER }}
+        ANERIS_CI_PW: ${{ secrets.ANERIS_CI_PW }}
+      run: |
+        cd tests/ci
+        python download_data.py
+    - name: Run full test suite with regression
+      shell: bash -l {0}
+      env:
+        ANERIS_CI_USER: ${{ secrets.ANERIS_CI_USER }}
+        ANERIS_CI_PW: ${{ secrets.ANERIS_CI_PW }}
+      run: |
+        pytest tests -r a
