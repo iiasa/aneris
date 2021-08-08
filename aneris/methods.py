@@ -404,6 +404,9 @@ def default_method_choice(
         # is this co2?
         if row.gas == 'CO2':
             return ratio_method
+        # choose method for F-gases
+        if (row.gas == 'PFC' or row.gas == 'HFC' or row.gas == 'SF6'):
+            return 'constant_ratio'
         # is cov big?
         if np.isfinite(row['cov']) and row['cov'] > luc_cov_threshold:
             return luc_method
