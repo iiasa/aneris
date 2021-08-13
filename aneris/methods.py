@@ -401,15 +401,15 @@ def default_method_choice(
         else:
             return 'constant_offset'
     else:
-        # is this co2?
-        if row.gas == 'CO2':
-            return ratio_method
         # choose method for F-gases
         if (row.gas == 'PFC' or row.gas == 'HFC' or row.gas == 'SF6'):
             return 'constant_ratio'
-        # is cov big?
+        # is cov big? -- this is especially for land-use related emissions
         if np.isfinite(row['cov']) and row['cov'] > luc_cov_threshold:
             return luc_method
+        # is this co2?
+        if row.gas == 'CO2':
+            return ratio_method
         else:
             # dH small?
             if row.dH < 0.5:
