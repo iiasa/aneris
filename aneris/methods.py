@@ -406,7 +406,7 @@ def default_method_choice(
             return 'constant_ratio'
         # is cov big? -- this is especially for land-use related emissions
         if np.isfinite(row['cov']) and row['cov'] > luc_cov_threshold:
-            return luc_method
+            return 'reduce_offset_2150_cov'
         # is this co2?
         if row.gas == 'CO2':
             return ratio_method
