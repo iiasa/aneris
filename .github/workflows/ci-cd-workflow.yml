@@ -221,5 +221,4 @@ jobs:
         ANERIS_CI_USER: ${{ secrets.ANERIS_CI_USER }}
         ANERIS_CI_PW: ${{ secrets.ANERIS_CI_PW }}
       run: |
-        export ANERIS_CI_USER='value_to_force_tests_to_run'
         pytest  -r A tests/test_regression.py
