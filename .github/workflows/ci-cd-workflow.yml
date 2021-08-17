@@ -215,10 +215,10 @@ jobs:
       run: |
         cd tests/ci
         python download_data.py
-    - name: Run full test suite with regression
+    - name: Run regression tests
       shell: bash -l {0}
       env:
         ANERIS_CI_USER: ${{ secrets.ANERIS_CI_USER }}
         ANERIS_CI_PW: ${{ secrets.ANERIS_CI_PW }}
       run: |
-        pytest tests -r A tests/test_regression.py
+        pytest  -r A tests/test_regression.py
