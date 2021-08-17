@@ -221,4 +221,4 @@ jobs:
         ANERIS_CI_USER: ${{ secrets.ANERIS_CI_USER }}
         ANERIS_CI_PW: ${{ secrets.ANERIS_CI_PW }}
       run: |
-        pytest tests -r a
+        pytest tests -r A tests/test_regression.py
