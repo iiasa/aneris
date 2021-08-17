@@ -1,9 +1,10 @@
 .DEFAULT_GOAL := help
 
 CI_DIR=./ci
-CI_ENVIRONMENT_CONDA_DEFAULT_FILE=$(CI_DIR)/environment-conda-default.txt
-CI_ENVIRONMENT_CONDA_FORGE_FILE=$(CI_DIR)/environment-conda-forge.txt
+CI_ENVIRONMENT_CONDA_DEFAULT_FILE=$(CI_DIR)/environment-conda-default.yml
+CI_ENVIRONMENT_CONDA_FORGE_FILE=$(CI_DIR)/environment-conda-forge.yml
 
+ENVIRONMENT_DOC_FILE=doc/environment.yml
 
 ifndef CONDA_PREFIX
 $(error Conda not active, please install conda and then activate it using \`conda activate\`))
@@ -73,7 +74,7 @@ ci_dl: $(VENV_DIR)  ## run all the tests
 
 .PHONY: test
 test: $(VENV_DIR)  ## run all the tests
-	cd tests; $(VENV_DIR)/bin/pytest --cov=aneris --cov-config ../ci/.coveragerc -vrfsxEX --cov-report term-missing
+	$(VENV_DIR)/bin/pytest tests --cov=aneris --cov-config $(CI_DIR)/.coveragerc -r a --cov-report term-missing
 
 .PHONY: install
 install: $(VENV_DIR)  ## install aneris in virtual env
@@ -86,14 +87,14 @@ docs: $(VENV_DIR)  ## make the docs
 .PHONY: virtual-environment
 virtual-environment: $(VENV_DIR)  ## make virtual environment for development
 
-$(VENV_DIR):  $(CI_ENVIRONMENT_CONDA_DEFAULT_FILE) $(CI_ENVIRONMENT_CONDA_FORGE_FILE)
-	# TODO: unify with ci install instructions somehow
+$(VENV_DIR):  $(CI_ENVIRONMENT_CONDA_DEFAULT_FILE) $(CI_ENVIRONMENT_CONDA_FORGE_FILE) $(ENVIRONMENT_DOC_FILE)
 	$(CONDA_EXE) config --add channels conda-forge # sets conda-forge as highest priority
-	$(CONDA_EXE) install --yes $(shell cat $(CI_ENVIRONMENT_CONDA_DEFAULT_FILE) $(CI_ENVIRONMENT_CONDA_FORGE_FILE) | tr '\n' ' ')
+	# install requirements
+	$(CONDA_EXE) env update --name $(CONDA_DEFAULT_ENV) --file $(CI_ENVIRONMENT_CONDA_DEFAULT_FILE)
+	$(CONDA_EXE) env update --name $(CONDA_DEFAULT_ENV) --file $(CI_ENVIRONMENT_CONDA_FORGE_FILE)
+	$(CONDA_EXE) env update --name $(CONDA_DEFAULT_ENV) --file $(ENVIRONMENT_DOC_FILE)
 	# Install development setup
 	$(VENV_DIR)/bin/pip install -e .[tests,deploy]
-	# install docs requirements
-	$(CONDA_EXE) env update --file doc/environment.yml
 	touch $(VENV_DIR)
 
 .PHONY: release-on-conda

@@ -23,7 +23,7 @@ def _notebook_run(path, kernel=None, capsys=None):
     kernel = kernel or 'python{}'.format(major_version)
     if capsys is not None:
         with capsys.disabled():
-            print('using py version {} with kernerl {}'.format(
+            print('using py version {} with kernel {}'.format(
                 major_version, kernel))
     dirname, __ = os.path.split(path)
     os.chdir(dirname)

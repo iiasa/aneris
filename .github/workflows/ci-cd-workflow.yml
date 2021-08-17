@@ -71,8 +71,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ["ubuntu-latest", "macos-latest"] #, "windows-latest"]
-        python-version: [3.6, 3.7, 3.8] #, 3.9]
+        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        python-version: [3.6, 3.7, 3.8, 3.9]
 
     steps:
     - name: Checkout repository
@@ -104,6 +104,12 @@ jobs:
         conda env update --file ci/environment-conda-forge.yml
         conda env update --file doc/environment.yml
         pip install -e .[tests,deploy]
+    - name: Install ipopt (${{ runner.os }})
+      # see https://github.com/conda-forge/ipopt-feedstock/issues/55
+      if: startsWith(runner.os, 'Windows')
+      shell: bash -l {0}
+      run: |
+        conda install -c conda-forge ipopt=3.11.1
     - name: Run tests
       shell: bash -l {0}
       run: |
@@ -116,6 +122,53 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         file: ./coverage.xml
+
+  build-pandas:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: [3.7]
+        pandas-version: [1.1, 1.2, 1.2.5]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Cache conda
+      uses: actions/cache@v2
+      with:
+        path: ~/conda_pkgs_dir
+        key:
+          ${{ runner.os }}-conda-py${{ matrix.python-version }}-${{
+          hashFiles('ci/**', 'setup.py') }}
+    - name: Setup conda
+      uses: conda-incubator/setup-miniconda@v2.0.1
+      with:
+        channels: conda-forge
+        channel-priority: strict
+        activate-environment: testing
+        auto-update-conda: false
+        python-version: ${{ matrix.python-version }}
+    - name: Conda info
+      shell: bash -l {0}
+      run: conda info
+    - name: Install dependencies
+      shell: bash -l {0}
+      run: |
+        which python
+        conda config --add channels conda-forge
+        conda env update --file ci/environment-conda-default.yml
+        conda env update --file ci/environment-conda-forge.yml
+        conda env update --file doc/environment.yml
+        conda install -q pandas==${{ matrix.pandas-version }}
+        pip install .[tests]
+    - name: Run tests
+      shell: bash -l {0}
+      run: |
+          which python
+          which pytest
+          conda list
+          pytest tests -r a
 
   regression:
     runs-on: ${{ matrix.os }}
