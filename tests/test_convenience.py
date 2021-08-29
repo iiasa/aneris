@@ -1,16 +1,17 @@
+# Tests to write:
 # - default decision tree applied properly
-# - error if variable not in hist
-# - error if region etc. not in hist
-# - error if units can't be converted
-# - error if harmonisation year is missing
-# - can override methods for different indexes
+# - can override methods for different indexes (specified at different levels)
+import re
+
+import numpy as np
 import numpy.testing as npt
 import pandas as pd
 import pandas.testing as pdt
+import pint.errors
 import pytest
 
 from aneris.convenience import harmonise_all
-
+from aneris.errors import MissingHarmonisationYear, MissingHistoricalError
 
 @pytest.mark.parametrize("method,exp_res", (
     (
@@ -242,3 +243,149 @@ def test_different_unit_handling_multiple_timeseries_constant_offset(
     )
 
     pdt.assert_frame_equal(res, exp)
+
+
+def test_different_unit_handling_multiple_timeseries_overrides(
+    hist_df,
+    scenarios_df,
+):
+    harmonisation_year = 2015
+
+    exp = scenarios_df.copy()
+    for r in exp.index:
+        for c in exp:
+            if "CO2" in r[0]:
+                harm_year_ratio = 12 / 11
+
+                if c >= 2050:
+                    sf = 1
+                elif c <= 2015:
+                    # this custom pre-harmonisation year logic doesn't apply to
+                    # offsets which seems surprising
+                    sf = harm_year_ratio
+                else:
+                    sf = (
+                        1
+                        + (
+                            (harm_year_ratio - 1)
+                            * (2050 - c)
+                            / (2050 - harmonisation_year)
+                        )
+                    )
+
+                exp.loc[r, c] *= sf
+            else:
+                harm_year_offset = 0.1
+
+                if c >= 2030:
+                    of = 0
+                else:
+                    of = (
+                        harm_year_offset
+                        * (2030 - c)
+                        / (2030 - harmonisation_year)
+                    )
+
+                exp.loc[r, c] += of
+
+    overrides = [
+        {"variable": "Emissions|CO2", "method": "reduce_ratio_2050"},
+        {"variable": "Emissions|CH4", "method": "reduce_offset_2030"},
+    ]
+    overrides = pd.DataFrame(overrides)
+
+    res = harmonise_all(
+        scenarios=scenarios_df,
+        history=hist_df,
+        harmonisation_year=harmonisation_year,
+        overrides=overrides,
+    )
+
+    pdt.assert_frame_equal(res, exp)
+
+
+def test_raise_if_variable_not_in_hist(hist_df, scenarios_df):
+    hist_df = hist_df[~hist_df.index.get_level_values("variable").str.endswith("CO2")]
+
+    error_msg = re.escape("No historical data for `World` `Emissions|CO2`")
+    with pytest.raises(MissingHistoricalError, match=error_msg):
+        harmonise_all(
+            scenarios=scenarios_df,
+            history=hist_df,
+            harmonisation_year=2010,
+            overrides=pd.DataFrame([{"method": "constant_ratio"}])
+        )
+
+
+def test_raise_if_region_not_in_hist(hist_df, scenarios_df):
+    hist_df = hist_df[~hist_df.index.get_level_values("region").str.startswith("World")]
+
+    error_msg = re.escape("No historical data for `World` `Emissions|CH4`")
+    with pytest.raises(MissingHistoricalError, match=error_msg):
+        harmonise_all(
+            scenarios=scenarios_df,
+            history=hist_df,
+            harmonisation_year=2010,
+            overrides=pd.DataFrame([{"method": "constant_ratio"}])
+        )
+
+
+def test_raise_if_incompatible_unit(hist_df, scenarios_df):
+    scenarios_df = scenarios_df.reset_index("unit")
+    scenarios_df["unit"] = "Mt CO2 / yr"
+    scenarios_df = scenarios_df.set_index("unit", append=True)
+
+    error_msg = re.escape(
+        "Cannot convert from 'megatCH4 / a' ([mass] * [methane] / [time]) to "
+        "'CO2 * megametric_ton / a' ([carbon] * [mass] / [time])"
+    )
+    with pytest.raises(pint.errors.DimensionalityError, match=error_msg):
+        harmonise_all(
+            scenarios=scenarios_df,
+            history=hist_df,
+            harmonisation_year=2010,
+            overrides=pd.DataFrame([{"method": "constant_ratio"}])
+        )
+
+
+def test_raise_if_undefined_unit(hist_df, scenarios_df):
+    scenarios_df = scenarios_df.reset_index("unit")
+    scenarios_df["unit"] = "Mt CO2eq / yr"
+    scenarios_df = scenarios_df.set_index("unit", append=True)
+
+    with pytest.raises(pint.errors.UndefinedUnitError):
+        harmonise_all(
+            scenarios=scenarios_df,
+            history=hist_df,
+            harmonisation_year=2010,
+            overrides=pd.DataFrame([{"method": "constant_ratio"}])
+        )
+
+
+def test_raise_if_harmonisation_year_missing(hist_df, scenarios_df):
+    hist_df = hist_df.drop(2015, axis="columns")
+
+    error_msg = re.escape("No historical data for year 2015 for `World` `Emissions|CH4`")
+    with pytest.raises(MissingHarmonisationYear, match=error_msg):
+        harmonise_all(
+            scenarios=scenarios_df,
+            history=hist_df,
+            harmonisation_year=2015,
+            overrides=pd.DataFrame([{"method": "constant_ratio"}])
+        )
+
+
+def test_raise_if_harmonisation_year_nan(hist_df, scenarios_df):
+    hist_df.loc[
+        hist_df.index.get_level_values("variable").str.endswith("CO2"),
+        2015
+    ] = np.nan
+
+    error_msg = re.escape("Historical data is null for year 2015 for `World` `Emissions|CO2`")
+    with pytest.raises(MissingHarmonisationYear, match=error_msg):
+        harmonise_all(
+            scenarios=scenarios_df,
+            history=hist_df,
+            harmonisation_year=2015,
+            overrides=pd.DataFrame([{"method": "constant_ratio"}])
+        )

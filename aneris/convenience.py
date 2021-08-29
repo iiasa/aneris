@@ -1,6 +1,7 @@
 from openscm_units import unit_registry
 
 from .harmonize import Harmonizer
+from .errors import MissingHarmonisationYear, MissingHistoricalError
 from .methods import harmonize_factors
 
 
@@ -22,12 +23,24 @@ def _harmonise_single(timeseries, history, harmonisation_year, overrides):
     # unclear why we don't use pyam or scmdata for filtering
     mdata = {k: v for k, v in zip(timeseries.index.names, timeseries.index.to_list()[0])}
 
-
+    variable = mdata["variable"]
+    region = mdata["region"]
     relevant_hist = history[
-        (history.index.get_level_values("variable") == mdata["variable"])
-        & (history.index.get_level_values("region") == mdata["region"])
+        (history.index.get_level_values("variable") == variable)
+        & (history.index.get_level_values("region") == region)
     ]
 
+    if relevant_hist.empty:
+        error_msg = "No historical data for `{}` `{}`".format(region, variable)
+        raise MissingHistoricalError(error_msg)
+
+    if harmonisation_year not in relevant_hist:
+        error_msg = "No historical data for year {} for `{}` `{}`".format(harmonisation_year, region, variable)
+        raise MissingHarmonisationYear(error_msg)
+
+    if relevant_hist[harmonisation_year].isnull().all():
+        error_msg = "Historical data is null for year {} for `{}` `{}`".format(harmonisation_year, region, variable)
+        raise MissingHarmonisationYear(error_msg)
 
     # convert units
     hist_unit = relevant_hist.index.get_level_values("unit").unique()[0]
