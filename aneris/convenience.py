@@ -54,7 +54,9 @@ def _convert_units(inp, current_unit, target_unit):
     # would be simpler using scmdata or pyam
     out = inp.copy()
     out.iloc[:, :] = (out.values * unit_registry(current_unit)).to(target_unit).magnitude
-    out.index = out.index.set_levels([target_unit], level="unit")
+    out = out.reset_index("unit")
+    out["unit"] = target_unit
+    out = out.set_index("unit", append=True)
 
     return out
 

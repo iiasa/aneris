@@ -205,4 +205,4 @@ def test_different_unit_handling_multiple_timeseries_constant_ratio(hist_df, sce
         overrides=overrides,
     )
 
-    pdt.assert_frame_equal(exp)
+    pdt.assert_frame_equal(res, exp)
