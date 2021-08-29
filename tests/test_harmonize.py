@@ -180,7 +180,9 @@ def test_harmonize_reduce_ratio_different_units():
     obs = res['2015']
     exp = hist['2015']
     # should come back with input units
-    assert (obs.index.get_level_values("units") == df.index.get_level_values("units")).all()
+    obs_units = obs.index.get_level_values("units")
+    df_units = df.index.get_level_values("units")
+    assert (obs_units == df_units).all()
     npt.assert_array_almost_equal(obs, exp)
 
     # future year

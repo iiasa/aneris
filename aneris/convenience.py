@@ -24,10 +24,10 @@ def _harmonise_single(timeseries, history, harmonisation_year, overrides):
 
     variable = mdata["variable"]
     region = mdata["region"]
-    relevant_hist = history[
-        (history.index.get_level_values("variable") == variable)
-        & (history.index.get_level_values("region") == region)
-    ]
+
+    hist_variable = history.index.get_level_values("variable") == variable
+    hist_region = history.index.get_level_values("region") == region
+    relevant_hist = history[hist_variable & hist_region]
 
     if relevant_hist.empty:
         error_msg = "No historical data for `{}` `{}`".format(region, variable)
@@ -39,7 +39,7 @@ def _harmonise_single(timeseries, history, harmonisation_year, overrides):
         )
         raise MissingHarmonisationYear(error_msg)
 
-    if relevant_hist[harmonisation_year].isnull().all():
+    if relevant_hist[harmonisation_year].insull().all():
         error_msg = "Historical data is null for year {} for `{}` `{}`".format(
             harmonisation_year, region, variable
         )
