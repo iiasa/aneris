@@ -1,6 +1,5 @@
 # Tests to write:
-# - default decision tree applied properly
-# - can override methods for different indexes (specified at different levels)
+# - default decision tree applied properly when no overrides match
 import re
 
 import numpy as np
@@ -10,7 +9,11 @@ import pandas.testing as pdt
 import pytest
 
 from aneris.convenience import harmonise_all
-from aneris.errors import MissingHarmonisationYear, MissingHistoricalError
+from aneris.errors import (
+    AmbiguousHarmonisationMethod,
+    MissingHarmonisationYear,
+    MissingHistoricalError,
+)
 
 pytest.importorskip("pint")
 import pint.errors
@@ -396,4 +399,141 @@ def test_raise_if_harmonisation_year_nan(hist_df, scenarios_df):
             history=hist_df,
             harmonisation_year=2015,
             overrides=pd.DataFrame([{"method": "constant_ratio"}]),
+        )
+
+
+def test_override_multi_level(hist_df, scenarios_df):
+    asia_hist = hist_df * 0.7
+    asia_hist.index = asia_hist.index.set_levels(["World|R5.2ASIA"], level="region")
+
+    hist_df = pd.concat([hist_df, asia_hist])
+
+    asia = scenarios_df.copy()
+    asia.index = asia.index.set_levels(["World|R5.2ASIA"], level="region")
+
+    model_2 = scenarios_df.copy()
+    model_2.index = model_2.index.set_levels(["FaNCY"], level="model")
+
+    scenario_2 = scenarios_df.copy()
+    scenario_2.index = scenario_2.index.set_levels(["EMF33 quick"], level="scenario")
+
+    scenarios_df = pd.concat([scenarios_df, asia, model_2, scenario_2])
+
+    overrides = pd.DataFrame(
+        [
+            {
+                "variable": "Emissions|CO2",
+                "region": "World",
+                "model": "IAM",
+                "scenario": "abc",
+                "method": "constant_ratio",
+            },
+            {
+                "variable": "Emissions|CH4",
+                "region": "World",
+                "model": "IAM",
+                "scenario": "abc",
+                "method": "constant_offset",
+            },
+            {
+                "variable": "Emissions|CO2",
+                "region": "World|R5.2ASIA",
+                "model": "IAM",
+                "scenario": "abc",
+                "method": "reduce_ratio_2030",
+            },
+            {
+                "variable": "Emissions|CH4",
+                "region": "World|R5.2ASIA",
+                "model": "IAM",
+                "scenario": "abc",
+                "method": "reduce_ratio_2050",
+            },
+            {
+                "variable": "Emissions|CO2",
+                "region": "World",
+                "model": "FaNCY",
+                "scenario": "abc",
+                "method": "reduce_ratio_2070",
+            },
+            {
+                "variable": "Emissions|CH4",
+                "region": "World",
+                "model": "FaNCY",
+                "scenario": "abc",
+                "method": "reduce_ratio_2090",
+            },
+            {
+                "variable": "Emissions|CO2",
+                "region": "World",
+                "model": "IAM",
+                "scenario": "EMF33 quick",
+                "method": "constant_ratio",
+            },
+            {
+                "variable": "Emissions|CH4",
+                "region": "World",
+                "model": "IAM",
+                "scenario": "EMF33 quick",
+                "method": "constant_offset",
+            },
+        ]
+    )
+
+    res = harmonise_all(
+        scenarios=scenarios_df,
+        history=hist_df,
+        harmonisation_year=2015,
+        overrides=overrides,
+    )
+
+    assert False, "Need to write in expected values"
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    (
+        pd.DataFrame(
+            [
+                {"region": "World", "method": "constant_ratio"},
+                {"region": "World", "method": "constant_offset"},
+            ]
+        ),
+        pd.DataFrame(
+            [
+                {
+                    "region": "World",
+                    "variable": "Emissions|CH4",
+                    "method": "constant_ratio",
+                },
+                {"region": "World", "method": "constant_offset"},
+            ]
+        ),
+        pd.DataFrame(
+            [
+                {"variable": "Emissions|CH4", "method": "constant_ratio"},
+                {"variable": "Emissions|CH4", "method": "reduce_offset_2030"},
+            ]
+        ),
+        pd.DataFrame(
+            [
+                {"variable": "Emissions|CH4", "method": "constant_ratio"},
+                {
+                    "variable": "Emissions|CH4",
+                    "model": "IAM",
+                    "method": "reduce_offset_2030",
+                },
+            ]
+        ),
+    ),
+)
+def test_multiple_matching_overrides(hist_df, scenarios_df, overrides):
+    with pytest.raises(
+        AmbiguousHarmonisationMethod, match="More than one override for metadata"
+    ):
+        harmonise_all(
+            scenarios=scenarios_df,
+            history=hist_df,
+            harmonisation_year=2015,
+            overrides=overrides,
         )

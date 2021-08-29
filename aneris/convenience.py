@@ -1,7 +1,11 @@
 from openscm_units import unit_registry
 
 from .harmonize import Harmonizer
-from .errors import MissingHarmonisationYear, MissingHistoricalError
+from .errors import (
+    AmbiguousHarmonisationMethod,
+    MissingHarmonisationYear,
+    MissingHistoricalError,
+)
 from .methods import harmonize_factors
 
 
@@ -56,10 +60,19 @@ def _harmonise_single(timeseries, history, harmonisation_year, overrides):
     method = overrides.copy()
     for key, value in mdata.items():
         if key in method:
-            method = method[method[key] == value]
+            method = method[(method[key] == value) | method[key].isnull()]
 
     if method.shape[0] > 1:
-        raise ValueError("More than one override for metadata: {}".format(mdata))
+        error_msg = (
+            "Ambiguous harmonisation overrides for metdata `{}`, the "
+            "following methods match: {}".format(mdata, method)
+        )
+        raise AmbiguousHarmonisationMethod(
+            "More than one override for metadata: {}".format(mdata)
+        )
+
+    if method.empty:
+        raise NotImplementedError("default path")
 
     method = method["method"].values[0]
 
