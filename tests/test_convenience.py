@@ -7,11 +7,13 @@ import numpy as np
 import numpy.testing as npt
 import pandas as pd
 import pandas.testing as pdt
-import pint.errors
 import pytest
 
 from aneris.convenience import harmonise_all
 from aneris.errors import MissingHarmonisationYear, MissingHistoricalError
+
+pytest.importorskip("pint")
+import pint.errors
 
 
 @pytest.mark.parametrize(
