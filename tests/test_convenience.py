@@ -251,7 +251,7 @@ def test_different_unit_handling_multiple_timeseries_overrides(
 ):
     harmonisation_year = 2015
 
-    exp = scenarios_df.copy()
+    exp = scenarios_df.sort_index()
     for r in exp.index:
         for c in exp:
             if "CO2" in r[0]:
@@ -301,7 +301,7 @@ def test_different_unit_handling_multiple_timeseries_overrides(
         overrides=overrides,
     )
 
-    pdt.assert_frame_equal(res, exp)
+    pdt.assert_frame_equal(res, exp, check_like=True)
 
 
 def test_raise_if_variable_not_in_hist(hist_df, scenarios_df):
