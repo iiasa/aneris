@@ -1,6 +1,4 @@
-# - can handle different units
 # - default decision tree applied properly
-# - can handle multiple emission scenarios
 # - error if variable not in hist
 # - error if region etc. not in hist
 # - error if units can't be converted
@@ -176,7 +174,7 @@ def scenarios_df():
         "scenario": ["abc"] * 2,
         2010: [10, 0.1],
         2015: [11, 0.15],
-        2020: [5, 0.2],
+        2020: [5, 0.25],
         2030: [5, 0.1],
         2050: [3, 0.05],
         2100: [1, 0.03],
@@ -186,12 +184,22 @@ def scenarios_df():
 
 
 @pytest.mark.parametrize("extra_col", (False, "mip_era"))
-def test_different_unit_handling_multiple_timeseries_constant_ratio(hist_df, scenarios_df, extra_col):
+@pytest.mark.parametrize("harmonisation_year,scales", (
+    (2010, [1.1, 2]),
+    (2015, [12 / 11, 25 / 15]),
+))
+def test_different_unit_handling_multiple_timeseries_constant_ratio(
+    hist_df,
+    scenarios_df,
+    extra_col,
+    harmonisation_year,
+    scales,
+):
     if extra_col:
         scenarios_df[extra_col] = "test"
         scenarios_df = scenarios_df.set_index(extra_col, append=True)
 
-    exp = scenarios_df.multiply([1.1, 2], axis=0)
+    exp = scenarios_df.multiply(scales, axis=0)
 
     overrides = [
         {"method": "constant_ratio"}
@@ -201,7 +209,35 @@ def test_different_unit_handling_multiple_timeseries_constant_ratio(hist_df, sce
     res = harmonise_all(
         scenarios=scenarios_df,
         history=hist_df,
-        harmonisation_year=2010,
+        harmonisation_year=harmonisation_year,
+        overrides=overrides,
+    )
+
+    pdt.assert_frame_equal(res, exp)
+
+
+@pytest.mark.parametrize("harmonisation_year,offset", (
+    (2010, [1, 0.1]),
+    (2015, [1, 0.1]),
+    (2020, [8, 0.05]),
+))
+def test_different_unit_handling_multiple_timeseries_constant_offset(
+    hist_df,
+    scenarios_df,
+    harmonisation_year,
+    offset,
+):
+    exp = scenarios_df.add(offset, axis=0)
+
+    overrides = [
+        {"method": "constant_offset"}
+    ]
+    overrides = pd.DataFrame(overrides)
+
+    res = harmonise_all(
+        scenarios=scenarios_df,
+        history=hist_df,
+        harmonisation_year=harmonisation_year,
         overrides=overrides,
     )
 
