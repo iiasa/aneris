@@ -405,7 +405,9 @@ def default_method_choice(
             return 'constant_offset'
     else:
         # is this co2?
-        if row.gas == 'CO2':
+        # ZN: This gas dependence isn't documented in the default
+        # decision tree
+        if hasattr(row, "gas") and row.gas == 'CO2':
             return ratio_method
         # is cov big?
         if np.isfinite(row['cov']) and row['cov'] > luc_cov_threshold:
@@ -472,8 +474,12 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
         kwargs['luc_cov_threshold'] = 10
 
     y = str(base_year)
-    h = hist[y]
-    m = model[y]
+    try:
+        h = hist[base_year]
+        m = model[base_year]
+    except KeyError:
+        h = hist[y]
+        m = model[y]
     dH = (h - m).abs() / h
     f = h / m
     dM = (model.max(axis=1) - model.min(axis=1)).abs() / model.max(axis=1)

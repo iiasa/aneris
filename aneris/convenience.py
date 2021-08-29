@@ -1,6 +1,6 @@
 from openscm_units import unit_registry
 
-from .harmonize import Harmonizer
+from .harmonize import Harmonizer, default_methods
 from .errors import (
     AmbiguousHarmonisationMethod,
     MissingHarmonisationYear,
@@ -51,18 +51,19 @@ def _harmonise_single(timeseries, history, harmonisation_year, overrides):
 
     # convert units
     hist_unit = relevant_hist.index.get_level_values("unit").unique()[0]
-    # index for rest of processing (units updated by function below)
-    relevant_hist.index = timeseries.index.copy()
     relevant_hist = _convert_units(
         relevant_hist, current_unit=hist_unit, target_unit=mdata["unit"]
     )
+    # set index for rest of processing (as units are now consistent)
+    relevant_hist.index = timeseries.index.copy()
 
-    method = overrides.copy()
-    for key, value in mdata.items():
-        if key in method:
-            method = method[(method[key] == value) | method[key].isnull()]
+    if overrides is not None:
+        method = overrides.copy()
+        for key, value in mdata.items():
+            if key in method:
+                method = method[(method[key] == value) | method[key].isnull()]
 
-    if method.shape[0] > 1:
+    if overrides is not None and method.shape[0] > 1:
         error_msg = (
             "Ambiguous harmonisation overrides for metdata `{}`, the "
             "following methods match: {}".format(mdata, method)
@@ -71,12 +72,18 @@ def _harmonise_single(timeseries, history, harmonisation_year, overrides):
             "More than one override for metadata: {}".format(mdata)
         )
 
-    if method.empty:
-        raise NotImplementedError("default path")
+    if overrides is None or method.empty:
+        default, _ = default_methods(
+            relevant_hist, timeseries, base_year=harmonisation_year
+        )
+        method_to_use = default.values[0]
 
-    method = method["method"].values[0]
+    else:
+        method_to_use = method["method"].values[0]
 
-    return _harmonise_aligned(timeseries, relevant_hist, harmonisation_year, method)
+    return _harmonise_aligned(
+        timeseries, relevant_hist, harmonisation_year, method_to_use
+    )
 
 
 def _convert_units(inp, current_unit, target_unit):

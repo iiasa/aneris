@@ -1,5 +1,3 @@
-# Tests to write:
-# - default decision tree applied properly when no overrides match
 import re
 
 import numpy as np
@@ -537,3 +535,69 @@ def test_multiple_matching_overrides(hist_df, scenarios_df, overrides):
             harmonisation_year=2015,
             overrides=overrides,
         )
+
+
+def test_defaults(hist_df, scenarios_df):
+    co2_afolu = scenarios_df[
+        scenarios_df.index.get_level_values("variable") == "Emissions|CO2"
+    ].copy()
+    co2_afolu = co2_afolu.reset_index()
+    co2_afolu["variable"] = "Emissions|CO2|AFOLU"
+    co2_afolu = co2_afolu.set_index(scenarios_df.index.names)
+    co2_afolu.iloc[:, :] = [2, 0.5, -1, -1.5, -2, -3]
+
+    bc_afolu = scenarios_df[
+        scenarios_df.index.get_level_values("variable") == "Emissions|CO2"
+    ].copy()
+    bc_afolu = bc_afolu.reset_index()
+    bc_afolu["variable"] = "Emissions|BC|AFOLU"
+    bc_afolu["unit"] = "Mt BC / yr"
+    bc_afolu = bc_afolu.set_index(scenarios_df.index.names)
+    bc_afolu.iloc[:, :] = [30, 33, 40, 42, 36, 24]
+
+    scenarios_df = pd.concat([scenarios_df, co2_afolu, bc_afolu])
+
+    co2_afolu_hist = hist_df[
+        hist_df.index.get_level_values("variable") == "Emissions|CO2"
+    ].copy()
+    co2_afolu_hist = co2_afolu_hist.reset_index()
+    co2_afolu_hist["variable"] = "Emissions|CO2|AFOLU"
+    co2_afolu_hist = co2_afolu_hist.set_index(hist_df.index.names)
+    co2_afolu_hist.iloc[:, :] = [
+        1.5 * 44000 / 12,
+        1.6 * 44000 / 12,
+        1.7 * 44000 / 12,
+    ]
+
+    bc_afolu_hist = hist_df[
+        hist_df.index.get_level_values("variable") == "Emissions|CO2"
+    ].copy()
+    bc_afolu_hist = bc_afolu_hist.reset_index()
+    bc_afolu_hist["variable"] = "Emissions|BC|AFOLU"
+    bc_afolu_hist["unit"] = "Gt BC / yr"
+    bc_afolu_hist = bc_afolu_hist.set_index(hist_df.index.names)
+    bc_afolu_hist.iloc[:, :] = [20, 35, 28]
+
+    hist_df = pd.concat([hist_df, co2_afolu_hist, bc_afolu_hist])
+
+    res = harmonise_all(
+        scenarios=scenarios_df,
+        history=hist_df,
+        harmonisation_year=2015,
+    )
+
+    exp = harmonise_all(
+        scenarios=scenarios_df,
+        history=hist_df,
+        harmonisation_year=2015,
+        overrides=pd.DataFrame(
+            [
+                {"variable": "Emissions|CO2", "method": "reduce_ratio_2080"},
+                {"variable": "Emissions|CH4", "method": "reduce_ratio_2080"},
+                {"variable": "Emissions|CO2|AFOLU", "method": "reduce_ratio_2100"},
+                {"variable": "Emissions|BC|AFOLU", "method": "constant_ratio"},
+            ]
+        ),
+    )
+
+    pdt.assert_frame_equal(res, exp, check_like=True)
