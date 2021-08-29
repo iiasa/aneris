@@ -1,4 +1,5 @@
 # - can handle different units
+# - default decision tree applied properly
 # - can handle multiple emission scenarios
 # - error if variable not in hist
 # - error if region etc. not in hist
@@ -7,6 +8,7 @@
 # - can override methods for different indexes
 import numpy.testing as npt
 import pandas as pd
+import pandas.testing as pdt
 import pytest
 
 from aneris.convenience import harmonise_all
@@ -146,32 +148,61 @@ def test_different_unit_handling(method, exp_res):
 
 @pytest.fixture()
 def hist_df():
-    out = pd.DataFrame({
-        'variable': ['Emissions|BC|AFOLU', "Emissions|CO2"],
-        'unit': ['Mt BC / yr', "GtC / yr"],
+    idx = ["variable", "unit", "region", "model", "scenario"]
+
+    hist = pd.DataFrame({
+        'variable': ["Emissions|CO2", "Emissions|CH4"],
+        'unit': ["MtCO2 / yr", "MtCH4 / yr"],
         'region': ["World"] * 2,
         "model": ["CEDS"] * 2,
         "scenario": ["historical"] * 2,
-        '2010': [20, 10],
-        '2015': [25, 15],
-        '2020': [30, 20],
-    })
+        2010: [11000 * 44 / 12, 200],
+        2015: [12000 * 44 / 12, 250],
+        2020: [13000 * 44 / 12, 300],
+    }).set_index(idx)
 
-    return out
+    return hist
 
 
 @pytest.fixture()
 def scenarios_df():
-    out = pd.DataFrame({
-        'variable': ['Emissions|BC|AFOLU'] * 3 + ["Emissions|CO2"] * 3,
-        'unit': ['Mt BC / yr'] * 3 + ["GtC / yr"] * 3,
-        'region': ["World", "a", 'World|R5.2ASIA'] * 2,
-        '2010': [20, 15, 10, 10, 9, 8],
-        '2015': [20, 15, 10, 10, 9, 8],
-        '2020': [20, 15, 10, 10, 9, 8],
-        '2030': [20, 15, 10, 10, 9, 8],
-        '2050': [20, 15, 10, 10, 9, 8],
-        '2100': [20, 15, 10, 10, 9, 8],
-    })
+    idx = ["variable", "unit", "region", "model", "scenario"]
 
-    return out
+    scenario = pd.DataFrame({
+        'variable': ["Emissions|CO2", "Emissions|CH4"],
+        'unit': ["GtC / yr", "GtCH4 / yr"],
+        'region': ["World"] * 2,
+        "model": ["IAM"] * 2,
+        "scenario": ["abc"] * 2,
+        2010: [10, 0.1],
+        2015: [11, 0.15],
+        2020: [5, 0.2],
+        2030: [5, 0.1],
+        2050: [3, 0.05],
+        2100: [1, 0.03],
+    }).set_index(idx)
+
+    return scenario
+
+
+@pytest.mark.parametrize("extra_col", (False, "mip_era"))
+def test_different_unit_handling_multiple_timeseries_constant_ratio(hist_df, scenarios_df, extra_col):
+    if extra_col:
+        scenarios_df[extra_col] = "test"
+        scenarios_df = scenarios_df.set_index(extra_col, append=True)
+
+    exp = scenarios_df.multiply([1.1, 2], axis=0)
+
+    overrides = [
+        {"method": "constant_ratio"}
+    ]
+    overrides = pd.DataFrame(overrides)
+
+    res = harmonise_all(
+        scenarios=scenarios_df,
+        history=hist_df,
+        harmonisation_year=2010,
+        overrides=overrides,
+    )
+
+    pdt.assert_frame_equal(exp)
