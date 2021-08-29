@@ -39,7 +39,7 @@ def _harmonise_single(timeseries, history, harmonisation_year, overrides):
         )
         raise MissingHarmonisationYear(error_msg)
 
-    if relevant_hist[harmonisation_year].insull().all():
+    if relevant_hist[harmonisation_year].isnull().all():
         error_msg = "Historical data is null for year {} for `{}` `{}`".format(
             harmonisation_year, region, variable
         )
