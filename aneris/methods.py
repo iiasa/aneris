@@ -141,7 +141,7 @@ def reduce_offset(df, offset, final_year='2050', harmonize_year='2015'):
     numcols = utils.numcols(df)
     # get factors that reduce from 1 to 0; factors before base year are > 1
     f = lambda year: -(year - yi) / float(yf - yi) + 1
-    factors = [f(int(year)) if year <= final_year else 0.0 for year in numcols]
+    factors = [f(int(year)) if year <= yf else 0.0 for year in numcols]
     # add existing values to offset time series
     offsets = pd.DataFrame(np.outer(offset, factors),
                            columns=numcols, index=offset.index)
@@ -176,12 +176,13 @@ def reduce_ratio(df, ratios, final_year='2050', harmonize_year='2015'):
     f = lambda year: -(year - yi) / float(yf - yi) + 1
     prefactors = [f(int(harmonize_year))
                   for year in numcols if year < harmonize_year]
-    postfactors = [f(int(year)) if year <= final_year else 0.0
+    postfactors = [f(int(year)) if year <= yf else 0.0
                    for year in numcols if year >= harmonize_year]
     factors = prefactors + postfactors
     # multiply existing values by ratio time series
     ratios = pd.DataFrame(np.outer(ratios - 1, factors),
                           columns=numcols, index=ratios.index) + 1
+
     df[numcols] = df[numcols] * ratios
     return df
 

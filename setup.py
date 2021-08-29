@@ -35,6 +35,7 @@ REQUIREMENTS = [
 EXTRA_REQUIREMENTS = {
     'tests': ['pytest', 'coverage', 'coveralls', 'pytest', 'pytest-cov'],
     'deploy': ['twine', 'setuptools', 'wheel'],
+    'units': ['openscm-units']
 }
 
 

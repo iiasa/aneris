@@ -12,7 +12,99 @@ import pytest
 from aneris.convenience import harmonise_all
 
 
-def test_different_unit_handling():
+@pytest.mark.parametrize("method,exp_res", (
+    (
+        "constant_ratio",
+        {
+            2010: 10 * 1.1,
+            2030: 5 * 1.1,
+            2050: 3 * 1.1,
+            2100: 1 * 1.1,
+        }
+    ),
+    (
+        "reduce_ratio_2050",
+        {
+            2010: 11,
+            2030: 5 * 1.05,
+            2050: 3,
+            2100: 1,
+        }
+    ),
+    (
+        "reduce_ratio_2030",
+        {
+            2010: 11,
+            2030: 5,
+            2050: 3,
+            2100: 1,
+        }
+    ),
+    (
+        "reduce_ratio_2150",
+        {
+            2010: 11,
+            2030: 5 * (1 + 0.1 * (140 - 20) / 140),
+            2050: 3 * (1 + 0.1 * (140 - 40) / 140),
+            2100: 1 * (1 + 0.1 * (140 - 90) / 140),
+        }
+    ),
+    (
+        "constant_offset",
+        {
+            2010: 10 + 1,
+            2030: 5 + 1,
+            2050: 3 + 1,
+            2100: 1 + 1,
+        }
+    ),
+    (
+        "reduce_offset_2050",
+        {
+            2010: 11,
+            2030: 5 + 0.5,
+            2050: 3,
+            2100: 1,
+        }
+    ),
+    (
+        "reduce_offset_2030",
+        {
+            2010: 11,
+            2030: 5,
+            2050: 3,
+            2100: 1,
+        }
+    ),
+    (
+        "reduce_offset_2150",
+        {
+            2010: 11,
+            2030: 5 + 1 * (140 - 20) / 140,
+            2050: 3 + 1 * (140 - 40) / 140,
+            2100: 1 + 1 * (140 - 90) / 140,
+        }
+    ),
+    (
+        "model_zero",
+        {
+            2010: 10 + 1,
+            2030: 5 + 1,
+            2050: 3 + 1,
+            2100: 1 + 1,
+        }
+    ),
+    (
+        "hist_zero",
+        {
+            2010: 10,
+            2030: 5,
+            2050: 3,
+            2100: 1,
+        }
+    ),
+))
+def test_different_unit_handling(method, exp_res):
     idx = ["variable", "unit", "region", "model", "scenario"]
 
     hist = pd.DataFrame({
@@ -37,7 +129,7 @@ def test_different_unit_handling():
     }).set_index(idx)
 
     overrides = [
-        {"variable": "Emissions|CO2", "method": "reduce_ratio_2050"}
+        {"variable": "Emissions|CO2", "method": method}
     ]
     overrides = pd.DataFrame(overrides)
 
@@ -48,10 +140,8 @@ def test_different_unit_handling():
         overrides=overrides,
     )
 
-    npt.assert_allclose(res[2010], 11)
-    npt.assert_allclose(res[2030], 5 * 1.05)
-    npt.assert_allclose(res[2050], 3)
-    npt.assert_allclose(res[2100], 1)
+    for year, val in exp_res.items():
+        npt.assert_allclose(res[year], val)
 
 
 @pytest.fixture()
