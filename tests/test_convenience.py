@@ -466,14 +466,14 @@ def test_override_multi_level(hist_df, scenarios_df):
                 "region": "World",
                 "model": "IAM",
                 "scenario": "EMF33 quick",
-                "method": "constant_ratio",
+                "method": "reduce_offset_2050",
             },
             {
                 "variable": "Emissions|CH4",
                 "region": "World",
                 "model": "IAM",
                 "scenario": "EMF33 quick",
-                "method": "constant_offset",
+                "method": "reduce_offset_2070",
             },
         ]
     )
@@ -485,7 +485,57 @@ def test_override_multi_level(hist_df, scenarios_df):
         overrides=overrides,
     )
 
-    assert False, "Need to write in expected values"
+    co2_rows = res.index.get_level_values("variable") == "Emissions|CO2"
+    world_rows = res.index.get_level_values("region") == "World"
+    fancy_rows = res.index.get_level_values("model") == "FaNCY"
+    emf33_rows = res.index.get_level_values("scenario") == "EMF33 quick"
+
+    atol = 1e-4
+    npt.assert_allclose(
+        res.loc[co2_rows & world_rows & ~fancy_rows & ~emf33_rows, :],
+        12 / 11 * scenarios_df.loc[co2_rows & world_rows & ~fancy_rows & ~emf33_rows, :],
+        atol=atol,
+    )
+    npt.assert_allclose(
+        res.loc[~co2_rows & world_rows & ~fancy_rows & ~emf33_rows, :],
+        0.1 + scenarios_df.loc[~co2_rows & world_rows & ~fancy_rows & ~emf33_rows, :],
+        atol=atol,
+    )
+
+
+    npt.assert_allclose(
+        res.loc[co2_rows & ~world_rows & ~fancy_rows & ~emf33_rows, :].squeeze(),
+        [7.636363, 8.4, 4.21212121, 5, 3, 1],
+        atol=atol,
+    )
+    npt.assert_allclose(
+        res.loc[~co2_rows & ~world_rows & ~fancy_rows & ~emf33_rows, :].squeeze(),
+        [0.11667, 0.175, 0.285714, 0.109524, 0.05, 0.03],
+        atol=atol,
+    )
+
+
+    npt.assert_allclose(
+        res.loc[co2_rows & world_rows & fancy_rows & ~emf33_rows, :].squeeze(),
+        [10.909090, 12, 5.413233, 5.330579, 3.099174, 1],
+        atol=atol,
+    )
+    npt.assert_allclose(
+        res.loc[~co2_rows & world_rows & fancy_rows & ~emf33_rows, :].squeeze(),
+        [0.16667, 0.25, 0.405555, 0.15333, 0.067777, 0.03],
+        atol=atol,
+    )
+
+    npt.assert_allclose(
+        res.loc[co2_rows & world_rows & ~fancy_rows & emf33_rows, :].squeeze(),
+        [11.142857, 12, 5.857143, 5.571429, 3, 1],
+        atol=atol,
+    )
+    npt.assert_allclose(
+        res.loc[~co2_rows & world_rows & ~fancy_rows & emf33_rows, :].squeeze(),
+        [0.2090909, 0.25, 0.340909, 0.172727, 0.086364, 0.03],
+        atol=atol,
+    )
 
 
 @pytest.mark.parametrize(
