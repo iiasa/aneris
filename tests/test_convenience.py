@@ -493,7 +493,9 @@ def test_override_multi_level(hist_df, scenarios_df):
     atol = 1e-4
     npt.assert_allclose(
         res.loc[co2_rows & world_rows & ~fancy_rows & ~emf33_rows, :],
-        12 / 11 * scenarios_df.loc[co2_rows & world_rows & ~fancy_rows & ~emf33_rows, :],
+        12
+        / 11
+        * scenarios_df.loc[co2_rows & world_rows & ~fancy_rows & ~emf33_rows, :],
         atol=atol,
     )
     npt.assert_allclose(
@@ -501,7 +503,6 @@ def test_override_multi_level(hist_df, scenarios_df):
         0.1 + scenarios_df.loc[~co2_rows & world_rows & ~fancy_rows & ~emf33_rows, :],
         atol=atol,
     )
-
 
     npt.assert_allclose(
         res.loc[co2_rows & ~world_rows & ~fancy_rows & ~emf33_rows, :].squeeze(),
@@ -513,7 +514,6 @@ def test_override_multi_level(hist_df, scenarios_df):
         [0.11667, 0.175, 0.285714, 0.109524, 0.05, 0.03],
         atol=atol,
     )
-
 
     npt.assert_allclose(
         res.loc[co2_rows & world_rows & fancy_rows & ~emf33_rows, :].squeeze(),
