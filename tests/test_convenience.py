@@ -491,11 +491,10 @@ def test_override_multi_level(hist_df, scenarios_df):
     emf33_rows = res.index.get_level_values("scenario") == "EMF33 quick"
 
     atol = 1e-4
+    pick_rows = co2_rows & world_rows & ~fancy_rows & ~emf33_rows
     npt.assert_allclose(
-        res.loc[co2_rows & world_rows & ~fancy_rows & ~emf33_rows, :],
-        12
-        / 11
-        * scenarios_df.loc[co2_rows & world_rows & ~fancy_rows & ~emf33_rows, :],
+        res.loc[pick_rows, :],
+        12 / 11 * scenarios_df.loc[pick_rows, :],
         atol=atol,
     )
     npt.assert_allclose(
