@@ -10,6 +10,63 @@ from .methods import harmonize_factors
 
 
 def harmonise_all(scenarios, history, harmonisation_year, overrides=None):
+    """
+    Harmonise all timeseries in ``scenarios`` to match ``history``
+
+    Parameters
+    ----------
+    scenarios : :obj:`pd.DataFrame`
+        :obj:`pd.DataFrame` containing the timeseries to be harmonised
+
+    history : :obj:`pd.DataFrame`
+        :obj:`pd.DataFrame` containing the historical timeseries to which
+        ``scenarios`` should be harmonised
+
+    harmonisation_year : int
+        The year in which ``scenarios`` should be harmonised to ``history``
+
+    overrides : :obj:`pd.DataFrame`
+        If not provided, the default aneris decision tree is used. Otherwise,
+        ``overrides`` must be a :obj:`pd.DataFrame` containing any
+        specifications for overriding the default aneris methods. Each row
+        specifies one override. The override method is specified in the
+        "method" columns. The other columns specify which of the timeseries in
+        ``scenarios`` should use this override by specifying metadata to match (
+        e.g. variable, region). If a cell has a null value (evaluated using
+        `pd.isnull()`) then that scenario characteristic will not be used for
+        filtering for that override e.g. if you have a row with "method" equal
+        to "constant_ratio", region equal to "World" and variable is null then
+        all timeseries in the World region will use the "constant_ratio"
+        method. In contrast, if you have a row with "method" equal to
+        "constant_ratio", region equal to "World" and variable is
+        "Emissions|CO2" then only timeseries with variable equal to
+        "Emissions|CO2" and region equal to "World" will use the
+        "constant_ratio" method.
+
+    Returns
+    -------
+    :obj:`pd.DataFrame`
+        The harmonised timeseries
+
+    Notes
+    -----
+    This interface is nowhere near as sophisticated as aneris' other
+    interfaces. It simply harmonises timeseries, it does not check sectoral
+    sums or other possible errors which can arise when harmonising. If you need
+    such features, do not use this interface.
+
+    Raises
+    ------
+    MissingHistoricalError
+        No historical data is provided for a given timeseries
+
+    MissingHarmonisationYear
+        A value for the harmonisation year is missing or is null in ``history``
+
+    AmbiguousHarmonisationMethod
+        ``overrides`` do not uniquely specify the harmonisation method for a
+        given timeseries
+    """
     # use groupby to maintain indexes, not sure if there's a better way because
     # this will likely be super slow
     res = scenarios.groupby(scenarios.index.names).apply(
