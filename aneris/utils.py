@@ -439,14 +439,14 @@ class EmissionsAggregator(object):
         grp_idx = [x for x in df_idx if x != 'sector']
         rows = self.df.groupby(grp_idx).sum().reset_index()
         rows['sector'] = totals
-        self.df = self.df.append(rows)
+        self.df = pd.concat([self.df, rows])
 
     def _add_aggregates(self):
         mapping = pd_read(iamc_path('sector_mapping.xlsx'),
                           sheet_name='Aggregates')
         mapping = mapping.applymap(remove_emissions_prefix)
 
-        rows = pd.DataFrame(columns=self.df.columns)
+        rows = []
         for sector in mapping['IAMC Parent'].unique():
             # mapping for aggregate sector for all gases
             _map = mapping[mapping['IAMC Parent'] == sector]
@@ -458,9 +458,9 @@ class EmissionsAggregator(object):
 
             # add aggregate to rows
             subset = subset.groupby(df_idx).sum().reset_index()
-            rows = rows.append(subset)
+            rows.append(subset)
 
-        self.df = self.df.append(rows)
+        self.df = pd.concat([self.df] + rows)
 
 
 class FormatTranslator(object):

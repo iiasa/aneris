@@ -72,7 +72,8 @@ class Harmonizer(object):
         self.base_year = str(config[key]) if key in config else '2015'
         self.data = data[utils.numcols(data)]
         self.model = pd.Series(index=self.data.index,
-                               name=self.base_year).to_frame()
+                               name=self.base_year,
+                               dtype=float).to_frame()
         self.history = history
         self.methods_used = None
         self.offsets, self.ratios = harmonize_factors(
@@ -642,7 +643,7 @@ def _harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
         mapping = regions[regions['Native Region Code'] != 'World'].copy()
         aggdf = utils.agg_regions(model, mapping=mapping,
                                   rfrom='Native Region Code', rto='5_region')
-        model = model.append(aggdf)
+        model = pd.concat([model, aggdf])
         assert(not model.isnull().values.any())
 
     # duplicates come in from World and World being translated
