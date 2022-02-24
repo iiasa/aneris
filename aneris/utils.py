@@ -1,6 +1,8 @@
 import logging
 import os
 import re
+from functools import reduce
+from operator import and_
 
 import numpy as np
 import pandas as pd
@@ -625,3 +627,19 @@ class FormatTranslator(object):
             assert((df.units == 'kt').all())
             df.loc[where, numcols(df)] /= 1e3
             df.loc[where, 'units'] = 'Mt'
+
+
+def isin(df=None, **filters):
+    """Constructs a MultiIndex selector
+
+    Usage
+    -----
+    > df.loc[isin(region="World", gas=["CO2", "N2O"])]
+    or with explicit df to get boolean mask
+    > isin(df, region="World", gas=["CO2", "N2O"])
+    """
+    def tester(df):
+        tests = (df.index.isin(np.atleast_1d(v), level=k) for k, v in filters.items())
+        return reduce(and_, tests, next(tests))
+
+    return tester if df is None else tester(df)
