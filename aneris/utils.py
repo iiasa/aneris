@@ -168,7 +168,7 @@ def remove_emissions_prefix(x, gas='XXX'):
     """Return x with emissions prefix removed, e.g.,
     Emissions|XXX|foo|bar -> foo|bar
     """
-    return re.sub('^Emissions\|{}\|'.format(gas), '', x)
+    return re.sub(r'^Emissions\|{}\|'.format(gas), '', x)
 
 
 def recalculated_row_idx(df, prefix='', suffix=''):
