@@ -22,11 +22,11 @@ logo = r"""
 """
 
 REQUIREMENTS = [
-    'argparse',
     'numpy',
     'pandas>=1.1',
     'PyYAML',
-    'xlrd==1.2.0',
+    'xlrd>=2.0',
+    'openpyxl',
     'xlsxwriter',
     'matplotlib',
     'pyomo>=5'
