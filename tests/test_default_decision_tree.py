@@ -3,7 +3,7 @@ import pytest
 
 from aneris import harmonize
 
-import pandas.util.testing as pdt
+import pandas.testing as pdt
 
 
 def make_index(length, gas='CH4', sector='Energy'):

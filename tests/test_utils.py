@@ -1,6 +1,6 @@
 import pandas as pd
 
-import pandas.util.testing as pdt
+import pandas.testing as pdt
 
 from aneris import utils
 
