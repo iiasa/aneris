@@ -4,7 +4,7 @@ import shutil
 
 import pandas as pd
 
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 from os.path import join
 
 from aneris import cli

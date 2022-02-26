@@ -27,7 +27,6 @@ REQUIREMENTS = [
     'PyYAML',
     'xlrd>=2.0',
     'openpyxl',
-    'xlsxwriter',
     'matplotlib',
     'pyomo>=5'
 ]

@@ -85,7 +85,7 @@ def pd_write(df, f, *args, **kwargs):
     if f.endswith('csv'):
         df.to_csv(f, index=index, *args, **kwargs)
     else:
-        writer = pd.ExcelWriter(f, engine='xlsxwriter')
+        writer = pd.ExcelWriter(f)
         df.to_excel(writer, index=index, *args, **kwargs)
         writer.save()
 

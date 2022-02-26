@@ -1,6 +1,8 @@
 import logging
 import os
 import re
+from functools import reduce
+from operator import and_
 
 import numpy as np
 import pandas as pd
@@ -168,7 +170,7 @@ def remove_emissions_prefix(x, gas='XXX'):
     """Return x with emissions prefix removed, e.g.,
     Emissions|XXX|foo|bar -> foo|bar
     """
-    return re.sub('^Emissions\|{}\|'.format(gas), '', x)
+    return re.sub(r'^Emissions\|{}\|'.format(gas), '', x)
 
 
 def recalculated_row_idx(df, prefix='', suffix=''):
@@ -439,14 +441,14 @@ class EmissionsAggregator(object):
         grp_idx = [x for x in df_idx if x != 'sector']
         rows = self.df.groupby(grp_idx).sum().reset_index()
         rows['sector'] = totals
-        self.df = self.df.append(rows)
+        self.df = pd.concat([self.df, rows])
 
     def _add_aggregates(self):
         mapping = pd_read(iamc_path('sector_mapping.xlsx'),
                           sheet_name='Aggregates')
         mapping = mapping.applymap(remove_emissions_prefix)
 
-        rows = pd.DataFrame(columns=self.df.columns)
+        rows = []
         for sector in mapping['IAMC Parent'].unique():
             # mapping for aggregate sector for all gases
             _map = mapping[mapping['IAMC Parent'] == sector]
@@ -458,9 +460,9 @@ class EmissionsAggregator(object):
 
             # add aggregate to rows
             subset = subset.groupby(df_idx).sum().reset_index()
-            rows = rows.append(subset)
+            rows.append(subset)
 
-        self.df = self.df.append(rows)
+        self.df = pd.concat([self.df] + rows)
 
 
 class FormatTranslator(object):
@@ -625,3 +627,19 @@ class FormatTranslator(object):
             assert((df.units == 'kt').all())
             df.loc[where, numcols(df)] /= 1e3
             df.loc[where, 'units'] = 'Mt'
+
+
+def isin(df=None, **filters):
+    """Constructs a MultiIndex selector
+
+    Usage
+    -----
+    > df.loc[isin(region="World", gas=["CO2", "N2O"])]
+    or with explicit df to get boolean mask
+    > isin(df, region="World", gas=["CO2", "N2O"])
+    """
+    def tester(df):
+        tests = (df.index.isin(np.atleast_1d(v), level=k) for k, v in filters.items())
+        return reduce(and_, tests, next(tests))
+
+    return tester if df is None else tester(df)

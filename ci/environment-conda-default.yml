@@ -5,9 +5,9 @@ dependencies:
 - pyyaml
 - xlrd >=2.0
 - openpyxl
-- xlsxwriter
 - matplotlib
 - seaborn
+- pyomo
 - pytest
 - jupyter
 - nbconvert

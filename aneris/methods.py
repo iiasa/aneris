@@ -241,8 +241,8 @@ def budget(df, df_hist, harmonize_year='2015'):
 
     harmonize_year = int(harmonize_year)
 
-    df = df.set_axis(df.columns.astype(int), 'columns', inplace=False)
-    df_hist = df_hist.set_axis(df_hist.columns.astype(int), 'columns', inplace=False)
+    df = df.set_axis(df.columns.astype(int), axis='columns')
+    df_hist = df_hist.set_axis(df_hist.columns.astype(int), axis='columns')
 
     data_years = df.columns
     hist_years = df_hist.columns

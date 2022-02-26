@@ -7,6 +7,7 @@ from functools import partial
 
 from aneris import utils
 from aneris import pd_read
+from aneris.utils import isin
 from aneris.methods import harmonize_factors, constant_offset, reduce_offset, \
     constant_ratio, reduce_ratio, linear_interpolate, model_zero, hist_zero, \
     budget, coeff_of_var, default_methods
@@ -72,7 +73,8 @@ class Harmonizer(object):
         self.base_year = str(config[key]) if key in config else '2015'
         self.data = data[utils.numcols(data)]
         self.model = pd.Series(index=self.data.index,
-                               name=self.base_year).to_frame()
+                               name=self.base_year,
+                               dtype=float).to_frame()
         self.history = history
         self.methods_used = None
         self.offsets, self.ratios = harmonize_factors(
@@ -514,25 +516,10 @@ def _get_global_overrides(overrides, gases, sector):
     # None if no overlap with gases
     if overrides is None:
         return None
-    gases = overrides.index.get_level_values('gas').intersection(gases)
-    gases = list(set(gases))  # single instance for each gas
-    if len(gases) == 0:
-        return None
-
-    # This tried to be fancy with multi index slicing at one point, but caused
-    # too much trouble. Now it is just done brute force.
 
     # Downselect overrides that match global gas values
-    o = overrides
-    idx = o.index.names
-    o = o.reset_index()
-    o = o[o.region == 'World']
-    o = o[o.sector == sector]
-    o = o[o.gas.isin(gases)]
-    if o.empty:
-        return None
-    else:
-        return o.set_index(idx)['method']
+    o = overrides.loc[isin(region="World", sector=sector, gas=gases)]
+    return o if not o.empty else None
 
 
 def _harmonize_global_total(config, prefix, suffix, hist, model, overrides,
@@ -540,8 +527,7 @@ def _harmonize_global_total(config, prefix, suffix, hist, model, overrides,
     all_gases = list(model.index.get_level_values('gas').unique())
     gases = utils.harmonize_total_gases if default_global_gases else all_gases
     sector = '|'.join([prefix, suffix])
-    idx = (pd.IndexSlice['World', gases, sector],
-           pd.IndexSlice[:])
+    idx = isin(region="World", gas=gases, sector=sector)
     h = hist.loc[idx].copy()
 
     try:
@@ -614,7 +600,7 @@ def _harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
         _warn(msg)
         model = model[~idx]
     totals = '|'.join([prefix, suffix])
-    sector_total_idx = model.index.get_level_values('sector').isin([totals])
+    sector_total_idx = isin(model, sector=totals)
     subsector_idx = ~sector_total_idx
     # step 2: on the "clean" df, recalculate those totals
     subsectors_with_total_df = (
@@ -642,7 +628,7 @@ def _harmonize_regions(config, prefix, suffix, regions, hist, model, overrides,
         mapping = regions[regions['Native Region Code'] != 'World'].copy()
         aggdf = utils.agg_regions(model, mapping=mapping,
                                   rfrom='Native Region Code', rto='5_region')
-        model = model.append(aggdf)
+        model = pd.concat([model, aggdf])
         assert(not model.isnull().values.any())
 
     # duplicates come in from World and World being translated
