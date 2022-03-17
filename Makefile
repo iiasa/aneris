@@ -87,14 +87,14 @@ docs: $(VENV_DIR)  ## make the docs
 .PHONY: virtual-environment
 virtual-environment: $(VENV_DIR)  ## make virtual environment for development
 
-$(VENV_DIR):  $(CI_ENVIRONMENT_CONDA_DEFAULT_FILE) $(CI_ENVIRONMENT_CONDA_FORGE_FILE) $(ENVIRONMENT_DOC_FILE)
+$(VENV_DIR):  setup.py $(CI_ENVIRONMENT_CONDA_DEFAULT_FILE) $(CI_ENVIRONMENT_CONDA_FORGE_FILE) $(ENVIRONMENT_DOC_FILE)
 	$(CONDA_EXE) config --add channels conda-forge # sets conda-forge as highest priority
 	# install requirements
 	$(CONDA_EXE) env update --name $(CONDA_DEFAULT_ENV) --file $(CI_ENVIRONMENT_CONDA_DEFAULT_FILE)
 	$(CONDA_EXE) env update --name $(CONDA_DEFAULT_ENV) --file $(CI_ENVIRONMENT_CONDA_FORGE_FILE)
 	$(CONDA_EXE) env update --name $(CONDA_DEFAULT_ENV) --file $(ENVIRONMENT_DOC_FILE)
 	# Install development setup
-	$(VENV_DIR)/bin/pip install -e .[tests,deploy]
+	$(VENV_DIR)/bin/pip install -e .[tests,deploy,units]
 	touch $(VENV_DIR)
 
 .PHONY: release-on-conda

@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 import numpy as np
 
 import numpy.testing as npt
@@ -157,6 +158,44 @@ def test_harmonize_reduce_ratio():
             obs = res['2060']
             exp = _df['2060']
             npt.assert_array_almost_equal(obs, exp)
+
+
+@pytest.mark.xfail(reason="standard interfaces can't handle units")
+def test_harmonize_reduce_ratio_different_units():
+    df = _df.copy()
+    hist = _hist.copy()
+    hist /= 1000
+    hist.index = hist.index.set_levels(["kt"], "units")
+
+    methods = _methods.copy()
+    h = harmonize.Harmonizer(df, hist)
+
+    tf = 2050
+
+    method = 'reduce_ratio_{}'.format(tf)
+    methods['method'] = [method] * nvals
+    res = h.harmonize(overrides=methods['method'])
+
+    # base year
+    obs = res['2015']
+    exp = hist['2015']
+    # should come back with input units
+    obs_units = obs.index.get_level_values("units")
+    df_units = df.index.get_level_values("units")
+    assert (obs_units == df_units).all()
+    npt.assert_array_almost_equal(obs, exp)
+
+    # future year
+    obs = res['2040']
+    ratio = _hist['2015'] / _df['2015']
+    exp = _df['2040'] * (ratio + _t_frac(tf) * (1 - ratio))
+    npt.assert_array_almost_equal(obs, exp)
+
+    # future year
+    if tf < 2060:
+        obs = res['2060']
+        exp = _df['2060']
+        npt.assert_array_almost_equal(obs, exp)
 
 
 def test_harmonize_mix():
