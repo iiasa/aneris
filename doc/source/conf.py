@@ -43,7 +43,6 @@ extensions = [
     'nbsphinx',
     'sphinxcontrib.bibtex',
     'sphinxcontrib.programoutput',
-    'sphinxcontrib.exceltable',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

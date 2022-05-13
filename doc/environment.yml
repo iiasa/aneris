@@ -10,7 +10,6 @@ dependencies:
   - pip
   - pip:
     - sphinx
-    - sphinxcontrib-exceltable
     - sphinxcontrib-bibtex<2.0
     - sphinxcontrib-fulltoc
     - sphinxcontrib-programoutput
