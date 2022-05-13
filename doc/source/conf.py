@@ -39,7 +39,6 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    'cloud_sptheme.ext.table_styling',
     'numpydoc',
     'nbsphinx',
     'sphinxcontrib.bibtex',
