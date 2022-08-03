@@ -50,46 +50,6 @@ def _recursive_update(d, u):
     return d
 
 
-def pd_read(f, str_cols=False, *args, **kwargs):
-    """Try to read a file with pandas, supports CSV and XLSX
-
-    Parameters
-    ----------
-    f : string
-        the file to read in
-    str_cols : bool, optional
-        turn all columns into strings (numerical column names are sometimes
-        read in as numerical dtypes)
-    args, kwargs : sent directly to the Pandas read function
-
-    Returns
-    -------
-    df : pd.DataFrame
-    """
-    if f.endswith("csv"):
-        df = pd.read_csv(f, *args, **kwargs)
-    else:
-        df = pd.read_excel(f, *args, **kwargs)
-
-    if str_cols:
-        df.columns = [str(x) for x in df.columns]
-
-    return df
-
-
-def pd_write(df, f, *args, **kwargs):
-    """Try to write a file with pandas, supports CSV and XLSX"""
-    # guess whether to use index, unless we're told otherwise
-    index = kwargs.pop("index", isinstance(df.index, pd.MultiIndex))
-
-    if f.endswith("csv"):
-        df.to_csv(f, index=index, *args, **kwargs)
-    else:
-        writer = pd.ExcelWriter(f)
-        df.to_excel(writer, index=index, *args, **kwargs)
-        writer.save()
-
-
 def read_excel(f):
     """Read an excel-based input file for harmonization.
 

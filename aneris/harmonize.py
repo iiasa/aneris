@@ -6,8 +6,7 @@ from itertools import chain
 from functools import partial
 
 from aneris import utils
-from aneris import pd_read
-from aneris.utils import isin
+from aneris.utils import isin, pd_read
 from aneris.methods import (
     harmonize_factors,
     constant_offset,
