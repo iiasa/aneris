@@ -26,7 +26,7 @@ add_5regions: true
 
 
 def _read_data(indfs):
-    datakeys = sorted([x for x in indfs if x.startswith('data')])
+    datakeys = sorted([x for x in indfs if x.startswith("data")])
     df = pd.concat([indfs[k] for k in datakeys])
     # don't know why reading from excel changes dtype and column types
     # but I have to reset them manually
@@ -58,7 +58,7 @@ def pd_read(f, str_cols=False, *args, **kwargs):
     f : string
         the file to read in
     str_cols : bool, optional
-        turn all columns into strings (numerical column names are sometimes 
+        turn all columns into strings (numerical column names are sometimes
         read in as numerical dtypes)
     args, kwargs : sent directly to the Pandas read function
 
@@ -66,7 +66,7 @@ def pd_read(f, str_cols=False, *args, **kwargs):
     -------
     df : pd.DataFrame
     """
-    if f.endswith('csv'):
+    if f.endswith("csv"):
         df = pd.read_csv(f, *args, **kwargs)
     else:
         df = pd.read_excel(f, *args, **kwargs)
@@ -80,9 +80,9 @@ def pd_read(f, str_cols=False, *args, **kwargs):
 def pd_write(df, f, *args, **kwargs):
     """Try to write a file with pandas, supports CSV and XLSX"""
     # guess whether to use index, unless we're told otherwise
-    index = kwargs.pop('index', isinstance(df.index, pd.MultiIndex))
+    index = kwargs.pop("index", isinstance(df.index, pd.MultiIndex))
 
-    if f.endswith('csv'):
+    if f.endswith("csv"):
         df.to_csv(f, index=index, *args, **kwargs)
     else:
         writer = pd.ExcelWriter(f)
@@ -111,20 +111,23 @@ def read_excel(f):
     model = _read_data(indfs)
 
     # make an empty df which will be caught later
-    overrides = indfs['harmonization'] if 'harmonization' in indfs \
-        else pd.DataFrame([], columns=iamc_idx + ['Unit'])
+    overrides = (
+        indfs["harmonization"]
+        if "harmonization" in indfs
+        else pd.DataFrame([], columns=iamc_idx + ["Unit"])
+    )
 
     # get run control
     config = {}
-    if'Configuration' in overrides:
-        config = overrides[['Configuration', 'Value']].dropna()
-        config = config.set_index('Configuration').to_dict()['Value']
-        overrides = overrides.drop(['Configuration', 'Value'], axis=1)
+    if "Configuration" in overrides:
+        config = overrides[["Configuration", "Value"]].dropna()
+        config = config.set_index("Configuration").to_dict()["Value"]
+        overrides = overrides.drop(["Configuration", "Value"], axis=1)
 
     # a single row of nans implies only configs provided,
     # if so, only return the empty df
     if len(overrides) == 1 and overrides.isnull().values.all():
-        overrides = pd.DataFrame([], columns=iamc_idx + ['Unit'])
+        overrides = pd.DataFrame([], columns=iamc_idx + ["Unit"])
 
     return model, overrides, config
 
@@ -140,10 +143,10 @@ class RunControl(abc.Mapping):
         Parameters
         ----------
         rc : string, file, dictionary, optional
-            a path to a YAML file, a file handle for a YAML file, or a 
+            a path to a YAML file, a file handle for a YAML file, or a
             dictionary describing run control configuration
         defaults : string, file, dictionary, optional
-            a path to a YAML file, a file handle for a YAML file, or a 
+            a path to a YAML file, a file handle for a YAML file, or a
             dictionary describing **default** run control configuration
         """
         rc = rc or {}
@@ -171,14 +174,15 @@ class RunControl(abc.Mapping):
 
         _fname = os.path.join(os.path.dirname(fyaml), fname)
         if not os.path.exists(_fname):
-            msg = "YAML key '{}' in {}: {} is not a valid relative " + \
-                "or absolute path"
+            msg = (
+                "YAML key '{}' in {}: {} is not a valid relative " + "or absolute path"
+            )
             raise IOError(msg.format(key, fyaml, fname))
         return _fname
 
     def _fill_relative_paths(self, fyaml, d):
         file_keys = [
-            'exogenous',
+            "exogenous",
         ]
         for k in file_keys:
             if k in d:
@@ -186,7 +190,7 @@ class RunControl(abc.Mapping):
 
     def _load_yaml(self, obj):
         check_rel_paths = False
-        if hasattr(obj, 'read'):  # it's a file
+        if hasattr(obj, "read"):  # it's a file
             obj = obj.read()
         if isstr(obj) and os.path.exists(obj):
             check_rel_paths = True

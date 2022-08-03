@@ -11,7 +11,7 @@ import pyomo.environ as pyo
 from aneris import utils
 
 
-def harmonize_factors(df, hist, harmonize_year='2015'):
+def harmonize_factors(df, hist, harmonize_year="2015"):
     """Calculate offset and ratio values between data and history
 
     Parameters
@@ -32,13 +32,13 @@ def harmonize_factors(df, hist, harmonize_year='2015'):
     """
     c, m = hist[harmonize_year], df[harmonize_year]
     offset = (c - m).fillna(0)
-    offset.name = 'offset'
+    offset.name = "offset"
     ratios = (c / m).replace(np.inf, np.nan).fillna(0)
-    ratios.name = 'ratio'
+    ratios.name = "ratio"
     return offset, ratios
 
 
-def constant_offset(df, offset, harmonize_year='2015'):
+def constant_offset(df, offset, harmonize_year="2015"):
     """Calculate constant offset harmonized trajectory
 
     Parameters
@@ -62,7 +62,7 @@ def constant_offset(df, offset, harmonize_year='2015'):
     return df
 
 
-def constant_ratio(df, ratios, harmonize_year='2015'):
+def constant_ratio(df, ratios, harmonize_year="2015"):
     """Calculate constant ratio harmonized trajectory
 
     Parameters
@@ -86,7 +86,7 @@ def constant_ratio(df, ratios, harmonize_year='2015'):
     return df
 
 
-def linear_interpolate(df, offset, final_year='2050', harmonize_year='2015'):
+def linear_interpolate(df, offset, final_year="2050", harmonize_year="2015"):
     """Calculate linearly interpolated convergence harmonized trajectory
 
     Parameters
@@ -117,7 +117,7 @@ def linear_interpolate(df, offset, final_year='2050', harmonize_year='2015'):
     return df
 
 
-def reduce_offset(df, offset, final_year='2050', harmonize_year='2015'):
+def reduce_offset(df, offset, final_year="2050", harmonize_year="2015"):
     """Calculate offset convergence harmonized trajectory
 
     Parameters
@@ -144,13 +144,14 @@ def reduce_offset(df, offset, final_year='2050', harmonize_year='2015'):
     f = lambda year: -(year - yi) / float(yf - yi) + 1
     factors = [f(year) if year <= yf else 0.0 for year in numcols_int]
     # add existing values to offset time series
-    offsets = pd.DataFrame(np.outer(offset, factors),
-                           columns=numcols, index=offset.index)
+    offsets = pd.DataFrame(
+        np.outer(offset, factors), columns=numcols, index=offset.index
+    )
     df[numcols] = df[numcols] + offsets
     return df
 
 
-def reduce_ratio(df, ratios, final_year='2050', harmonize_year='2015'):
+def reduce_ratio(df, ratios, final_year="2050", harmonize_year="2015"):
     """Calculate ratio convergence harmonized trajectory
 
     Parameters
@@ -176,20 +177,20 @@ def reduce_ratio(df, ratios, final_year='2050', harmonize_year='2015'):
     # get factors that reduce from 1 to 0, but replace with 1s in years prior
     # to harmonization
     f = lambda year: -(year - yi) / float(yf - yi) + 1
-    prefactors = [f(yi)
-                  for year in numcols_int if year < yi]
-    postfactors = [f(year) if year <= yf else 0.0
-                   for year in numcols_int if year >= yi]
+    prefactors = [f(yi) for year in numcols_int if year < yi]
+    postfactors = [f(year) if year <= yf else 0.0 for year in numcols_int if year >= yi]
     factors = prefactors + postfactors
     # multiply existing values by ratio time series
-    ratios = pd.DataFrame(np.outer(ratios - 1, factors),
-                          columns=numcols, index=ratios.index) + 1
+    ratios = (
+        pd.DataFrame(np.outer(ratios - 1, factors), columns=numcols, index=ratios.index)
+        + 1
+    )
 
     df[numcols] = df[numcols] * ratios
     return df
 
 
-def budget(df, df_hist, harmonize_year='2015'):
+def budget(df, df_hist, harmonize_year="2015"):
     r"""Calculate budget harmonized trajectory
 
     Parameters
@@ -244,8 +245,8 @@ def budget(df, df_hist, harmonize_year='2015'):
 
     harmonize_year = int(harmonize_year)
 
-    df = df.set_axis(df.columns.astype(int), axis='columns')
-    df_hist = df_hist.set_axis(df_hist.columns.astype(int), axis='columns')
+    df = df.set_axis(df.columns.astype(int), axis="columns")
+    df_hist = df_hist.set_axis(df_hist.columns.astype(int), axis="columns")
 
     data_years = df.columns
     hist_years = df_hist.columns
@@ -254,10 +255,8 @@ def budget(df, df_hist, harmonize_year='2015'):
 
     if data_years[0] not in hist_years:
         hist_years = hist_years.insert(bisect(hist_years, data_years[0]), data_years[0])
-        df_hist = (
-            df_hist
-            .reindex(columns=hist_years)
-            .interpolate(method='slinear', axis=1)
+        df_hist = df_hist.reindex(columns=hist_years).interpolate(
+            method="slinear", axis=1
         )
 
     def carbon_budget(years, emissions):
@@ -343,7 +342,7 @@ def budget(df, df_hist, harmonize_year='2015'):
     return df_harm
 
 
-def model_zero(df, offset, harmonize_year='2015'):
+def model_zero(df, offset, harmonize_year="2015"):
     """Returns result of aneris.methods.constant_offset()"""
     # current decision is to return a simple offset, this will be a straight
     # line for all time periods. previous behavior was to set df[numcols] = 0,
@@ -388,13 +387,13 @@ def default_method_choice(
     """
     # special cases
     if row.h == 0:
-        return 'hist_zero'
+        return "hist_zero"
     if row.zero_m:
-        return 'model_zero'
+        return "model_zero"
     if np.isinf(row.f) and row.neg_m and row.pos_m:
         # model == 0 in base year, and model goes negative
         # and positive
-        return 'unicorn'  # this shouldn't exist!
+        return "unicorn"  # this shouldn't exist!
 
     # model 0 in base year?
     if np.isclose(row.m, 0):
@@ -402,15 +401,15 @@ def default_method_choice(
         if row.neg_m:
             return offset_method
         else:
-            return 'constant_offset'
+            return "constant_offset"
     else:
         # is this co2?
         # ZN: This gas dependence isn't documented in the default
         # decision tree
-        if hasattr(row, "gas") and row.gas == 'CO2':
+        if hasattr(row, "gas") and row.gas == "CO2":
             return ratio_method
         # is cov big?
-        if np.isfinite(row['cov']) and row['cov'] > luc_cov_threshold:
+        if np.isfinite(row["cov"]) and row["cov"] > luc_cov_threshold:
             return luc_method
         else:
             # dH small?
@@ -419,9 +418,9 @@ def default_method_choice(
             else:
                 # goes negative?
                 if row.neg_m:
-                    return 'reduce_ratio_2100'
+                    return "reduce_ratio_2100"
                 else:
-                    return 'constant_ratio'
+                    return "constant_ratio"
 
 
 def default_methods(hist, model, base_year, method_choice=None, **kwargs):
@@ -464,14 +463,14 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
     `default_method_choice`
     """
 
-    if kwargs.get('ratio_method') is None:
-        kwargs['ratio_method'] = 'reduce_ratio_2080'
-    if kwargs.get('offset_method') is None:
-        kwargs['offset_method'] = 'reduce_offset_2080'
-    if kwargs.get('luc_method') is None:
-        kwargs['luc_method'] = 'reduce_offset_2150_cov'
-    if kwargs.get('luc_cov_threshold') is None:
-        kwargs['luc_cov_threshold'] = 10
+    if kwargs.get("ratio_method") is None:
+        kwargs["ratio_method"] = "reduce_ratio_2080"
+    if kwargs.get("offset_method") is None:
+        kwargs["offset_method"] = "reduce_offset_2080"
+    if kwargs.get("luc_method") is None:
+        kwargs["luc_method"] = "reduce_offset_2150_cov"
+    if kwargs.get("luc_cov_threshold") is None:
+        kwargs["luc_cov_threshold"] = 10
 
     y = str(base_year)
     try:
@@ -489,17 +488,24 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
     go_neg = ((model.min(axis=1) - h) < 0).any()
     cov = hist.apply(coeff_of_var, axis=1)
 
-    df = pd.DataFrame({
-        'dH': dH, 'f': f, 'dM': dM,
-        'neg_m': neg_m, 'pos_m': pos_m,
-        'zero_m': zero_m, 'go_neg': go_neg,
-        'cov': cov,
-        'h': h, 'm': m,
-    }).join(model.index.to_frame())
+    df = pd.DataFrame(
+        {
+            "dH": dH,
+            "f": f,
+            "dM": dM,
+            "neg_m": neg_m,
+            "pos_m": pos_m,
+            "zero_m": zero_m,
+            "go_neg": go_neg,
+            "cov": cov,
+            "h": h,
+            "m": m,
+        }
+    ).join(model.index.to_frame())
 
     if method_choice is None:
         method_choice = default_method_choice
 
     ret = df.apply(method_choice, axis=1, **kwargs)
-    ret.name = 'method'
+    ret.name = "method"
     return ret, df

@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 from __future__ import print_function
 
@@ -22,26 +21,27 @@ logo = r"""
 """
 
 REQUIREMENTS = [
-    'numpy',
-    'pandas>=1.1',
-    'PyYAML',
-    'xlrd>=2.0',
-    'openpyxl',
-    'matplotlib',
-    'pyomo>=5'
+    "numpy",
+    "pandas>=1.1",
+    "PyYAML",
+    "xlrd>=2.0",
+    "openpyxl",
+    "matplotlib",
+    "pyomo>=5",
 ]
 
 EXTRA_REQUIREMENTS = {
-    'tests': ['pytest', 'coverage', 'coveralls', 'pytest', 'pytest-cov'],
-    'deploy': ['twine', 'setuptools', 'wheel'],
-    'units': ['openscm-units']
+    "tests": ["pytest", "coverage", "coveralls", "pytest", "pytest-cov", "black"],
+    "deploy": ["twine", "setuptools", "wheel"],
+    "units": ["openscm-units"],
 }
 
 
 # thank you https://stormpath.com/blog/building-simple-cli-interfaces-in-python
 class RunTests(Command):
     """Run all tests."""
-    description = 'run tests'
+
+    description = "run tests"
     user_options = []
 
     def initialize_options(self):
@@ -52,29 +52,29 @@ class RunTests(Command):
 
     def run(self):
         """Run all tests!"""
-        errno = call(['py.test', '--cov=skele', '--cov-report=term-missing'])
+        errno = call(["py.test", "--cov=skele", "--cov-report=term-missing"])
         raise SystemExit(errno)
 
 
 CMDCLASS = versioneer.get_cmdclass()
-CMDCLASS.update({'test': RunTests})
+CMDCLASS.update({"test": RunTests})
 
 
 def main():
     print(logo)
     classifiers = [
-        'License :: OSI Approved :: Apache Software License',
+        "License :: OSI Approved :: Apache Software License",
     ]
     packages = [
-        'aneris',
+        "aneris",
     ]
     pack_dir = {
-        'aneris': 'aneris',
+        "aneris": "aneris",
     }
     entry_points = {
-        'console_scripts': [
+        "console_scripts": [
             # list CLIs here
-            'aneris=aneris.cli:main',
+            "aneris=aneris.cli:main",
         ],
     }
     package_data = {
@@ -85,22 +85,22 @@ def main():
     extra_requirements = EXTRA_REQUIREMENTS
     setup_kwargs = {
         "name": "aneris-iamc",
-        'version': versioneer.get_version(),
-        "description": 'Harmonize Integrated Assessment Model Emissions '
-        'Trajectories',
-        "author": 'Matthew Gidden',
-        "author_email": 'matthew.gidden@gmail.com',
-        "url": 'http://github.com/iiasa/aneris',
-        'cmdclass': CMDCLASS,
-        'classifiers': classifiers,
-        'license': 'Apache License 2.0',
-        'packages': packages,
-        'package_dir': pack_dir,
-        'entry_points': entry_points,
-        'package_data': package_data,
-        'python_requires': '>=3.6',
-        'install_requires': install_requirements,
-        'extras_require': extra_requirements,
+        "version": versioneer.get_version(),
+        "description": "Harmonize Integrated Assessment Model Emissions "
+        "Trajectories",
+        "author": "Matthew Gidden",
+        "author_email": "matthew.gidden@gmail.com",
+        "url": "http://github.com/iiasa/aneris",
+        "cmdclass": CMDCLASS,
+        "classifiers": classifiers,
+        "license": "Apache License 2.0",
+        "packages": packages,
+        "package_dir": pack_dir,
+        "entry_points": entry_points,
+        "package_data": package_data,
+        "python_requires": ">=3.6",
+        "install_requires": install_requirements,
+        "extras_require": extra_requirements,
     }
     rtn = setup(**setup_kwargs)
 
