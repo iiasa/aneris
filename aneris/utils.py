@@ -7,6 +7,9 @@ from operator import and_
 import numpy as np
 import pandas as pd
 
+from aneris import pd_read
+
+
 # Index for iamc
 iamc_idx = ["Model", "Scenario", "Region", "Variable"]
 
