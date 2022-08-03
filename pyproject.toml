@@ -3,6 +3,8 @@ line-length = 88
 target-version = ['py39']
 extend-exclude = '''
 (
-  _version.py
+  _version.py |
+  versioneer.py |
+  ^/doc
 )
 '''
