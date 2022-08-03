@@ -7,6 +7,9 @@ linters:
     # stickler doesn't support 'exclude' for flake8 properly, so we disable it
     # below with files.ignore:
     # https://github.com/markstory/lint-review/issues/184
+  black:
+    config: ./pyproject.toml
+    fixer: false
 files:
   ignore:
     - doc/**/*.py
