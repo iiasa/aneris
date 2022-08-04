@@ -7,66 +7,77 @@ from operator import and_
 import numpy as np
 import pandas as pd
 
+
 # Index for iamc
-iamc_idx = ['Model', 'Scenario', 'Region', 'Variable']
+iamc_idx = ["Model", "Scenario", "Region", "Variable"]
 
 # default dataframe index
-df_idx = ['region', 'gas', 'sector', 'units']
+df_idx = ["region", "gas", "sector", "units"]
 
 # paths to data dependencies
 here = os.path.join(os.path.dirname(os.path.realpath(__file__)))
-hist_path = lambda f: os.path.join(here, 'historical', f)
-iamc_path = lambda f: os.path.join(here, 'iamc_template', f)
-region_path = lambda f: os.path.join(here, 'regional_definitions', f)
+hist_path = lambda f: os.path.join(here, "historical", f)
+iamc_path = lambda f: os.path.join(here, "iamc_template", f)
+region_path = lambda f: os.path.join(here, "regional_definitions", f)
 
 # gases reported in kt of species
 kt_gases = [
-    'N2O',
-    'SF6',
-    'CF4',  # explicit species of PFC
-    'C2F6',  # explicit species of PFC
+    "N2O",
+    "SF6",
+    "CF4",  # explicit species of PFC
+    "C2F6",  # explicit species of PFC
     # individual f gases removed for now
     # # hfcs
     # 'HFC23', 'HFC32', 'HFC43-10', 'HFC125', 'HFC134a', 'HFC143a', 'HFC227ea', 'HFC245fa',
     # CFCs
-    'CFC-11',
-    'CFC-12',
-    'CFC-113',
-    'CFC-114',
-    'CFC-115',
-    'CH3CCl3',
-    'CCl4',
-    'HCFC-22',
-    'HCFC-141b',
-    'HCFC-142b',
-    'Halon1211',
-    'Halon1301',
-    'Halon2402',
-    'Halon1202',
-    'CH3Br',
-    'CH3Cl',
+    "CFC-11",
+    "CFC-12",
+    "CFC-113",
+    "CFC-114",
+    "CFC-115",
+    "CH3CCl3",
+    "CCl4",
+    "HCFC-22",
+    "HCFC-141b",
+    "HCFC-142b",
+    "Halon1211",
+    "Halon1301",
+    "Halon2402",
+    "Halon1202",
+    "CH3Br",
+    "CH3Cl",
 ]
 
 # gases reported in co2-equiv
 co2_eq_gases = [
-    'HFC',
+    "HFC",
 ]
 
 # gases reported in Mt of species
 mt_gases = [
     # IAMC names
-    'BC', 'CH4', 'CO2', 'CO', 'NOx', 'OC', 'Sulfur', 'NH3', 'VOC',
+    "BC",
+    "CH4",
+    "CO2",
+    "CO",
+    "NOx",
+    "OC",
+    "Sulfur",
+    "NH3",
+    "VOC",
     # non-IAMC names
-    'SO2', 'NOX', 'NMVOC',
+    "SO2",
+    "NOX",
+    "NMVOC",
 ]
 
 all_gases = sorted(kt_gases + co2_eq_gases + mt_gases)
 
 # gases for which only sectoral totals are reported
-total_gases = ['SF6', 'CF4', 'C2F6'] + co2_eq_gases
+total_gases = ["SF6", "CF4", "C2F6"] + co2_eq_gases
 
 # gases for which only sectoral totals are harmonized
-harmonize_total_gases = ['N2O'] + total_gases
+harmonize_total_gases = ["N2O"] + total_gases
 
 # gases for which full sectoral breakdown is reported
 sector_gases = sorted(set(all_gases) - set(total_gases))
@@ -75,19 +86,19 @@ sector_gases = sorted(set(all_gases) - set(total_gases))
 # TODO: can we remove this?
 # TODO: should probably be a dictionary..
 std_to_iamc_gases = [
-    ('SO2', 'Sulfur'),
-    ('NOX', 'NOx'),
-    ('NMVOC', 'VOC'),
+    ("SO2", "Sulfur"),
+    ("NOX", "NOx"),
+    ("NMVOC", "VOC"),
 ]
 
 # mapping from gas name to name to use in units
 unit_gas_names = {
-    'Sulfur': 'SO2',
-    'Kyoto Gases': 'CO2-equiv',
-    'F-Gases': 'CO2-equiv',
-    'HFC': 'CO2-equiv',
-    'PFC': 'CO2-equiv',
-    'CFC': 'CO2-equiv',
+    "Sulfur": "SO2",
+    "Kyoto Gases": "CO2-equiv",
+    "F-Gases": "CO2-equiv",
+    "HFC": "CO2-equiv",
+    "PFC": "CO2-equiv",
+    "CFC": "CO2-equiv",
 }
 
 _logger = None
@@ -99,7 +110,7 @@ def logger():
     if _logger is None:
         logging.basicConfig()
         _logger = logging.getLogger()
-        _logger.setLevel('INFO')
+        _logger.setLevel("INFO")
     return _logger
 
 
@@ -123,7 +134,7 @@ def isnum(s):
 def numcols(df):
     """Returns all columns in df that have data types of floats or ints"""
     dtypes = df.dtypes
-    return [i for i in dtypes.index if dtypes.loc[i].name.startswith(('float', 'int'))]
+    return [i for i in dtypes.index if dtypes.loc[i].name.startswith(("float", "int"))]
 
 
 def check_null(df, name=None, fail=False):
@@ -139,9 +150,9 @@ def check_null(df, name=None, fail=False):
     """
     anynull = df.isnull().values.any()
     if fail:
-        assert(not anynull)
+        assert not anynull
     if anynull:
-        msg = 'Null (missing) values found for {} indicies: \n{}'
+        msg = "Null (missing) values found for {} indicies: \n{}"
         _df = df[df.isnull().any(axis=1)].reset_index()[df_idx]
         logger().warning(msg.format(name, _df))
         df.dropna(inplace=True, axis=1)
@@ -149,8 +160,8 @@ def check_null(df, name=None, fail=False):
 
 def gases(var_col):
     """The gas associated with each variable"""
-    gasidx = lambda x: x.split('|').index('Emissions') + 1
-    return var_col.apply(lambda x: x.split('|')[gasidx(x)])
+    gasidx = lambda x: x.split("|").index("Emissions") + 1
+    return var_col.apply(lambda x: x.split("|")[gasidx(x)])
 
 
 def units(var_col):
@@ -163,44 +174,42 @@ def units(var_col):
     gas_col = gas_col.apply(replace)
 
     return gas_col.apply(
-        lambda gas: '{} {}/yr'.format('kt' if gas in kt_gases else 'Mt', gas))
+        lambda gas: "{} {}/yr".format("kt" if gas in kt_gases else "Mt", gas)
+    )
 
 
-def remove_emissions_prefix(x, gas='XXX'):
+def remove_emissions_prefix(x, gas="XXX"):
     """Return x with emissions prefix removed, e.g.,
     Emissions|XXX|foo|bar -> foo|bar
     """
-    return re.sub(r'^Emissions\|{}\|'.format(gas), '', x)
+    return re.sub(r"^Emissions\|{}\|".format(gas), "", x)
 
 
-def recalculated_row_idx(df, prefix='', suffix=''):
+def recalculated_row_idx(df, prefix="", suffix=""):
     """Return a boolean array with rows that need to be recalculated.
-       These are rows with total values for a gas species which is a sum of
-       subsectors.
-       During harmonization, subsector totals change, thus this summation must
-       be recalculated.
+    These are rows with total values for a gas species which is a sum of
+    subsectors.
+    During harmonization, subsector totals change, thus this summation must
+    be recalculated.
     """
     df = df.reset_index()
 
-    gas_sec_pairs = df[['gas', 'sector']].drop_duplicates()
-    total_sector = '|'.join([prefix, suffix])
+    gas_sec_pairs = df[["gas", "sector"]].drop_duplicates()
+    total_sector = "|".join([prefix, suffix])
     gases_with_subsectors = df.gas.isin(
-        gas_sec_pairs[gas_sec_pairs.sector != total_sector]
-        .gas
-        .unique()
+        gas_sec_pairs[gas_sec_pairs.sector != total_sector].gas.unique()
     )
     is_sector_total = df.sector == total_sector
     return np.array(gases_with_subsectors & is_sector_total)
 
 
-def remove_recalculated_sectors(df, prefix='', suffix=''):
-    """Return df with Total gas (sum of all sectors) removed
-    """
-    idx = recalculated_row_idx(df, prefix='', suffix='')
+def remove_recalculated_sectors(df, prefix="", suffix=""):
+    """Return df with Total gas (sum of all sectors) removed"""
+    idx = recalculated_row_idx(df, prefix="", suffix="")
     return df[~idx]
 
 
-def subtract_regions_from_world(df, name=None, base_year='2015', threshold=5e-2):
+def subtract_regions_from_world(df, name=None, base_year="2015", threshold=5e-2):
     """Subtract the sum of regional results in each variable from the World total.
     If the result is a World total below a threshold, set those values to 0.
 
@@ -216,31 +225,39 @@ def subtract_regions_from_world(df, name=None, base_year='2015', threshold=5e-2)
     """
     # make global only global (not global + sum of regions)
     check_null(df, name)
-    if (df.loc['World'][base_year] == 0).all():
+    if (df.loc["World"][base_year] == 0).all():
         # some models (gcam) are not reporting any values in World
         # without this, you get `0 - sum(other regions)`
-        logger().warning('Empty global region found in ' + name)
+        logger().warning("Empty global region found in " + name)
         return df
 
     # sum all rows where region == World
-    total = combine_rows(df, 'region', 'World', sumall=True,
-                         others=[], rowsonly=True)
+    total = combine_rows(df, "region", "World", sumall=True, others=[], rowsonly=True)
     # sum all rows where region != World
-    nonglb = combine_rows(df, 'region', 'World', sumall=False,
-                          others=None, rowsonly=True)
+    nonglb = combine_rows(
+        df, "region", "World", sumall=False, others=None, rowsonly=True
+    )
     glb = total.subtract(nonglb, fill_value=0)
     # pick up some precision issues
     # TODO: this precision is large because I have seen model results
     # be reported with this large of difference due to round off and values
     # approaching 0
-    glb[(glb / total).abs() < threshold] = 0.
+    glb[(glb / total).abs() < threshold] = 0.0
     df = glb.combine_first(df)
     check_null(df, name)
     return df
 
 
-def combine_rows(df, level, main, others=None, sumall=True, dropothers=True,
-                 rowsonly=False, newlabel=None):
+def combine_rows(
+    df,
+    level,
+    main,
+    others=None,
+    sumall=True,
+    dropothers=True,
+    rowsonly=False,
+    newlabel=None,
+):
     """Combine rows (add values) in a dataframe. Rows corresponding to the main and
     other values in a given level (or column) are added together and reattached
     taking the main value in the new column.
@@ -280,8 +297,7 @@ def combine_rows(df, level, main, others=None, sumall=True, dropothers=True,
     lvl_values = df[level].unique()
 
     # if others is none, then its everything other than the primary
-    others = others if others is not None else \
-        list(set(lvl_values) - set([main]))
+    others = others if others is not None else list(set(lvl_values) - set([main]))
 
     # set up df idx for operations
     grp_idx = [x for x in df_idx if x != level]
@@ -289,27 +305,14 @@ def combine_rows(df, level, main, others=None, sumall=True, dropothers=True,
 
     # generate new rows which are summation of subset of old rows
     sum_subset = [main] + others if sumall else others
-    rows = (
-        df.loc[sum_subset]
-        .groupby(level=grp_idx)
-        .sum()
-    )
+    rows = df.loc[sum_subset].groupby(level=grp_idx).sum()
     rows[level] = newlabel
-    rows = (
-        rows
-        .set_index(level, append=True)
-        .reorder_levels(df_idx)
-        .sort_index()
-    )
+    rows = rows.set_index(level, append=True).reorder_levels(df_idx).sort_index()
 
     # get rid of rows that aren't needed in final dataframe
     drop = [main] + others if dropothers else [main]
     drop = list(set(drop) & set(lvl_values))
-    df = (
-        df.drop(drop)
-        .reset_index()
-        .set_index(df_idx)
-    )
+    df = df.drop(drop).reset_index().set_index(df_idx)
 
     # construct final dataframe
     df = rows if rowsonly else pd.concat([df, rows]).sort_index()
@@ -320,8 +323,9 @@ def combine_rows(df, level, main, others=None, sumall=True, dropothers=True,
     return df
 
 
-def agg_regions(df, rfrom='ISO Code', rto='Native Region Code', mapping=None,
-                verify=True):
+def agg_regions(
+    df, rfrom="ISO Code", rto="Native Region Code", mapping=None, verify=True
+):
     """Aggregate values in a dataframe to a new regional composition
 
     Parameters
@@ -340,11 +344,11 @@ def agg_regions(df, rfrom='ISO Code', rto='Native Region Code', mapping=None,
     -------
     df : pd.DataFrame
     """
-    mapping = mapping if mapping is not None else \
-        pd.read_csv(region_path('message.csv'))
+    mapping = (
+        mapping if mapping is not None else pd.read_csv(region_path("message.csv"))
+    )
     mapping[rfrom] = mapping[rfrom].str.upper()
-    case_map = pd.Series(mapping[rto].unique(),
-                         index=mapping[rto].str.upper().unique())
+    case_map = pd.Series(mapping[rto].unique(), index=mapping[rto].str.upper().unique())
     mapping[rto] = mapping[rto].str.upper()
     mapping = mapping[[rfrom, rto]].drop_duplicates().dropna()
 
@@ -358,17 +362,17 @@ def agg_regions(df, rfrom='ISO Code', rto='Native Region Code', mapping=None,
     check = mapping[rfrom]
     notin = list(set(df.region) - set(check))
     if len(notin) > 0:
-        logger().warning(
-            'Removing regions without direct mapping: {}'.format(notin))
+        logger().warning("Removing regions without direct mapping: {}".format(notin))
         df = df[df.region.isin(check)]
 
     # map and sum
     dfto = (
-        df
-        .merge(mapping, left_on='region', right_on=rfrom, how='outer')
-        .drop([rfrom, 'region'], axis=1)
-        .rename(columns={rto: 'region'})
-        .groupby(df_idx).sum().reset_index()
+        df.merge(mapping, left_on="region", right_on=rfrom, how="outer")
+        .drop([rfrom, "region"], axis=1)
+        .rename(columns={rto: "region"})
+        .groupby(df_idx)
+        .sum()
+        .reset_index()
     )
     dfto.region = dfto.region.map(case_map)
     dfto = dfto.set_index(df_idx).sort_index()
@@ -379,8 +383,8 @@ def agg_regions(df, rfrom='ISO Code', rto='Native Region Code', mapping=None,
         end = dfto[numcols(dfto)].values.sum()
         diff = abs(start - end)
         if np.isnan(diff) or diff / start > 1e-6:
-            msg = 'Difference between before and after is large: {}'
-            raise(ValueError(msg.format(diff)))
+            msg = "Difference between before and after is large: {}"
+            raise (ValueError(msg.format(diff)))
 
     # revert form if needed
     if not multi_idx:
@@ -407,7 +411,7 @@ class EmissionsAggregator(object):
         self.df = df
         self.model = model
         self.scenario = scenario
-        assert((self.df.units == 'kt').all())
+        assert (self.df.units == "kt").all()
 
     def add_variables(self, totals=None, aggregates=True):
         """Add aggregates and variables with direct mappings.
@@ -433,26 +437,26 @@ class EmissionsAggregator(object):
         first_year: optional, the first year to report values for
         """
         self.df = FormatTranslator(self.df).to_template(
-            model=self.model, scenario=self.scenario, **kwargs)
+            model=self.model, scenario=self.scenario, **kwargs
+        )
         return self.df
 
     def _add_totals(self, totals):
-        assert(not (self.df.sector == totals).any())
-        grp_idx = [x for x in df_idx if x != 'sector']
+        assert not (self.df.sector == totals).any()
+        grp_idx = [x for x in df_idx if x != "sector"]
         rows = self.df.groupby(grp_idx).sum().reset_index()
-        rows['sector'] = totals
+        rows["sector"] = totals
         self.df = pd.concat([self.df, rows])
 
     def _add_aggregates(self):
-        mapping = pd_read(iamc_path('sector_mapping.xlsx'),
-                          sheet_name='Aggregates')
+        mapping = pd_read(iamc_path("sector_mapping.xlsx"), sheet_name="Aggregates")
         mapping = mapping.applymap(remove_emissions_prefix)
 
         rows = []
-        for sector in mapping['IAMC Parent'].unique():
+        for sector in mapping["IAMC Parent"].unique():
             # mapping for aggregate sector for all gases
-            _map = mapping[mapping['IAMC Parent'] == sector]
-            _map = _map.set_index('IAMC Child')['IAMC Parent']
+            _map = mapping[mapping["IAMC Parent"] == sector]
+            _map = _map.set_index("IAMC Child")["IAMC Parent"]
 
             # rename variable column for subset of rows
             subset = self.df[self.df.sector.isin(_map.index)].copy()
@@ -468,7 +472,7 @@ class EmissionsAggregator(object):
 class FormatTranslator(object):
     """Helper class to translate between IAMC and calcluation formats"""
 
-    def __init__(self, df=None, prefix='', suffix=''):
+    def __init__(self, df=None, prefix="", suffix=""):
         self.df = df if df is None else df.copy()
         self.model = None
         self.scenario = None
@@ -490,26 +494,25 @@ class FormatTranslator(object):
             df.reset_index(inplace=True)
 
         if len(set(iamc_idx) - set(df.columns)):
-            msg = 'Columns do not conform with IAMC index: {}'
+            msg = "Columns do not conform with IAMC index: {}"
             raise ValueError(msg.format(df.columns))
 
         # make sure we're working with good data
-        if len(df['Model'].unique()) > 1:
-            raise ValueError(
-                'Model not unique: {}'.format(df['Model'].unique()))
-        assert(len(df['Scenario'].unique()) <= 1)
-        assert(df['Variable'].apply(lambda x: 'Emissions' in x).all())
+        if len(df["Model"].unique()) > 1:
+            raise ValueError("Model not unique: {}".format(df["Model"].unique()))
+        assert len(df["Scenario"].unique()) <= 1
+        assert df["Variable"].apply(lambda x: "Emissions" in x).all()
 
         # save data
         if set_metadata:
-            self.model = df['Model'].iloc[0]
-            self.scenario = df['Scenario'].iloc[0]
+            self.model = df["Model"].iloc[0]
+            self.scenario = df["Scenario"].iloc[0]
 
         # add std columns needed for conversions
-        df['region'] = df['Region']
-        df['gas'] = gases(df['Variable'])
-        df['units'] = df['Unit'].apply(lambda x: x.split()[0])
-        df['sector'] = df['Variable']
+        df["region"] = df["Region"]
+        df["gas"] = gases(df["Variable"])
+        df["units"] = df["Unit"].apply(lambda x: x.split()[0])
+        df["sector"] = df["Variable"]
 
         # convert gas names
         self._convert_gases(df, tostd=True)
@@ -519,15 +522,16 @@ class FormatTranslator(object):
 
         # remove emissions prefix
         def update_sector(row):
-            sectors = row.sector.split('|')
-            idx = sectors.index('Emissions')
+            sectors = row.sector.split("|")
+            idx = sectors.index("Emissions")
             sectors.pop(idx)  # emissions
             sectors.pop(idx)  # gas
-            return '|'.join(sectors).strip('|')
+            return "|".join(sectors).strip("|")
+
         if not df.empty:
-            df['sector'] = df.apply(update_sector, axis=1)
+            df["sector"] = df.apply(update_sector, axis=1)
         # drop old columns
-        df.drop(iamc_idx + ['Unit'], axis=1, inplace=True)
+        df.drop(iamc_idx + ["Unit"], axis=1, inplace=True)
 
         # set up index and column order
         df.set_index(df_idx, inplace=True)
@@ -538,8 +542,7 @@ class FormatTranslator(object):
 
         return df
 
-    def to_template(self, df=None, model=None, scenario=None,
-                    column_style=None):
+    def to_template(self, df=None, model=None, scenario=None, column_style=None):
         """Translate a dataframe from standard calculation format to IAMC
 
         Parameters
@@ -560,7 +563,7 @@ class FormatTranslator(object):
         scenario = scenario or self.scenario
 
         if set(df.columns) != set(df_idx + numcols(df)):
-            msg = 'Columns do not conform with standard index: {}'
+            msg = "Columns do not conform with standard index: {}"
             raise ValueError(msg.format(df.columns))
 
         # convert gas names
@@ -571,31 +574,32 @@ class FormatTranslator(object):
 
         # inject emissions prefix
         def update_sector(row):
-            sectors = row.sector.split('|')
-            idx = self.prefix.count('|') + 1
-            sectors.insert(idx, 'Emissions')
+            sectors = row.sector.split("|")
+            idx = self.prefix.count("|") + 1
+            sectors.insert(idx, "Emissions")
             sectors.insert(idx + 1, row.gas)
-            return '|'.join(sectors).strip('|')
-        df['sector'] = df.apply(update_sector, axis=1)
+            return "|".join(sectors).strip("|")
+
+        df["sector"] = df.apply(update_sector, axis=1)
         # write units correctly
-        df['units'] = units(df.sector)
+        df["units"] = units(df.sector)
 
         # add new columns, remove old
-        df['Model'] = model
-        df['Scenario'] = scenario
-        df['Variable'] = df.sector
-        df['Region'] = df.region
-        df['Unit'] = df.units
+        df["Model"] = model
+        df["Scenario"] = scenario
+        df["Variable"] = df.sector
+        df["Region"] = df.region
+        df["Unit"] = df.units
         df.drop(df_idx, axis=1, inplace=True)
 
         # unit magic to make it always first, would be easier if it was in idx.
-        hold = df['Unit']
-        df.drop('Unit', axis=1, inplace=True)
-        df.insert(0, 'Unit', hold)
+        hold = df["Unit"]
+        df.drop("Unit", axis=1, inplace=True)
+        df.insert(0, "Unit", hold)
 
         # set up index and column order
         idx = iamc_idx
-        if column_style == 'upper':
+        if column_style == "upper":
             df.columns = df.columns.str.upper()
             idx = [x.upper() for x in idx]
         df.set_index(idx, inplace=True)
@@ -614,19 +618,19 @@ class FormatTranslator(object):
 
         # from, to
         for f, t in convert:
-            for col in ['gas', 'sector']:
+            for col in ["gas", "sector"]:
                 df[col] = df[col].replace(f, t)
 
     def _convert_units(self, df, tostd=True):
         where = ~df.gas.isin(kt_gases)
         if tostd:
             df.loc[where, numcols(df)] *= 1e3
-            df.loc[where, 'units'] = 'kt'
-            assert((df.units == 'kt').all())
+            df.loc[where, "units"] = "kt"
+            assert (df.units == "kt").all()
         else:
-            assert((df.units == 'kt').all())
+            assert (df.units == "kt").all()
             df.loc[where, numcols(df)] /= 1e3
-            df.loc[where, 'units'] = 'Mt'
+            df.loc[where, "units"] = "Mt"
 
 
 def isin(df=None, **filters):
@@ -638,8 +642,49 @@ def isin(df=None, **filters):
     or with explicit df to get boolean mask
     > isin(df, region="World", gas=["CO2", "N2O"])
     """
+
     def tester(df):
         tests = (df.index.isin(np.atleast_1d(v), level=k) for k, v in filters.items())
         return reduce(and_, tests, next(tests))
 
     return tester if df is None else tester(df)
+
+
+def pd_read(f, str_cols=False, *args, **kwargs):
+    """Try to read a file with pandas, supports CSV and XLSX
+
+    Parameters
+    ----------
+    f : string
+        the file to read in
+    str_cols : bool, optional
+        turn all columns into strings (numerical column names are sometimes
+        read in as numerical dtypes)
+    args, kwargs : sent directly to the Pandas read function
+
+    Returns
+    -------
+    df : pd.DataFrame
+    """
+    if f.endswith("csv"):
+        df = pd.read_csv(f, *args, **kwargs)
+    else:
+        df = pd.read_excel(f, *args, **kwargs)
+
+    if str_cols:
+        df.columns = [str(x) for x in df.columns]
+
+    return df
+
+
+def pd_write(df, f, *args, **kwargs):
+    """Try to write a file with pandas, supports CSV and XLSX"""
+    # guess whether to use index, unless we're told otherwise
+    index = kwargs.pop("index", isinstance(df.index, pd.MultiIndex))
+
+    if f.endswith("csv"):
+        df.to_csv(f, index=index, *args, **kwargs)
+    else:
+        writer = pd.ExcelWriter(f)
+        df.to_excel(writer, index=index, *args, **kwargs)
+        writer.save()

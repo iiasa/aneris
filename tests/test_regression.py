@@ -18,29 +18,28 @@ from aneris import cli
 # worry about this again.
 
 here = join(os.path.dirname(os.path.realpath(__file__)))
-ci_path = join(here, 'ci')
+ci_path = join(here, "ci")
 
 # check variables for if we are on CI (will then run regression tests)
-ON_CI_REASON = 'No access to regression test credentials'
+ON_CI_REASON = "No access to regression test credentials"
 try:
-    os.environ['ANERIS_CI_USER']
+    os.environ["ANERIS_CI_USER"]
     ON_CI = True
 except KeyError:
     ON_CI = False
 
 FILE_SUFFIXES = [
-    'global_only',
-    'regions_sectors',
-    'global_sectors',
-    'mock_pipeline_prototype',
-    'pipeline_progress',
-    'full_ar6',
-    'global_ar6',
+    "global_only",
+    "regions_sectors",
+    "global_sectors",
+    "mock_pipeline_prototype",
+    "pipeline_progress",
+    "full_ar6",
+    "global_ar6",
 ]
 
 
-class TestHarmonizeRegression():
-
+class TestHarmonizeRegression:
     def _run(self, inf, checkf, hist, reg, rc, prefix, name):
         # path setup
         prefix = join(here, prefix)
@@ -48,9 +47,9 @@ class TestHarmonizeRegression():
         reg = join(prefix, reg)
         rc = join(prefix, rc)
         inf = join(prefix, inf)
-        outf = join(prefix, '{}_harmonized.xlsx'.format(name))
-        outf_meta = join(prefix, '{}_metadata.xlsx'.format(name))
-        outf_diag = join(prefix, '{}_diagnostics.xlsx'.format(name))
+        outf = join(prefix, "{}_harmonized.xlsx".format(name))
+        outf_meta = join(prefix, "{}_metadata.xlsx".format(name))
+        outf_diag = join(prefix, "{}_diagnostics.xlsx".format(name))
         clean = [outf, outf_meta, outf_diag]
 
         # make sure we're fresh
@@ -61,21 +60,31 @@ class TestHarmonizeRegression():
         # run
         print(inf, hist, reg, rc, name)
         cli.harmonize(
-            inf, hist, reg, rc, prefix, name, return_result=False,
+            inf,
+            hist,
+            reg,
+            rc,
+            prefix,
+            name,
+            return_result=False,
         )
 
         # test
         ncols = 5
         expfile = join(prefix, checkf)
-        exp = pd.read_excel(expfile, sheet_name='data',
-                            index_col=list(range(ncols)),
-                            engine='openpyxl',
-                            ).sort_index()
+        exp = pd.read_excel(
+            expfile,
+            sheet_name="data",
+            index_col=list(range(ncols)),
+            engine="openpyxl",
+        ).sort_index()
         exp.columns = exp.columns.astype(str)
-        obs = pd.read_excel(outf, sheet_name='data',
-                            index_col=list(range(ncols)),
-                            engine='openpyxl',
-                            ).sort_index()
+        obs = pd.read_excel(
+            outf,
+            sheet_name="data",
+            index_col=list(range(ncols)),
+            engine="openpyxl",
+        ).sort_index()
         assert_frame_equal(exp, obs, check_dtype=False)
 
         # tidy up after
@@ -86,25 +95,25 @@ class TestHarmonizeRegression():
     @pytest.mark.parametrize("file_suffix", FILE_SUFFIXES)
     def test_basic_run(self, file_suffix):
         # this is run no matter what
-        prefix = 'test_data'
-        checkf = 'test_{}.xlsx'.format(file_suffix)
-        hist = 'history_{}.xls'.format(file_suffix)
-        reg = 'regions_{}.csv'.format(file_suffix)
-        inf = 'model_{}.xls'.format(file_suffix)
-        rc = 'aneris_{}.yaml'.format(file_suffix)
+        prefix = "test_data"
+        checkf = "test_{}.xlsx".format(file_suffix)
+        hist = "history_{}.xls".format(file_suffix)
+        reg = "regions_{}.csv".format(file_suffix)
+        inf = "model_{}.xls".format(file_suffix)
+        rc = "aneris_{}.yaml".format(file_suffix)
 
         # get all arguments
         self._run(inf, checkf, hist, reg, rc, prefix, file_suffix)
 
     @pytest.mark.skipif(not ON_CI, reason=ON_CI_REASON)
-    @pytest.mark.parametrize("name", ['msg', 'gcam'])
+    @pytest.mark.parametrize("name", ["msg", "gcam"])
     def test_regression_ci(self, name):
-        prefix = join(ci_path, 'test-{}'.format(name))
-        checkf = '{}_harmonized.xlsx'.format(name)
-        hist = 'history.csv'
-        reg = 'regiondef.xlsx'
-        rc = 'rc.yaml'
-        inf = 'inputfile.xlsx'
+        prefix = join(ci_path, "test-{}".format(name))
+        checkf = "{}_harmonized.xlsx".format(name)
+        hist = "history.csv"
+        reg = "regiondef.xlsx"
+        rc = "rc.yaml"
+        inf = "inputfile.xlsx"
 
         # copy needed files
         for fname in [hist, rc, checkf]:

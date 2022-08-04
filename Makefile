@@ -68,6 +68,10 @@ publish-on-pypi: $(VENV_DIR)  ## publish release on PyPI
 		echo run git status --porcelain to find dirty files >&2; \
 	fi;
 
+.PHONY: black
+black: $(VENV_DIR)
+	black .
+
 .PHONY: ci_dl
 ci_dl: $(VENV_DIR)  ## run all the tests
 	cd tests/ci; python download_data.py
