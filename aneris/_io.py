@@ -8,7 +8,7 @@ import yaml
 
 import pandas as pd
 
-from aneris.utils import isstr, isnum, iamc_idx
+from aneris.utils import isstr, isnum, iamc_idx, pd_read
 
 RC_DEFAULTS = """
 config:
