@@ -3,6 +3,10 @@
 Data Model
 **********
 
+.. todo::
+
+  Update once new data model is agreed to
+
 Data fed into :code:`aneris` is assumed to be so-called wide-style panel
 data. Within the code base, standard Pandas :code:`DataFrame`s are used. When
 using the CLI, Excel spreadsheets or csvs are supported.

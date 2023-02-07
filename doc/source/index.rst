@@ -45,16 +45,20 @@ Documentation
 .. toctree::
    :maxdepth: 1
 
-   tutorial.ipynb
    install
-   theory
-   budget_method.ipynb
    data
-   config
+
+.. toctree::
+   :maxdepth: 2
+
+   design
+
+.. toctree::
+   :maxdepth: 1
+
    cli
+   contribute
    api
-
-
 
 Get in touch
 ------------
