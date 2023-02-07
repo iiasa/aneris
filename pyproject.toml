@@ -1,6 +1,79 @@
+[project]
+authors = [
+  {name = "Matthew Gidden", email = "matthew.gidden@gmail.com"},
+  {name = "Jonas Hoersch", email = "jonas.hoersch@climateanalytics.org"},
+]
+description = "Harmonize Integrated Assessment Model Emissions Trajectories"
+license = {text = "Apache License 2.0"}
+name = "aneris-iamc"
+readme = "README.rst"
+requires-python = ">=3.6"
+
+# Add here all kinds of additional classifiers as defined under
+# https://pypi.org/classifiers/
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: Apache Software License",
+]
+dependencies = [
+  "numpy",
+  "pandas>=1.1",
+  "PyYAML",
+  "xlrd>=2.0",
+  "openpyxl",
+  "matplotlib",
+  "pyomo>=5",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+deploy = ["twine", "setuptools", "wheel"]
+tests = ["pytest", "coverage", "coveralls", "pytest", "pytest-cov[all]", "black"]
+units = ["openscm-units"]
+
+[project.scripts]
+aneris = "aneris.cli:main"
+
+[tool.versioneer]
+VCS = "git"
+style = "pep440"
+versionfile_source = "aneris/_version.py"
+versionfile_build = "aneris/_version.py"
+tag_prefix = "v"
+parentdir_prefix = "aneris-"
+
+[tool.flake8]
+ignore = ["I002", "F403", "E402", "E731", "E203", "W503"]
+max-line-length = 88
+exclude = [
+	"doc",
+	"tests"
+]
+
+[tool.pytest.ini_options]
+# Specify command line options as you would do when invoking pytest directly.
+# e.g. --cov-report html (or xml) for html/xml output or --junitxml junit.xml
+# in order to write a coverage file that can be read by Jenkins.
+# CAUTION: --cov flags may prohibit setting breakpoints while debugging.
+#          Comment those flags to avoid this py.test issue.
+addopts = "--cov skele --cov-report term-missing --verbose"
+minversion = "6.0"
+norecursedirs = [
+  "dist",
+  "build",
+  ".tox",
+]
+testpaths = [
+  "tests",
+]
+
+# Use pytest markers to select/deselect specific tests
+# markers = [
+#     "slow: mark tests as slow (deselect with '-m \"not slow\"')",
+#     "system: mark end-to-end system tests"
+# ]
+
 [tool.black]
-line-length = 88
-target-version = ['py39']
 extend-exclude = '''
 (
   _version.py |
@@ -8,3 +81,9 @@ extend-exclude = '''
   ^/doc
 )
 '''
+line-length = 88
+target-version = ['py39']
+
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=46.1.0", "versioneer[toml]", "wheel", "tomli; python_version < '3.11'"]
