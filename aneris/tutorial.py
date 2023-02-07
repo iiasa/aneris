@@ -45,7 +45,7 @@ def load_data(
     for localfile in files.values():
         if not os.path.exists(localfile):
             fname = os.path.basename(localfile)
-            url = "/".join((github_url, "raw", "master", "tests", "test_data", fname))
+            url = "/".join((github_url, "raw", "main", "tests", "test_data", fname))
             urlretrieve(url, localfile)
 
     # read input
