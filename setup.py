@@ -36,8 +36,7 @@ EXTRA_REQUIREMENTS = {
     "units": ["openscm-units"],
     "docs": [
         "sphinx", 
-        "sphinxcontrib-bibtex<2.0", 
-        "sphinxcontrib-fulltoc", 
+        "sphinxcontrib-bibtex", 
         "sphinxcontrib-programoutput", 
         "sphinx-gallery",
         "nbsphinx",
