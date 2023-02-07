@@ -34,6 +34,20 @@ EXTRA_REQUIREMENTS = {
     "tests": ["pytest", "coverage", "coveralls", "pytest", "pytest-cov", "black"],
     "deploy": ["twine", "setuptools", "wheel"],
     "units": ["openscm-units"],
+    "docs": [
+        "sphinx", 
+        "sphinxcontrib-bibtex<2.0", 
+        "sphinxcontrib-fulltoc", 
+        "sphinxcontrib-programoutput", 
+        "sphinx-gallery",
+        "nbsphinx",
+        "numpydoc",
+        "nbformat",
+        "ipython",
+        "jupyter",
+        "jupyter_contrib_nbextensions",
+        "pillow",
+        ]
 }
 
 

@@ -9,10 +9,8 @@ build:
 sphinx:
    configuration: doc/source/conf.py
 
-conda:
-  environment: doc/environment.yml
-
 python:
   install:
   - method: pip
     path: .
+    extra_requirements: [docs]
