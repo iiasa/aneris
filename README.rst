@@ -18,9 +18,13 @@ Installing from source is as easy as
 
 .. code-block:: bash
 
-    python setup.py install
+    pip install -e .[tests,deploy,units]
 
-See required dependencies via the online documentation.
+You can then check to make sure your install is operating as expected
+
+.. code-block:: bash
+
+    pytest tests
 
 Build the Docs
 --------------
