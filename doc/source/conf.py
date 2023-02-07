@@ -61,7 +61,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'aneris'
-copyright = u'2016, Matthew Gidden'
+copyright = u'2023, Matthew Gidden'
 author = u'Matthew Gidden'
 
 # The version info for the project you're documenting, acts as replacement for
