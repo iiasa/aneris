@@ -34,13 +34,10 @@ units = ["openscm-units"]
 [project.scripts]
 aneris = "aneris.cli:main"
 
-[tool.versioneer]
-VCS = "git"
-style = "pep440"
-versionfile_source = "aneris/_version.py"
-versionfile_build = "aneris/_version.py"
-tag_prefix = "v"
-parentdir_prefix = "aneris-"
+[tool.setuptools_scm]
+# See configuration details in https://github.com/pypa/setuptools_scm
+version_scheme = "no-guess-dev"
+write_to = "aneris/_version.py"
 
 [tool.flake8]
 ignore = ["I002", "F403", "E402", "E731", "E203", "W503"]
@@ -77,7 +74,6 @@ testpaths = [
 extend-exclude = '''
 (
   _version.py |
-  versioneer.py |
   ^/doc
 )
 '''
@@ -86,4 +82,4 @@ target-version = ['py39']
 
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools>=46.1.0", "versioneer[toml]", "wheel", "tomli; python_version < '3.11'"]
+requires = ["setuptools>=46.1.0", "setuptools_scm[toml]>=5", "wheel", "tomli; python_version < '3.11'"]
