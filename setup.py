@@ -35,9 +35,9 @@ EXTRA_REQUIREMENTS = {
     "deploy": ["twine", "setuptools", "wheel"],
     "units": ["openscm-units"],
     "docs": [
-        "sphinx", 
-        "sphinxcontrib-bibtex", 
-        "sphinxcontrib-programoutput", 
+        "sphinx",
+        "sphinxcontrib-bibtex",
+        "sphinxcontrib-programoutput",
         "sphinx-gallery",
         "nbsphinx",
         "numpydoc",
@@ -46,7 +46,7 @@ EXTRA_REQUIREMENTS = {
         "jupyter",
         "jupyter_contrib_nbextensions",
         "pillow",
-        ]
+    ],
 }
 
 
