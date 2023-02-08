@@ -30,7 +30,20 @@ dynamic = ["version"]
 deploy = ["twine", "setuptools", "wheel"]
 tests = ["pytest", "coverage", "coveralls", "pytest", "pytest-cov[all]", "black"]
 units = ["openscm-units"]
-
+docs = [
+        "sphinx",
+        "sphinxcontrib-bibtex",
+        "sphinxcontrib-programoutput",
+        "sphinx-gallery",
+        "nbsphinx",
+        "numpydoc",
+        "nbformat",
+        "ipython",
+        "jupyter",
+        "jupyter_contrib_nbextensions",
+        "pillow",
+    ]
+    
 [project.scripts]
 aneris = "aneris.cli:main"
 
