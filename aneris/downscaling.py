@@ -1,14 +1,45 @@
+from pandas import DataFrame, Series
 
-DEFAULT_INDEX = ("sector", "gas", "region")
+from .compat import have_pyam, pyam
+
+DEFAULT_INDEX = ("sector", "gas")
+
 
 class Downscaler:
+    methods = {
+        "ipat_2100_gdp",
+        "ipat_2150_pop": partial(intensity_convergence, convergence_year=2150, reference_name="pop"),
+    }
 
-    @classmethod
-    def from_pyam(cls, model: pyam.IamDataFrame, hist: pyam.IamDataFrame, region_mapping: Series, ...):
-        model = to_dataframe(model)
-        hist = to_dataframe(heist) 
-        ...
-        return cls(model, hist, ..., return_type=pyam.IamDataFrame)
+    def add_method("..."):
+        methods.update({
+
+
+        })
+
+    if have_pyam:
+        @classmethod
+        def from_pyam(cls, model: pyam.IamDataFrame, hist: pyam.IamDataFrame, region_mapping: Series, additional_data: pyam.IamDataFrame, ...):
+            model = to_dataframe(model)
+            hist = to_dataframe(heist) 
+
+            ...
+            return cls(model, hist, ..., return_type=pyam.IamDataFrame)
+    
+    def __init__(self, model: DataFrame, hist: DataFrame, region_mapping: Series, **additional_data: DataFrame):
+        self.model = model
+        self.hist = hist
+        self.region_mapping = region_mapping
+        self.data = additional_data
+        
+        assert (
+            hist.groupby(["sector", "gas", "region"]).count() <= 1
+        ).all(), "More than one hist"
+        assert (
+            projectlevel(model.index, ["sector", "gas", "region"])
+            .difference(projectlevel(hist.index, ["sector", "gas", "region"]))
+            .empty
+        ), "History missing for some"
 
 
     def downscale(methods: Series) -> DataFrame:
@@ -24,26 +55,14 @@ class Downscaler:
 
         Parameters
         ----------
-        model : DataFrame
-            Model data, year (int) as columns
-        hist : DataFrame
-            Historical data, year (int) as columns
-        scenariodata : DataFrame
-
         methods : Series
             Methods to apply
         config :
             Configuration settings like base_year
         """
 
-        assert (
-            hist.groupby(["sector", "gas", "region"]).count() <= 1
-        ).all(), "More than one hist"
-        assert (
-            projectlevel(model.index, ["sector", "gas", "region"])
-            .difference(projectlevel(hist.index, ["sector", "gas", "region"]))
-            .empty
-        ), "History missing for some"
+
+        # Check that data contains what is needed for all methods in use, ie. inspect partial keywords 
 
         # Harmonise each model emissions trajectory to historical base year data using `methods`
         # ...
