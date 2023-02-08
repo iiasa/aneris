@@ -12,3 +12,4 @@ dependencies:
 - jupyter
 - nbconvert
 - openpyxl
+- pyam
