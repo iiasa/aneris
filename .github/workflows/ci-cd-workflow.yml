@@ -41,8 +41,7 @@ jobs:
         conda config --add channels conda-forge
         conda env update --file ci/environment-conda-default.yml
         conda env update --file ci/environment-conda-forge.yml
-        conda env update --file doc/environment.yml
-        pip install -e .[tests,deploy,units]
+        pip install -e .[tests,deploy,units,docs]
     # if we want to remove stickler
     # - name: Run format and linting tests
     #   shell: bash -l {0}
@@ -102,8 +101,7 @@ jobs:
         conda config --add channels conda-forge
         conda env update --file ci/environment-conda-default.yml
         conda env update --file ci/environment-conda-forge.yml
-        conda env update --file doc/environment.yml
-        pip install -e .[tests,deploy,units]
+        pip install -e .[tests,deploy,units,docs]
     - name: Install ipopt (${{ runner.os }})
       # see https://github.com/conda-forge/ipopt-feedstock/issues/55
       if: startsWith(runner.os, 'Windows')
@@ -159,9 +157,8 @@ jobs:
         conda config --add channels conda-forge
         conda env update --file ci/environment-conda-default.yml
         conda env update --file ci/environment-conda-forge.yml
-        conda env update --file doc/environment.yml
         conda install -q pandas==${{ matrix.pandas-version }}
-        pip install .[tests,units]
+        pip install .[tests,units,docs]
     - name: Run tests
       shell: bash -l {0}
       run: |
@@ -205,8 +202,7 @@ jobs:
         conda config --add channels conda-forge
         conda env update --file ci/environment-conda-default.yml
         conda env update --file ci/environment-conda-forge.yml
-        conda env update --file doc/environment.yml
-        pip install -e .[tests,deploy,units]
+        pip install -e .[tests,deploy,units,docs]
     - name: Download data
       shell: bash -l {0}
       env:

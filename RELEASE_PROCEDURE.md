@@ -14,7 +14,7 @@
   1. Once successful, delete the tag, and merge the candidate PR into master on Github
 1. Switch to now updated master branch: `git checkout master` and `git pull upstream master`
 1. Tag the release number: `git tag v<release version>`, e.g., `git tag v1.2.0`
-   - `versioneer` automatically updates the version number based on the tag
+   - `setuptools_scm` automatically updates the version number based on the tag
    - this is now the official tagged commit
 1. Push the tag upstream: `git push upstream --tags`
 1. Run `make publish-on-pypi`
