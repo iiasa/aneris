@@ -6,17 +6,20 @@ from .compat import have_pyam, pyam
 DEFAULT_INDEX = ("sector", "gas")
 
 
-class Downscaler:
+class Gridder:
+    # MARK
+    # Continue adapting this from here down (below is still just the downscaling copy)
+
     methods = {
         "ipat_2100_gdp": partial(intensity_convergence, convergence_year=2100, proxy_name="gdp"),
         "ipat_2150_pop": partial(intensity_convergence, convergence_year=2150, proxy_name="pop"),
     }
 
     def add_method(...):
-        methods.update({
+        self.methods = self.methods | {
+            
 
-
-        })
+        }
 
     if have_pyam:
         @classmethod
