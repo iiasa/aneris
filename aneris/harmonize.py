@@ -148,6 +148,9 @@ class Harmonizer(object):
 
     def _harmonize(self, method, idx, check_len, base_year):
         # get data
+        print('FOO')
+        print(idx)
+        print(self.data)
         model = self.data.loc[idx]
         hist = self.history.loc[idx]
         offsets = self.offsets.loc[idx]
@@ -181,33 +184,22 @@ class Harmonizer(object):
         # get method listing
         base_year = year if year is not None else self.base_year or "2015"
         methods = self._default_methods(year=base_year)
-        print('Foo')
-        print(overrides)
-        print(methods)
+
         if overrides is not None:
-            midx = self.data.index
-            oidx = overrides.index
-
-            # remove duplicate values
-            dup = oidx.duplicated(keep="last")
-            if dup.any():
-                msg = "Removing duplicated override entries found: {}\n"
-                _warn(msg.format(overrides.loc[dup]))
-                overrides = overrides.loc[~dup]
-
-            # get subset of overrides which are in model
-            outidx = oidx.difference(midx)
-            if outidx.size > 0:
-                msg = "Removing override methods not in processed model output:\n{}"
-                _warn(msg.format(overrides.loc[outidx]))
-                inidx = oidx.intersection(midx)
-                overrides = overrides.loc[inidx]
-
+            overrides = overrides.reorder_levels(methods.index.names)
+            if not overrides.index.difference(methods.index).empty:
+                raise ValueError(
+                    'Data to override exceeds model data avaiablility:\n'
+                    f'{overrides.index.difference(methods.index)}'
+                    )
+            overrides.name = methods.name
+            
             # overwrite defaults with overrides
-            print('BAR')
-            print(overrides)
-            print(methods)
-            final_methods = overrides.combine_first(methods).to_frame()
+            final_methods = (
+                overrides
+                .combine_first(methods)
+                .to_frame()
+            )
             final_methods["default"] = methods
             final_methods["override"] = overrides
             methods = final_methods

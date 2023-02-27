@@ -140,8 +140,8 @@ def test_different_unit_handling(method, exp_res):
         }
     ).set_index(idx)
 
-    overrides = [{"variable": "Emissions|CO2", "method": method}]
-    overrides = pd.DataFrame(overrides)
+    overrides = [{"variable": "Emissions|CO2", "region": "World", "method": method}]
+    overrides = pd.DataFrame(overrides).set_index(['variable', 'region'])['method']
 
     res = harmonise_all(
         scenarios=scenario,
