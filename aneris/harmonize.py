@@ -192,6 +192,8 @@ class Harmonizer(object):
         return model
 
     def methods(self, year=None, overrides=None):
+        # TODO: next issue is that other 'convenience' methods have less
+        # robust override indices. need to decide how to support this
         """Return pd.DataFrame of methods to use for harmonization given
         pd.DataFrame of overrides
         """
