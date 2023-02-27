@@ -75,7 +75,7 @@ def test_harmonize_constant_offset():
     hist = _hist.copy()
     methods = _methods.copy()
     h = harmonize.Harmonizer(df, hist)
-    res = h.harmonize(overrides=methods["method"])
+    res = h.harmonize(year="2015", overrides=methods["method"])
 
     # base year
     obs = res["2015"]
@@ -104,7 +104,7 @@ def test_harmonize_constant_ratio():
     methods = _methods.copy()
     h = harmonize.Harmonizer(df, hist)
     methods["method"] = ["constant_ratio"] * nvals
-    res = h.harmonize(overrides=methods["method"])
+    res = h.harmonize(year="2015", overrides=methods["method"])
 
     # base year
     obs = res["2015"]
@@ -128,7 +128,7 @@ def test_harmonize_reduce_offset():
         print(tf)
         method = "reduce_offset_{}".format(tf)
         methods["method"] = [method] * nvals
-        res = h.harmonize(overrides=methods["method"])
+        res = h.harmonize(year="2015",overrides=methods["method"])
 
         # base year
         obs = res["2015"]
@@ -158,7 +158,7 @@ def test_harmonize_reduce_ratio():
         print(tf)
         method = "reduce_ratio_{}".format(tf)
         methods["method"] = [method] * nvals
-        res = h.harmonize(overrides=methods["method"])
+        res = h.harmonize(year="2015", overrides=methods["method"])
 
         # base year
         obs = res["2015"]
@@ -192,7 +192,7 @@ def test_harmonize_reduce_ratio_different_units():
 
     method = "reduce_ratio_{}".format(tf)
     methods["method"] = [method] * nvals
-    res = h.harmonize(overrides=methods["method"])
+    res = h.harmonize(year="2015", overrides=methods["method"])
 
     # base year
     obs = res["2015"]
@@ -222,7 +222,7 @@ def test_harmonize_mix():
     methods = _methods.copy()
     h = harmonize.Harmonizer(df, hist)
     methods["method"] = ["constant_offset"] * nvals
-    res = h.harmonize(overrides=methods["method"])
+    res = h.harmonize(year="2015", overrides=methods["method"])
 
     # base year
     obs = res["2015"]
@@ -244,7 +244,7 @@ def test_harmonize_linear_interpolation():
     methods = _methods.copy()
     h = harmonize.Harmonizer(df, hist)
     methods["method"] = ["linear_interpolate_2060"] * nvals
-    res = h.harmonize(overrides=methods["method"])
+    res = h.harmonize(year="2015", overrides=methods["method"])
 
     # base year
     obs = res["2015"]
@@ -273,7 +273,7 @@ def test_harmonize_budget():
 
     h = harmonize.Harmonizer(df, hist)
     methods["method"] = "budget"
-    res = h.harmonize(overrides=methods["method"])
+    res = h.harmonize(year="2015", overrides=methods["method"])
 
     # base year
     obs = res["2015"]

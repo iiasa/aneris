@@ -51,9 +51,17 @@ class Harmonizer(object):
     }
 
     def __init__(
-        self, data, history, config={}, method_choice=None, verify_indicies=True
+        self, data, history, config={}, method_choice=None,
     ):
-        """Parameters
+        """
+        The Harmonizer class prepares and harmonizes historical data to
+        model data.
+
+        It has a strict requirement that all index values match between
+        the historical and data DataFrames.
+
+
+        Parameters
         ----------
         data : pd.DataFrame
             model data in standard calculation format
@@ -62,35 +70,20 @@ class Harmonizer(object):
         config : dict, optional
             configuration dictionary
             (see http://mattgidden.com/aneris/config.html for options)
-        verify_indicies : bool, optional
-            check indicies of data and history, provide warning message if
-            different
         """
-        if not isinstance(data.index, pd.MultiIndex):
-            raise ValueError("Data must use utils.df_idx")
-        if not isinstance(history.index, pd.MultiIndex):
-            raise ValueError("History must use utils.df_idx")
-        if verify_indicies and not data.index.equals(history.index):
-            idx = history.index.difference(data.index)
-            msg = "More history than model reports, adding 0 values {}"
-            _warn(msg.format(idx.to_series().head()))
-            df = pd.DataFrame(0, columns=data.columns, index=idx)
-            data = pd.concat([data, df]).sort_index().loc[history.index]
-            assert data.index.equals(history.index)
+        if not data.index.difference(history.index).empty:
+            raise ValueError(
+                'Data to harmonize exceeds historical data avaiablility:\n'
+                f'{data.index.difference(history.index)}'
+                )
 
-        key = "harmonize_year"
-        # TODO type
-        self.base_year = str(config[key]) if key in config else "2015"
         self.data = data[utils.numcols(data)]
-        self.model = pd.Series(
-            index=self.data.index, name=self.base_year, dtype=float
-        ).to_frame()
+
         self.history = history
         self.methods_used = None
-        self.offsets, self.ratios = harmonize_factors(
-            self.data, self.history, self.base_year
-        )
 
+        # set up defaults
+        self.base_year = str(config["harmonize_year"]) if "harmonize_year" in config else None
         self.method_choice = method_choice
 
         # get default methods to use in decision tree
@@ -134,11 +127,12 @@ class Harmonizer(object):
         ]
         return meta
 
-    def _default_methods(self):
+    def _default_methods(self, year):
+        assert year is not None
         methods, diagnostics = default_methods(
             self.history,
             self.data,
-            self.base_year,
+            year,
             method_choice=self.method_choice,
             ratio_method=self.ratio_method,
             offset_method=self.offset_method,
@@ -147,7 +141,7 @@ class Harmonizer(object):
         )
         return methods
 
-    def _harmonize(self, method, idx, check_len):
+    def _harmonize(self, method, idx, check_len, base_year):
         # get data
         model = self.data.loc[idx]
         hist = self.history.loc[idx]
@@ -164,9 +158,9 @@ class Harmonizer(object):
             assert (len(model) < len(self.data)) & (len(hist) < len(self.history))
 
         # harmonize
-        model = Harmonizer._methods[method](model, delta, harmonize_year=self.base_year)
+        model = Harmonizer._methods[method](model, delta, harmonize_year=base_year)
 
-        y = str(self.base_year)
+        y = str(base_year)
         if model.isnull().values.any():
             msg = "{} method produced NaNs: {}, {}"
             where = model.isnull().any(axis=1)
@@ -175,14 +169,15 @@ class Harmonizer(object):
         # construct the full df of history and future
         return model
 
-    def methods(self, overrides=None):
+    def methods(self, year=None, overrides=None):
         """Return pd.DataFrame of methods to use for harmonization given
         pd.DataFrame of overrides
         """
         # get method listing
-        methods = self._default_methods()
+        base_year = year if year is not None else self.base_year or "2015"
+        methods = self._default_methods(year=base_year)
         if overrides is not None:
-            midx = self.model.index
+            midx = self.data.index
             oidx = overrides.index
 
             # remove duplicate values
@@ -208,12 +203,19 @@ class Harmonizer(object):
 
         return methods
 
-    def harmonize(self, overrides=None):
+    def harmonize(self, year=None, overrides=None):
         """Return pd.DataFrame of harmonized trajectories given pd.DataFrame
         overrides
         """
+        base_year = year if year is not None else self.base_year or "2015"
+        self.model = pd.Series(
+            index=self.data.index, name=base_year, dtype=float
+        ).to_frame()
+        self.offsets, self.ratios = harmonize_factors(
+            self.data, self.history, base_year
+        )
         # get special configurations
-        methods = self.methods(overrides=overrides)
+        methods = self.methods(year=year, overrides=overrides)
 
         # save for future inspection
         self.methods_used = methods
@@ -228,14 +230,14 @@ class Harmonizer(object):
             raise ValueError(msg.format(df1.reset_index(), df2.reset_index()))
 
         dfs = []
-        y = str(self.base_year)
+        y = str(base_year)
         for method in methods.unique():
             _log("Harmonizing with {}".format(method))
             # get subset indicies
             idx = methods[methods == method].index
             check_len = len(methods.unique()) > 1
             # harmonize
-            df = self._harmonize(method, idx, check_len)
+            df = self._harmonize(method, idx, check_len, base_year=base_year)
             if method not in ["model_zero", "hist_zero"]:
                 close = (df[y] - self.history.loc[df.index, y]).abs() < 1e-5
                 if not close.all():
@@ -249,7 +251,7 @@ class Harmonizer(object):
 
         df = pd.concat(dfs).sort_index()
         # only keep columns from base_year
-        df = df[df.columns[df.columns.astype(int) >= int(self.base_year)]]
+        df = df[df.columns[df.columns.astype(int) >= int(base_year)]]
         self.model = df
         return df
 
@@ -580,11 +582,11 @@ def _harmonize_global_total(
     utils.check_null(h, "hist", fail=True)
     harmonizer = Harmonizer(m, h, config=config)
     _log("Harmonizing (with example methods):")
-    _log(harmonizer.methods(overrides=o).head())
+    _log(harmonizer.methods(year=harmonizer.base_year, overrides=o).head())
     if o is not None:
         _log("and override methods:")
         _log(o.head())
-    m = harmonizer.harmonize(overrides=o)
+    m = harmonizer.harmonize(year=harmonizer.base_year, overrides=o)
     utils.check_null(m, "model")
 
     metadata = harmonizer.metadata()
