@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from itertools import chain
 from functools import partial
+from pandas_indexing import projectlevel
 
 from aneris import utils
 from aneris.utils import isin, pd_read
@@ -51,7 +52,7 @@ class Harmonizer(object):
     }
 
     def __init__(
-        self, data, history, config={}, method_choice=None,
+        self, data, history, config={}, harm_idx=["region", "gas", "sector"], method_choice=None,
     ):
         """
         The Harmonizer class prepares and harmonizes historical data to
@@ -70,11 +71,15 @@ class Harmonizer(object):
         config : dict, optional
             configuration dictionary
             (see http://mattgidden.com/aneris/config.html for options)
+        # TODO: add harm_index and method_choice
         """
-        if not data.index.difference(history.index).empty:
+        self.harm_idx = harm_idx
+        data_check = projectlevel(data.index, harm_idx)
+        hist_check = projectlevel(history.index, harm_idx)
+        if not data_check.difference(hist_check).empty:
             raise ValueError(
                 'Data to harmonize exceeds historical data avaiablility:\n'
-                f'{data.index.difference(history.index)}'
+                f'{data_check.difference(hist_check)}'
                 )
 
         self.data = data[utils.numcols(data)]
@@ -130,8 +135,8 @@ class Harmonizer(object):
     def _default_methods(self, year):
         assert year is not None
         methods, diagnostics = default_methods(
-            self.history,
-            self.data,
+            self.history.droplevel(list(set(self.history.index.names) - set(self.harm_idx))),
+            self.data.droplevel(list(set(self.data.index.names) - set(self.harm_idx))),
             year,
             method_choice=self.method_choice,
             ratio_method=self.ratio_method,
@@ -176,6 +181,9 @@ class Harmonizer(object):
         # get method listing
         base_year = year if year is not None else self.base_year or "2015"
         methods = self._default_methods(year=base_year)
+        print('Foo')
+        print(overrides)
+        print(methods)
         if overrides is not None:
             midx = self.data.index
             oidx = overrides.index
@@ -196,6 +204,9 @@ class Harmonizer(object):
                 overrides = overrides.loc[inidx]
 
             # overwrite defaults with overrides
+            print('BAR')
+            print(overrides)
+            print(methods)
             final_methods = overrides.combine_first(methods).to_frame()
             final_methods["default"] = methods
             final_methods["override"] = overrides

@@ -1,4 +1,5 @@
 from openscm_units import unit_registry
+import pyam
 
 from .harmonize import Harmonizer, default_methods
 from .errors import (
@@ -7,6 +8,76 @@ from .errors import (
     MissingHistoricalError,
 )
 from .methods import harmonize_factors
+
+def convert_units(fr, to):
+    # this is a dumb way to do it and needs to be revised
+    # but in short the idea is:
+    # take fr and to dataframes and create a joined dataframe
+    # on thier variable and unit values
+    # then for each value where units are different, do unit
+    # conversion
+    # you can't do blanket conversion, unfortunately, in case
+    # there are variables which need to be converted differently
+    def xform(x):
+        return (
+            x
+            .timeseries()
+            .reset_index()
+            [['variable', 'unit']]
+            .set_index('variable')
+        )
+    units = (
+        xform(to)
+        .join(xform(fr), how='left', lsuffix='_to', rsuffix='_fr')
+    )
+    if units.isnull().values.any():
+        raise ValueError('More model than history values when trying to convert units')
+    # downselect to non-comparable units
+    units = units[units.unit_to != units.unit_fr]
+    # combine units that don't need changing with those that do
+    fr_keep = fr.filter(variable=units.index, keep=False)
+    fr_xform = fr.filter(variable=units.index)
+    dfs = []
+    for variable, row in units.iterrows():
+        # pyam seems to not know about gas units...
+        factor = unit_registry(row.unit_fr).to(row.unit_to).magnitude
+        dfs.append(
+            fr_xform
+            .filter(variable=variable)
+            .convert_unit(row.unit_fr, to=row.unit_to, factor=factor)
+        )
+    return pyam.concat([fr_keep] + dfs)
+
+# maybe this needs to live in pyam?
+def harmonize_all2(scenarios, history, harmonisation_year, overrides=None):
+    """
+    Scenarios and History are pyam.IamDataFrames
+    """
+    year = harmonisation_year # TODO: change this to year
+    as_pyam = isinstance(scenarios, pyam.IamDataFrame)
+    if not as_pyam:
+        scenarios = pyam.IamDataFrame(scenarios)
+        history = pyam.IamDataFrame(history)
+
+    dfs = []
+    for (model, scenario) in scenarios.index:
+        scen = scenarios.filter(model=model, scenario=scenario)
+        hist = history.filter(
+            region=scen.region, variable=scen.variable
+            )
+        hist = convert_units(fr=history, to=scen)
+        # need to convert to internal datastructure
+        h = Harmonizer(
+            scen.timeseries(), hist.timeseries(), 
+            harm_idx=['variable', 'region']
+            )
+        result = h.harmonize(year=year, overrides=overrides)
+        # need to convert out of internal datastructure
+        dfs.append(result)
+    result = pyam.concat(dfs)
+    if not as_pyam:
+        result = result.timeseries()
+    return result
 
 
 def harmonise_all(scenarios, history, harmonisation_year, overrides=None):
