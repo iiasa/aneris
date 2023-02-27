@@ -1,5 +1,6 @@
 from openscm_units import unit_registry
 import pyam
+import pandas as pd
 
 from .harmonize import Harmonizer, default_methods
 from .errors import (
@@ -73,10 +74,10 @@ def harmonize_all2(scenarios, history, harmonisation_year, overrides=None):
             )
         result = h.harmonize(year=year, overrides=overrides)
         # need to convert out of internal datastructure
-        dfs.append(result)
-    result = pyam.concat(dfs)
-    if not as_pyam:
-        result = result.timeseries()
+        dfs.append(result.assign(model=model, scenario=scenario))
+    result = pd.concat(dfs)
+    if as_pyam:
+        result = pyam.IamDataFrame(result)
     return result
 
 

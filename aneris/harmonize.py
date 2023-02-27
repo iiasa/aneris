@@ -73,6 +73,7 @@ class Harmonizer(object):
             (see http://mattgidden.com/aneris/config.html for options)
         # TODO: add harm_index and method_choice
         """
+        # check index consistency
         self.harm_idx = harm_idx
         data_check = projectlevel(data.index, harm_idx)
         hist_check = projectlevel(history.index, harm_idx)
@@ -81,9 +82,21 @@ class Harmonizer(object):
                 'Data to harmonize exceeds historical data avaiablility:\n'
                 f'{data_check.difference(hist_check)}'
                 )
+        def check_idx(df, label):
+            final_idx = harm_idx + ['unit']
+            extra_idx = list(set(df.index.names) - set(final_idx))
+            if extra_idx:
+                df = df.droplevel(extra_idx)
+                _warn(
+                    f'Extra index found in {label}, dropping levels {extra_idx}'
+                    )
+            return df
+        data = check_idx(data, 'data')
+        history = check_idx(history, 'history')
+        history.columns = history.columns.astype(data.columns.dtype)
 
+        # set basic attributes
         self.data = data[utils.numcols(data)]
-
         self.history = history
         self.methods_used = None
 
@@ -148,13 +161,14 @@ class Harmonizer(object):
 
     def _harmonize(self, method, idx, check_len, base_year):
         # get data
-        print('FOO')
-        print(idx)
-        print(self.data)
-        model = self.data.loc[idx]
-        hist = self.history.loc[idx]
-        offsets = self.offsets.loc[idx]
-        ratios = self.ratios.loc[idx]
+        assert len(idx) == 1
+        def downselect(df, idx, level='unit'):
+            return df.reset_index(level=level).loc[idx].set_index(level, append=True)
+        model = downselect(self.data, idx)
+        hist = downselect(self.history, idx)
+        offsets = downselect(self.offsets, idx)['offset']
+        ratios = downselect(self.ratios, idx)['ratio']
+        
         # get delta
         delta = hist if method == "budget" else ratios if "ratio" in method else offsets
 
@@ -233,13 +247,16 @@ class Harmonizer(object):
             raise ValueError(msg.format(df1.reset_index(), df2.reset_index()))
 
         dfs = []
-        y = str(base_year)
+        y = base_year
         for method in methods.unique():
             _log("Harmonizing with {}".format(method))
             # get subset indicies
             idx = methods[methods == method].index
             check_len = len(methods.unique()) > 1
             # harmonize
+            print('\nFOO')
+            print(base_year)
+            print(self.data.columns)
             df = self._harmonize(method, idx, check_len, base_year=base_year)
             if method not in ["model_zero", "hist_zero"]:
                 close = (df[y] - self.history.loc[df.index, y]).abs() < 1e-5
