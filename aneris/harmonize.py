@@ -39,7 +39,7 @@ def _check_data(hist, scen, year, idx):
     # always check that unit exists
     if 'unit' not in idx:
         idx += ['unit']
-        
+
     # @coroa - this may be a very slow way to do this check..
     def downselect(df):
         return (
@@ -291,7 +291,7 @@ class Harmonizer(object):
         overrides
         """
         base_year = year if year is not None else self.base_year or "2015"
-        _check_data(self.history, self.data, year, self.harm_idx)
+        _check_data(self.history, self.data, base_year, self.harm_idx)
         _check_overrides(overrides, self.harm_idx)
 
         self.model = pd.Series(
