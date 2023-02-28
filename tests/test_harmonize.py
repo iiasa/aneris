@@ -127,7 +127,7 @@ def test_harmonize_reduce_offset():
         print(tf)
         method = "reduce_offset_{}".format(tf)
         methods["method"] = [method] * nvals
-        res = h.harmonize(year="2015",overrides=methods["method"])
+        res = h.harmonize(year="2015", overrides=methods["method"])
 
         # base year
         obs = res["2015"]

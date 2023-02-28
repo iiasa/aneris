@@ -5,7 +5,6 @@ import numpy.testing as npt
 import pandas as pd
 import pandas.testing as pdt
 import pytest
-import pyam
 
 from aneris.convenience import harmonise_all
 from aneris.errors import (
