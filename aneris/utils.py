@@ -411,7 +411,7 @@ class EmissionsAggregator(object):
         self.df = df
         self.model = model
         self.scenario = scenario
-        assert (self.df.units == "kt").all()
+        assert (self.df.unit == "kt").all()
 
     def add_variables(self, totals=None, aggregates=True):
         """Add aggregates and variables with direct mappings.
@@ -511,7 +511,7 @@ class FormatTranslator(object):
         # add std columns needed for conversions
         df["region"] = df["Region"]
         df["gas"] = gases(df["Variable"])
-        df["units"] = df["Unit"].apply(lambda x: x.split()[0])
+        df["unit"] = df["Unit"].apply(lambda x: x.split()[0])
         df["sector"] = df["Variable"]
 
         # convert gas names
@@ -582,14 +582,14 @@ class FormatTranslator(object):
 
         df["sector"] = df.apply(update_sector, axis=1)
         # write units correctly
-        df["units"] = units(df.sector)
+        df["unit"] = units(df.sector)
 
         # add new columns, remove old
         df["Model"] = model
         df["Scenario"] = scenario
         df["Variable"] = df.sector
         df["Region"] = df.region
-        df["Unit"] = df.units
+        df["Unit"] = df.unit
         df.drop(df_idx, axis=1, inplace=True)
 
         # unit magic to make it always first, would be easier if it was in idx.
@@ -625,12 +625,12 @@ class FormatTranslator(object):
         where = ~df.gas.isin(kt_gases)
         if tostd:
             df.loc[where, numcols(df)] *= 1e3
-            df.loc[where, "units"] = "kt"
-            assert (df.units == "kt").all()
+            df.loc[where, "unit"] = "kt"
+            assert (df.unit == "kt").all()
         else:
-            assert (df.units == "kt").all()
+            assert (df.unit == "kt").all()
             df.loc[where, numcols(df)] /= 1e3
-            df.loc[where, "units"] = "Mt"
+            df.loc[where, "unit"] = "Mt"
 
 
 def isin(df=None, **filters):
