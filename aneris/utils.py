@@ -479,7 +479,7 @@ class FormatTranslator(object):
         self.prefix = prefix
         self.suffix = suffix
 
-    def to_std(self, df=None, set_metadata=True):
+    def to_std(self, df=None, set_metadata=True, unit=True):
         """Translate a dataframe from IAMC to standard calculation format
 
         Parameters
@@ -487,15 +487,17 @@ class FormatTranslator(object):
         df : pd.DataFrame, optional
         set_metadata : bool, optional
             save metadata (model, scenario) for future use
+        unit : bool, optional
+            check 'unit' col is present
         """
         df = self.df if df is None else df
         multi_idx = isinstance(df.index, pd.MultiIndex)
         if multi_idx:
             df.reset_index(inplace=True)
 
-        if len(set(iamc_idx) - set(df.columns)):
+        if set(iamc_idx) - set(df.columns):
             msg = "Columns do not conform with IAMC index: {}"
-            raise ValueError(msg.format(df.columns))
+            raise ValueError(msg.format(set(iamc_idx) - set(df.columns)))
 
         # make sure we're working with good data
         if len(df["Model"].unique()) > 1:
@@ -511,8 +513,10 @@ class FormatTranslator(object):
         # add std columns needed for conversions
         df["region"] = df["Region"]
         df["gas"] = gases(df["Variable"])
-        df["unit"] = df["Unit"].apply(lambda x: x.split()[0])
         df["sector"] = df["Variable"]
+        if unit:
+            df["unit"] = df["Unit"].apply(lambda x: x.split()[0])
+
 
         # convert gas names
         self._convert_gases(df, tostd=True)
@@ -531,7 +535,10 @@ class FormatTranslator(object):
         if not df.empty:
             df["sector"] = df.apply(update_sector, axis=1)
         # drop old columns
-        df.drop(iamc_idx + ["Unit"], axis=1, inplace=True)
+        dropidx = iamc_idx.copy()
+        if unit:
+            dropidx += ['Unit']
+        df.drop(dropidx, axis=1, inplace=True)
 
         # set up index and column order
         df.set_index(df_idx, inplace=True)

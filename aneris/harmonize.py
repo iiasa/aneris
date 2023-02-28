@@ -396,10 +396,10 @@ class _TrajectoryPreprocessor(object):
         if self.overrides.empty:
             self.overrides = None
         else:
-            self.overrides["Unit"] = "kt"
+            idx = list(set(utils.df_idx) - set(['unit']))
             self.overrides = (
-                xlator.to_std(df=self.overrides.copy(), set_metadata=False)
-                .set_index(utils.df_idx)
+                xlator.to_std(df=self.overrides.copy(), set_metadata=False, unit=False)
+                .set_index(idx)
                 .sort_index()
             )
             self.overrides.columns = self.overrides.columns.str.lower()
@@ -549,7 +549,6 @@ class HarmonizationDriver(object):
         self._model = self.model.copy()
         self._overrides = self.overrides.copy()
         self._regions = self.regions.copy()
-
         # preprocess
         pp = _TrajectoryPreprocessor(
             self._hist,
