@@ -74,7 +74,7 @@ def harmonize(
     rc.recursive_update("config", config)
 
     # do core harmonization
-    driver = aneris.HarmonizationDriver(rc, hist, model, overrides, regions)
+    driver = aneris.cmip6.driver.HarmonizationDriver(rc, hist, model, overrides, regions)
     for scenario in driver.scenarios():
         driver.harmonize(scenario)
     model, metadata, diagnostics = driver.harmonized_results()

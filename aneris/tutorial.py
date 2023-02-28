@@ -67,7 +67,7 @@ def load_data(
     rc.recursive_update("config", config)
 
     # get driver
-    driver = aneris.HarmonizationDriver(rc, hist, model, overrides, regions)
+    driver = aneris.cmip6.driver.HarmonizationDriver(rc, hist, model, overrides, regions)
 
     if not cache:
         for localfile in files.values():
