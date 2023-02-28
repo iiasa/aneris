@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from itertools import chain
 from functools import partial
-from pandas_indexing import projectlevel
+from pandas_indexing import projectlevel, semijoin
 
 from aneris import utils
 from aneris.utils import isin, pd_read
@@ -161,7 +161,6 @@ class Harmonizer(object):
 
     def _harmonize(self, method, idx, check_len, base_year):
         # get data
-        assert len(idx) == 1
         def downselect(df, idx, level='unit'):
             return df.reset_index(level=level).loc[idx].set_index(level, append=True)
         model = downselect(self.data, idx)
@@ -202,7 +201,17 @@ class Harmonizer(object):
         methods = self._default_methods(year=base_year)
 
         if overrides is not None:
-            overrides = overrides.reorder_levels(methods.index.names)
+            # overrides requires an index
+            if overrides.index.names == [None]:
+                raise ValueError(
+                    'overrides must have at least on index dimension '
+                    f'aligned with methods: {methods.index.names}'
+                    )
+            # expand overrides index to match methods and align indicies
+            overrides = (
+                semijoin(overrides, methods.index, how="right")
+                .reorder_levels(methods.index.names)
+            )
             if not overrides.index.difference(methods.index).empty:
                 raise ValueError(
                     'Data to override exceeds model data avaiablility:\n'
@@ -256,9 +265,6 @@ class Harmonizer(object):
             idx = methods[methods == method].index
             check_len = len(methods.unique()) > 1
             # harmonize
-            print('\nFOO')
-            print(base_year)
-            print(self.data.columns)
             df = self._harmonize(method, idx, check_len, base_year=base_year)
             if method not in ["model_zero", "hist_zero"]:
                 close = (df[y] - self.history.loc[df.index, y]).abs() < 1e-5

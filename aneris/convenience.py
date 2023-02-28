@@ -1,6 +1,8 @@
 from openscm_units import unit_registry
 import pyam
 import pandas as pd
+from pandas_indexing import isin, semijoin
+
 
 from .harmonize import Harmonizer, default_methods
 from .errors import (
@@ -10,7 +12,7 @@ from .errors import (
 )
 from .methods import harmonize_factors
 
-def convert_units(fr, to):
+def convert_units(fr, to, flabel='from', tlabel='to'):
     # this is a dumb way to do it and needs to be revised
     # but in short the idea is:
     # take fr and to dataframes and create a joined dataframe
@@ -32,7 +34,11 @@ def convert_units(fr, to):
         .join(xform(fr), how='left', lsuffix='_to', rsuffix='_fr')
     )
     if units.isnull().values.any():
-        raise ValueError('More model than history values when trying to convert units')
+        missing = units[units.isnull().any(axis=1)]
+        raise MissingHistoricalError(
+            f'More {tlabel} than {flabel} values when trying to convert units:\n'
+            f'{missing}'
+            )
     # downselect to non-comparable units
     units = units[units.unit_to != units.unit_fr]
     # combine units that don't need changing with those that do
@@ -49,12 +55,63 @@ def convert_units(fr, to):
         )
     return pyam.concat([fr_keep] + dfs)
 
+def knead_overrides(overrides, scen):
+    """Process overrides to get a form readable by aneris, supporting many different
+    use cases
+
+    Parameters
+    ----------
+    overrides : pd.DataFrame or pd.Series
+    scen : pyam.IamDataFrame with data for single scenario and model instance
+    """
+    # check if no index and single value - this should be the override for everything
+    if overrides.index.names == [None] and len(overrides['method']) == 1:
+        _overrides = pd.Series(
+            overrides['method'].values[0],
+            index=pd.Index(scen.region, name='region'),
+            name='method',
+            )
+    # if data is provided per model and scenario, get those explicitly
+    elif ['model', 'scenario'] in overrides.index.names:
+        _overrides = overrides.loc[isin(model=scen.model, scenario=scen.scenario)]
+    else:
+        _overrides = overrides
+    return _overrides
+
+def check_data(hist, scen, harmonisation_year):
+    check = ['region', 'variable']
+    # @coroa - this may be a very slow way to do this check..
+    def downselect(df):
+        return (
+            df
+            .filter(year=harmonisation_year)
+            ._data
+            .reset_index()
+            .set_index(check)
+            .index
+            .unique()
+        )
+    s = downselect(scen)
+    h = downselect(hist)
+    if h.empty:
+        raise MissingHarmonisationYear(
+            'No historical data in harmonization year'
+        )
+
+    if not s.difference(h).empty:
+        raise MissingHistoricalError(
+            'Historical data does not match scenario data in harmonization '
+            f'year for\n {s.difference(h)}'
+            )
+    
+    
 # maybe this needs to live in pyam?
 def harmonize_all2(scenarios, history, harmonisation_year, overrides=None):
     """
-    Scenarios and History are pyam.IamDataFrames
+    Scenarios and History are pyam.IamDataFrames or pd.DataFrames which can be cast to them
     """
     year = harmonisation_year # TODO: change this to year
+    sidx = scenarios.index # save in case we need to re-add extraneous indicies later
     as_pyam = isinstance(scenarios, pyam.IamDataFrame)
     if not as_pyam:
         scenarios = pyam.IamDataFrame(scenarios)
@@ -66,16 +123,30 @@ def harmonize_all2(scenarios, history, harmonisation_year, overrides=None):
         hist = history.filter(
             region=scen.region, variable=scen.variable
             )
-        hist = convert_units(fr=history, to=scen)
+        check_data(hist, scen, harmonisation_year)
+        hist = convert_units(fr=history, to=scen, flabel='history', tlabel='model')
         # need to convert to internal datastructure
         h = Harmonizer(
             scen.timeseries(), hist.timeseries(), 
             harm_idx=['variable', 'region']
             )
-        result = h.harmonize(year=year, overrides=overrides)
+        # knead overrides
+        _overrides = knead_overrides(overrides, scen)
+
+        result = h.harmonize(year=year, overrides=_overrides)
         # need to convert out of internal datastructure
-        dfs.append(result.assign(model=model, scenario=scenario))
+        dfs.append(
+            result
+            .assign(model=model, scenario=scenario)
+            .set_index(['model', 'scenario'], append=True)
+            .reorder_levels(pyam.utils.IAMC_IDX)
+            )
+    # realign indicies if more than standard IAMC_IDX were there originally
     result = pd.concat(dfs)
+    result = (
+        semijoin(result, sidx, how="right")
+        .reorder_levels(sidx.names)
+        )
     if as_pyam:
         result = pyam.IamDataFrame(result)
     return result
