@@ -6,7 +6,8 @@ from itertools import chain
 from functools import partial
 from pandas_indexing import projectlevel, semijoin
 
-from aneris import utils
+import aneris.cmip6.cmip6_utils as cmip6_utils
+import aneris.utils as utils
 from aneris.utils import isin, pd_read
 from aneris.methods import (
     harmonize_factors,
@@ -64,7 +65,7 @@ class _TrajectoryPreprocessor(object):
 
     def _to_std(self):
         _log("Translating to standard format")
-        xlator = utils.FormatTranslator()
+        xlator = cmip6_utils.FormatTranslator()
 
         self.model = (
             xlator.to_std(df=self.model.copy(), set_metadata=True)
@@ -97,7 +98,7 @@ class _TrajectoryPreprocessor(object):
         # aggregate and clean hist
         _log("Aggregating historical values to native regions")
         # must set verify to false for now because some isos aren't included!
-        self.hist = utils.agg_regions(
+        self.hist = cmip6_utils.agg_regions(
             self.hist,
             verify=False,
             mapping=self.regions,
@@ -168,7 +169,7 @@ class HarmonizationDriver(object):
         if len(model_names) > 1:
             raise ValueError("Can not have more than one model to harmonize")
         self.model_name = model_names[0]
-        self._xlator = utils.FormatTranslator(prefix=self.prefix, suffix=self.suffix)
+        self._xlator = cmip6_utils.FormatTranslator(prefix=self.prefix, suffix=self.suffix)
         self._model_dfs = []
         self._metadata_dfs = []
         self._diagnostic_dfs = []
@@ -371,14 +372,14 @@ def _harmonize_regions(
 ):
 
     # clean model
-    model = utils.subtract_regions_from_world(model, "model", base_year)
-    model = utils.remove_recalculated_sectors(model, prefix, suffix)
+    model = cmip6_utils.subtract_regions_from_world(model, "model", base_year)
+    model = cmip6_utils.remove_recalculated_sectors(model, prefix, suffix)
     # remove rows with all 0s
     model = model[(model.T > 0).any()]
 
     # clean hist
-    hist = utils.subtract_regions_from_world(hist, "hist", base_year)
-    hist = utils.remove_recalculated_sectors(hist, prefix, suffix)
+    hist = cmip6_utils.subtract_regions_from_world(hist, "hist", base_year)
+    hist = cmip6_utils.remove_recalculated_sectors(hist, prefix, suffix)
 
     # remove rows with all 0s
     hist = hist[(hist.T > 0).any()]
@@ -403,7 +404,7 @@ def _harmonize_regions(
     # add aggregate variables. this works in three steps:
     # step 1: remove any sector total trajectories that also have subsectors to
     # be recalculated
-    idx = utils.recalculated_row_idx(model, prefix, suffix)
+    idx = cmip6_utils.recalculated_row_idx(model, prefix, suffix)
     if idx.any():
         msg = "Removing sector aggregates. Recalculating with harmonized totals."
         _warn(msg)
@@ -413,7 +414,7 @@ def _harmonize_regions(
     subsector_idx = ~sector_total_idx
     # step 2: on the "clean" df, recalculate those totals
     subsectors_with_total_df = (
-        utils.EmissionsAggregator(model[subsector_idx])
+        cmip6_utils.EmissionsAggregator(model[subsector_idx])
         .add_variables(totals=totals, aggregates=False)
         .df.set_index(utils.df_idx)
     )
@@ -425,7 +426,7 @@ def _harmonize_regions(
     # combine regional values to send back into template form
     model.reset_index(inplace=True)
     model = model.set_index(utils.df_idx).sort_index()
-    glb = utils.combine_rows(model, "region", "World", sumall=False, rowsonly=True)
+    glb = cmip6_utils.combine_rows(model, "region", "World", sumall=False, rowsonly=True)
     model = glb.combine_first(model)
 
     # add 5regions
@@ -433,7 +434,7 @@ def _harmonize_regions(
         _log("Adding 5region values")
         # explicitly don't add World, it already exists from aggregation
         mapping = regions[regions["Native Region Code"] != "World"].copy()
-        aggdf = utils.agg_regions(
+        aggdf = cmip6_utils.agg_regions(
             model, mapping=mapping, rfrom="Native Region Code", rto="5_region"
         )
         model = pd.concat([model, aggdf])
