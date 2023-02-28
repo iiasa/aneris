@@ -4,34 +4,6 @@ import pandas as pd
 import pandas.testing as pdt
 
 import aneris.utils as utils
-import aneris.cmip6.cmip6_utils as cmip6_utils
-
-def test_remove_emissions_prefix():
-    assert "foo" == utils.remove_emissions_prefix("foo")
-    assert "foo" == utils.remove_emissions_prefix("Emissions|XXX|foo")
-    assert "Emissions|bar|foo" == utils.remove_emissions_prefix("Emissions|bar|foo")
-    assert "foo" == utils.remove_emissions_prefix("Emissions|bar|foo", gas="bar")
-
-
-
-def test_no_repeat_gases():
-    gases = utils.all_gases
-    assert len(gases) == len(set(gases))
-
-
-def test_gases():
-    var_col = pd.Series(["foo|Emissions|CH4|bar", "Emissions|N2O|baz|zing"])
-    exp = pd.Series(["CH4", "N2O"])
-    obs = utils.gases(var_col)
-    pdt.assert_series_equal(obs, exp)
-
-
-def test_unit():
-    var_col = pd.Series(["foo|Emissions|CH4|bar", "Emissions|N2O|baz|zing"])
-    exp = pd.Series(["Mt CH4/yr", "kt N2O/yr"])
-    obs = utils.units(var_col)
-    pdt.assert_series_equal(obs, exp)
-
 
 def combine_rows_df():
     df = pd.DataFrame(

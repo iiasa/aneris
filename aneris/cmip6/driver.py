@@ -335,7 +335,7 @@ def _harmonize_global_total(
     config, prefix, suffix, hist, model, overrides, default_global_gases=True
 ):
     all_gases = list(model.index.get_level_values("gas").unique())
-    gases = utils.harmonize_total_gases if default_global_gases else all_gases
+    gases = cmip6_utils.harmonize_total_gases if default_global_gases else all_gases
     sector = "|".join([prefix, suffix])
     idx = isin(region="World", gas=gases, sector=sector)
     h = hist.loc[idx].copy()
@@ -352,8 +352,8 @@ def _harmonize_global_total(
     # match override methods with global gases, None if no match
     o = _get_global_overrides(overrides, gases, sector)
 
-    utils.check_null(m, "model")
-    utils.check_null(h, "hist", fail=True)
+    cmip6_utils.check_null(m, "model")
+    cmip6_utils.check_null(h, "hist", fail=True)
     harmonizer = Harmonizer(m, h, config=config)
     _log("Harmonizing (with example methods):")
     _log(harmonizer.methods(year=harmonizer.base_year, overrides=o).head())
@@ -361,7 +361,7 @@ def _harmonize_global_total(
         _log("and override methods:")
         _log(o.head())
     m = harmonizer.harmonize(year=harmonizer.base_year, overrides=o)
-    utils.check_null(m, "model")
+    cmip6_utils.check_null(m, "model")
 
     metadata = harmonizer.metadata()
     return m, metadata
@@ -388,8 +388,8 @@ def _harmonize_regions(
         raise RuntimeError("Model is empty after downselecting regional values")
 
     # harmonize
-    utils.check_null(model, "model")
-    utils.check_null(hist, "hist", fail=True)
+    cmip6_utils.check_null(model, "model")
+    cmip6_utils.check_null(hist, "hist", fail=True)
     harmonizer = Harmonizer(model, hist, config=config)
     _log("Harmonizing (with example methods):")
     _log(harmonizer.methods(overrides=overrides).head())
@@ -398,7 +398,7 @@ def _harmonize_regions(
         _log("and override methods:")
         _log(overrides.head())
     model = harmonizer.harmonize(overrides=overrides)
-    utils.check_null(model, "model")
+    cmip6_utils.check_null(model, "model")
     metadata = harmonizer.metadata()
 
     # add aggregate variables. this works in three steps:
@@ -421,7 +421,7 @@ def _harmonize_regions(
     # step 3: recombine with model data that was sector total only
     sector_total_df = model[sector_total_idx]
     model = pd.concat([sector_total_df, subsectors_with_total_df])
-    utils.check_null(model, "model")
+    cmip6_utils.check_null(model, "model")
 
     # combine regional values to send back into template form
     model.reset_index(inplace=True)

@@ -9,6 +9,31 @@ import aneris.cmip6.cmip6_utils as cutils
 
 from test_utils import combine_rows_df
 
+def test_remove_emissions_prefix():
+    assert "foo" == cutils.remove_emissions_prefix("foo")
+    assert "foo" == cutils.remove_emissions_prefix("Emissions|XXX|foo")
+    assert "Emissions|bar|foo" == cutils.remove_emissions_prefix("Emissions|bar|foo")
+    assert "foo" == cutils.remove_emissions_prefix("Emissions|bar|foo", gas="bar")
+
+
+def test_no_repeat_gases():
+    gases = cutils.all_gases
+    assert len(gases) == len(set(gases))
+
+
+def test_gases():
+    var_col = pd.Series(["foo|Emissions|CH4|bar", "Emissions|N2O|baz|zing"])
+    exp = pd.Series(["CH4", "N2O"])
+    obs = cutils.gases(var_col)
+    pdt.assert_series_equal(obs, exp)
+
+
+def test_unit():
+    var_col = pd.Series(["foo|Emissions|CH4|bar", "Emissions|N2O|baz|zing"])
+    exp = pd.Series(["Mt CH4/yr", "kt N2O/yr"])
+    obs = cutils.units(var_col)
+    pdt.assert_series_equal(obs, exp)
+
 
 def test_region_agg_funky_name():
     df = (
@@ -73,7 +98,7 @@ def test_formatter_to_std():
             "gas": ["BC"] * 2,
         }
     )
-    pdt.assert_frame_equal(obs.set_index(cutils.df_idx), exp.set_index(cutils.df_idx))
+    pdt.assert_frame_equal(obs.set_index(utils.df_idx), exp.set_index(utils.df_idx))
 
 
 def test_formatter_to_template():
@@ -90,7 +115,7 @@ def test_formatter_to_template():
             "Model": ["foo"] * 2,
             "Scenario": ["foo"] * 2,
         }
-    ).set_index(cutils.iamc_idx)
+    ).set_index(utils.iamc_idx)
     fmt = cutils.FormatTranslator(df, prefix="CEDS+|9+ Sectors", suffix="Unharmonized")
     fmt.to_std()
     obs = fmt.to_template()
@@ -114,7 +139,7 @@ def test_combine_rows_default():
             "unit": ["Mt"] * 4,
             "gas": ["BC"] * 4,
         }
-    ).set_index(cutils.df_idx)
+    ).set_index(utils.df_idx)
     obs = cutils.combine_rows(df, "region", "a", ["b"])
 
     exp = exp.reindex(columns=obs.columns)
@@ -140,7 +165,7 @@ def test_combine_rows_dropothers():
             "unit": ["Mt"] * 6,
             "gas": ["BC"] * 6,
         }
-    ).set_index(cutils.df_idx)
+    ).set_index(utils.df_idx)
     obs = cutils.combine_rows(df, "region", "a", ["b"], dropothers=False)
 
     exp = exp.reindex(columns=obs.columns)
@@ -163,7 +188,7 @@ def test_combine_rows_sumall():
             "unit": ["Mt"] * 3,
             "gas": ["BC"] * 3,
         }
-    ).set_index(cutils.df_idx)
+    ).set_index(utils.df_idx)
     obs = cutils.combine_rows(df, "region", "a", ["b"], sumall=False)
 
     exp = exp.reindex(columns=obs.columns)
