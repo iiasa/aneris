@@ -141,7 +141,7 @@ def test_different_unit_handling(method, exp_res):
     ).set_index(idx)
 
     overrides = [{"variable": "Emissions|CO2", "region": "World", "method": method}]
-    overrides = pd.DataFrame(overrides).set_index(['variable', 'region'])['method']
+    overrides = pd.DataFrame(overrides).set_index(["variable", "region"])["method"]
 
     res = harmonise_all(
         scenarios=scenario,
@@ -221,7 +221,7 @@ def test_different_unit_handling_multiple_timeseries_constant_ratio(
     exp = exp[[c for c in exp.columns if c >= year]]
 
     overrides = [{"region": "World", "method": "constant_ratio"}]
-    overrides = pd.DataFrame(overrides).set_index(['region'])['method']
+    overrides = pd.DataFrame(overrides).set_index(["region"])["method"]
 
     res = harmonise_all(
         scenarios=scenarios_df,
@@ -282,9 +282,7 @@ def test_different_unit_handling_multiple_timeseries_overrides(
                     # offsets which seems surprising
                     sf = harm_year_ratio
                 else:
-                    sf = 1 + (
-                        (harm_year_ratio - 1) * (2050 - c) / (2050 - year)
-                    )
+                    sf = 1 + ((harm_year_ratio - 1) * (2050 - c) / (2050 - year))
 
                 exp.loc[r, c] *= sf
             else:
@@ -303,7 +301,7 @@ def test_different_unit_handling_multiple_timeseries_overrides(
         {"variable": "Emissions|CO2", "method": "reduce_ratio_2050"},
         {"variable": "Emissions|CH4", "method": "reduce_offset_2030"},
     ]
-    overrides = pd.DataFrame(overrides).set_index('variable')['method']
+    overrides = pd.DataFrame(overrides).set_index("variable")["method"]
 
     res = harmonise_all(
         scenarios=scenarios_df,
@@ -324,6 +322,7 @@ def test_raise_if_variable_not_in_hist(hist_df, scenarios_df):
             year=2010,
             overrides=pd.DataFrame([{"method": "constant_ratio"}]),
         )
+
 
 def test_raise_if_incompatible_unit(hist_df, scenarios_df):
     scenarios_df = scenarios_df.reset_index("unit")
@@ -360,9 +359,7 @@ def test_raise_if_undefined_unit(hist_df, scenarios_df):
 def test_raise_if_year_missing(hist_df, scenarios_df):
     hist_df = hist_df.drop(2015, axis="columns")
 
-    error_msg = re.escape(
-        "No historical data in harmonization year"
-    )
+    error_msg = re.escape("No historical data in harmonization year")
     with pytest.raises(MissingHarmonisationYear, match=error_msg):
         harmonise_all(
             scenarios=scenarios_df,
@@ -462,7 +459,7 @@ def test_override_multi_level(hist_df, scenarios_df):
                 "method": "reduce_offset_2070",
             },
         ]
-    ).set_index(['model', 'scenario', 'region', 'variable'])['method']
+    ).set_index(["model", "scenario", "region", "variable"])["method"]
 
     res = harmonise_all(
         scenarios=scenarios_df,
@@ -532,7 +529,7 @@ def test_override_multi_level(hist_df, scenarios_df):
                 {"region": "World", "method": "constant_ratio"},
                 {"region": "World", "method": "constant_offset"},
             ]
-        ).set_index('region')['method'],
+        ).set_index("region")["method"],
         pd.DataFrame(
             [
                 {

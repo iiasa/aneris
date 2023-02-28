@@ -53,7 +53,7 @@ _methods = (
             "method": ["constant_offset"] * nvals,
         }
     )
-    .set_index(['region', 'gas', 'sector'])
+    .set_index(["region", "gas", "sector"])
     .sort_index()
 )
 

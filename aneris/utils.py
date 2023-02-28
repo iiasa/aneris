@@ -517,7 +517,6 @@ class FormatTranslator(object):
         if unit:
             df["unit"] = df["Unit"].apply(lambda x: x.split()[0])
 
-
         # convert gas names
         self._convert_gases(df, tostd=True)
 
@@ -537,7 +536,7 @@ class FormatTranslator(object):
         # drop old columns
         dropidx = iamc_idx.copy()
         if unit:
-            dropidx += ['Unit']
+            dropidx += ["Unit"]
         df.drop(dropidx, axis=1, inplace=True)
 
         # set up index and column order
