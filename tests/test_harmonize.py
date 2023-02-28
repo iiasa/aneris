@@ -15,7 +15,7 @@ _df = (
         {
             "gas": ["BC"] * nvals,
             "region": ["a"] * nvals,
-            "units": ["Mt"] * nvals,
+            "unit": ["Mt"] * nvals,
             "sector": ["bar", "foo"] + [str(x) for x in range(nvals - 2)],
             "2010": [2, 1, 9000, 9000, 9000, 9000],
             "2015": [3, 2, 0.51, 9000, 9000, -90],
@@ -34,7 +34,7 @@ _hist = (
         {
             "gas": ["BC"] * nvals,
             "region": ["a"] * nvals,
-            "units": ["Mt"] * nvals,
+            "unit": ["Mt"] * nvals,
             "sector": ["bar", "foo"] + [str(x) for x in range(nvals - 2)],
             "2010": [1.0, 0.34, 9000, 9000, 9000, 9000],
             "2015": [0.01, 1.0, 0.5, 2 * 8999.0 / 9, 3 * 8999.0, 8999.0],
@@ -50,11 +50,10 @@ _methods = (
             "gas": _df.index.get_level_values("gas"),
             "sector": _df.index.get_level_values("sector"),
             "region": ["a"] * nvals,
-            "units": ["Mt"] * nvals,
             "method": ["constant_offset"] * nvals,
         }
     )
-    .set_index(utils.df_idx)
+    .set_index(['region', 'gas', 'sector'])
     .sort_index()
 )
 

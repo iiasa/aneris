@@ -36,6 +36,10 @@ def _warn(msg, *args, **kwargs):
 
 
 def _check_data(hist, scen, year, idx):
+    # always check that unit exists
+    if 'unit' not in idx:
+        idx += ['unit']
+        
     # @coroa - this may be a very slow way to do this check..
     def downselect(df):
         return (

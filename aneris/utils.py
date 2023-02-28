@@ -12,7 +12,7 @@ import pandas as pd
 iamc_idx = ["Model", "Scenario", "Region", "Variable"]
 
 # default dataframe index
-df_idx = ["region", "gas", "sector", "units"]
+df_idx = ["region", "gas", "sector", "unit"]
 
 # paths to data dependencies
 here = os.path.join(os.path.dirname(os.path.realpath(__file__)))
