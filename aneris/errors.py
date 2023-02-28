@@ -9,10 +9,12 @@ class MissingHistoricalError(ValueError):
     Error raised when historical data is missing
     """
 
+
 class MissingScenarioError(ValueError):
     """
     Error raised when scenario data is missing
     """
+
 
 class MissingHarmonisationYear(ValueError):
     """
