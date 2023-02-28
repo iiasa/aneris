@@ -23,6 +23,7 @@ dependencies = [
   "openpyxl",
   "matplotlib",
   "pyomo>=5",
+  "pandas-indexing",
 ]
 dynamic = ["version"]
 
