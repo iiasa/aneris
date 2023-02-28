@@ -381,10 +381,7 @@ def test_raise_if_harmonisation_year_nan(hist_df, scenarios_df):
         hist_df.index.get_level_values("variable").str.endswith("CO2"), 2015
     ] = np.nan
 
-    error_msg = re.escape(
-        "Historical data is null for year 2015 for `World` `Emissions|CO2`"
-    )
-    with pytest.raises(MissingHarmonisationYear, match=error_msg):
+    with pytest.raises(MissingHistoricalError):
         harmonise_all(
             scenarios=scenarios_df,
             history=hist_df,

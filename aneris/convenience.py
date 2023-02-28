@@ -16,7 +16,7 @@ def convert_units(fr, to, flabel='from', tlabel='to'):
     # this is a dumb way to do it and needs to be revised
     # but in short the idea is:
     # take fr and to dataframes and create a joined dataframe
-    # on thier variable and unit values
+    # on their variable and unit values
     # then for each value where units are different, do unit
     # conversion
     # you can't do blanket conversion, unfortunately, in case
@@ -32,6 +32,7 @@ def convert_units(fr, to, flabel='from', tlabel='to'):
     units = (
         xform(to)
         .join(xform(fr), how='left', lsuffix='_to', rsuffix='_fr')
+        .drop_duplicates()
     )
     if units.isnull().values.any():
         missing = units[units.isnull().any(axis=1)]
@@ -44,18 +45,18 @@ def convert_units(fr, to, flabel='from', tlabel='to'):
     # combine units that don't need changing with those that do
     fr_keep = fr.filter(variable=units.index, keep=False)
     fr_xform = fr.filter(variable=units.index)
-    dfs = []
+    dfs = [] if fr_keep.empty else [fr_keep]
     for variable, row in units.iterrows():
-        # pyam seems to not know about gas units...
+        # pyam seems to not know about gas units... so we use scm_units
         factor = unit_registry(row.unit_fr).to(row.unit_to).magnitude
         dfs.append(
             fr_xform
             .filter(variable=variable)
             .convert_unit(row.unit_fr, to=row.unit_to, factor=factor)
         )
-    return pyam.concat([fr_keep] + dfs)
+    return pyam.concat(dfs)
 
-def knead_overrides(overrides, scen):
+def _knead_overrides(overrides, scen):
     """Process overrides to get a form readable by aneris, supporting many different
     use cases
 
@@ -78,7 +79,7 @@ def knead_overrides(overrides, scen):
         _overrides = overrides
     return _overrides
 
-def check_data(hist, scen, harmonisation_year):
+def _check_data(hist, scen, harmonisation_year):
     check = ['region', 'variable']
     # @coroa - this may be a very slow way to do this check..
     def downselect(df):
@@ -123,7 +124,7 @@ def harmonize_all2(scenarios, history, harmonisation_year, overrides=None):
         hist = history.filter(
             region=scen.region, variable=scen.variable
             )
-        check_data(hist, scen, harmonisation_year)
+        _check_data(hist, scen, harmonisation_year)
         hist = convert_units(fr=history, to=scen, flabel='history', tlabel='model')
         # need to convert to internal datastructure
         h = Harmonizer(
@@ -131,7 +132,7 @@ def harmonize_all2(scenarios, history, harmonisation_year, overrides=None):
             harm_idx=['variable', 'region']
             )
         # knead overrides
-        _overrides = knead_overrides(overrides, scen)
+        _overrides = _knead_overrides(overrides, scen)
 
         result = h.harmonize(year=year, overrides=_overrides)
         # need to convert out of internal datastructure
