@@ -32,15 +32,11 @@ def convert_units(fr, to, flabel='from', tlabel='to'):
     units = (
         xform(to)
         .join(xform(fr), how='left', lsuffix='_to', rsuffix='_fr')
-        .drop_duplicates()
     )
-    if units.isnull().values.any():
-        missing = units[units.isnull().any(axis=1)]
-        raise MissingHistoricalError(
-            f'More {tlabel} than {flabel} values when trying to convert units:\n'
-            f'{missing}'
-            )
-    # downselect to non-comparable units
+    # can get duplicates if multiple regions with same conversion
+    units = units[~units.index.duplicated(keep='first')]
+    assert not units.isnull().values.any()
+    # downselect to non-comparable 
     units = units[units.unit_to != units.unit_fr]
     # combine units that don't need changing with those that do
     fr_keep = fr.filter(variable=units.index, keep=False)
@@ -86,7 +82,7 @@ def _knead_overrides(overrides, scen, harm_idx):
     # some of expected idx in cols, make it a multiindex
     elif isinstance(overrides, pd.DataFrame) and set(harm_idx) & set(overrides.columns): 
         idx = list(set(harm_idx) & set(overrides.columns))
-        _overrides = overrides.set_index(idx)
+        _overrides = overrides.set_index(idx)['method']
     else:
         _overrides = overrides
     

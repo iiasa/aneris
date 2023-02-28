@@ -64,8 +64,6 @@ def _check_data(hist, scen, year, idx):
             'Scenario data does not match historical data in harmonization '
             f'year for\n {h.difference(s)}'
             )
-    
-
 
 class Harmonizer(object):
     """A class used to harmonize model data to historical data in the
@@ -266,6 +264,9 @@ class Harmonizer(object):
             methods = final_methods
 
         return methods
+
+
+        
 
     def harmonize(self, year=None, overrides=None):
         """Return pd.DataFrame of harmonized trajectories given pd.DataFrame
