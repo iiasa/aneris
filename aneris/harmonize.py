@@ -64,6 +64,19 @@ def _check_data(hist, scen, year, idx):
             'Scenario data does not match historical data in harmonization '
             f'year for\n {h.difference(s)}'
             )
+    
+def _check_overrides(overrides, idx):
+    if overrides is None:
+        return
+    
+    if not isinstance(overrides, pd.Series):
+        raise TypeError('Overrides required to be pd.Series')
+    
+    if not overrides.name == 'method':
+        raise ValueError('Overrides name must be method')
+    
+    if not overrides.index.name != idx:
+        raise ValueError(f'Overrides must be indexed by {idx}')
 
 class Harmonizer(object):
     """A class used to harmonize model data to historical data in the
@@ -232,6 +245,7 @@ class Harmonizer(object):
         """
         # get method listing
         base_year = year if year is not None else self.base_year or "2015"
+        _check_overrides(overrides, self.harm_idx)
         methods = self._default_methods(year=base_year)
 
         if overrides is not None:
@@ -273,8 +287,8 @@ class Harmonizer(object):
         overrides
         """
         base_year = year if year is not None else self.base_year or "2015"
-
         _check_data(self.history, self.data, year, self.harm_idx)
+        _check_overrides(overrides, self.harm_idx)
 
         self.model = pd.Series(
             index=self.data.index, name=base_year, dtype=float
