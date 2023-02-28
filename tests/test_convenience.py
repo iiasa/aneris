@@ -7,7 +7,7 @@ import pandas.testing as pdt
 import pytest
 import pyam
 
-from aneris.convenience import harmonize_all2 as harmonise_all
+from aneris.convenience import harmonise_all
 from aneris.errors import (
     AmbiguousHarmonisationMethod,
     MissingHarmonisationYear,

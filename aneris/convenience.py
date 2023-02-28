@@ -135,51 +135,6 @@ def _check_data(hist, scen, harmonisation_year):
     
     
 # maybe this needs to live in pyam?
-def harmonize_all2(scenarios, history, harmonisation_year, overrides=None):
-    """
-    Scenarios and History are pyam.IamDataFrames or pd.DataFrames which can be cast to them
-    """
-    year = harmonisation_year # TODO: change this to year
-    sidx = scenarios.index # save in case we need to re-add extraneous indicies later
-    as_pyam = isinstance(scenarios, pyam.IamDataFrame)
-    if not as_pyam:
-        scenarios = pyam.IamDataFrame(scenarios)
-        history = pyam.IamDataFrame(history)
-
-    dfs = []
-    for (model, scenario) in scenarios.index:
-        scen = scenarios.filter(model=model, scenario=scenario)
-        hist = history.filter(
-            region=scen.region, variable=scen.variable
-            )
-        _check_data(hist, scen, harmonisation_year)
-        hist = convert_units(fr=hist, to=scen, flabel='history', tlabel='model')
-        # need to convert to internal datastructure
-        h = Harmonizer(
-            scen.timeseries(), hist.timeseries(), 
-            harm_idx=['variable', 'region']
-            )
-        # knead overrides
-        _overrides = _knead_overrides(overrides, scen, harm_idx=['variable', 'region'])
-        result = h.harmonize(year=year, overrides=_overrides)
-        # need to convert out of internal datastructure
-        dfs.append(
-            result
-            .assign(model=model, scenario=scenario)
-            .set_index(['model', 'scenario'], append=True)
-            .reorder_levels(pyam.utils.IAMC_IDX)
-            )
-    # realign indicies if more than standard IAMC_IDX were there originally
-    result = pd.concat(dfs)
-    result = (
-        semijoin(result, sidx, how="right")
-        .reorder_levels(sidx.names)
-        )
-    if as_pyam:
-        result = pyam.IamDataFrame(result)
-    return result
-
-
 def harmonise_all(scenarios, history, harmonisation_year, overrides=None):
     """
     Harmonise all timeseries in ``scenarios`` to match ``history``
@@ -238,109 +193,42 @@ def harmonise_all(scenarios, history, harmonisation_year, overrides=None):
         ``overrides`` do not uniquely specify the harmonisation method for a
         given timeseries
     """
-    # use groupby to maintain indexes, not sure if there's a better way because
-    # this will likely be super slow
-    res = scenarios.groupby(scenarios.index.names).apply(
-        _harmonise_single, history, harmonisation_year, overrides
-    )
+    year = harmonisation_year # TODO: change this to year
+    sidx = scenarios.index # save in case we need to re-add extraneous indicies later
+    as_pyam = isinstance(scenarios, pyam.IamDataFrame)
+    if not as_pyam:
+        scenarios = pyam.IamDataFrame(scenarios)
+        history = pyam.IamDataFrame(history)
 
-    return res
-
-
-def _harmonise_single(timeseries, history, harmonisation_year, overrides):
-    assert timeseries.shape[0] == 1
-    # unclear why we don't use pyam or scmdata for filtering
-    mdata = {
-        k: v for k, v in zip(timeseries.index.names, timeseries.index.to_list()[0])
-    }
-
-    variable = mdata["variable"]
-    region = mdata["region"]
-
-    hist_variable = history.index.get_level_values("variable") == variable
-    hist_region = history.index.get_level_values("region") == region
-    relevant_hist = history[hist_variable & hist_region]
-
-    if relevant_hist.empty:
-        error_msg = "No historical data for `{}` `{}`".format(region, variable)
-        raise MissingHistoricalError(error_msg)
-
-    if harmonisation_year not in relevant_hist:
-        error_msg = "No historical data for year {} for `{}` `{}`".format(
-            harmonisation_year, region, variable
+    dfs = []
+    for (model, scenario) in scenarios.index:
+        scen = scenarios.filter(model=model, scenario=scenario)
+        hist = history.filter(
+            region=scen.region, variable=scen.variable
+            )
+        _check_data(hist, scen, harmonisation_year)
+        hist = convert_units(fr=hist, to=scen, flabel='history', tlabel='model')
+        # need to convert to internal datastructure
+        h = Harmonizer(
+            scen.timeseries(), hist.timeseries(), 
+            harm_idx=['variable', 'region']
+            )
+        # knead overrides
+        _overrides = _knead_overrides(overrides, scen, harm_idx=['variable', 'region'])
+        result = h.harmonize(year=year, overrides=_overrides)
+        # need to convert out of internal datastructure
+        dfs.append(
+            result
+            .assign(model=model, scenario=scenario)
+            .set_index(['model', 'scenario'], append=True)
+            .reorder_levels(pyam.utils.IAMC_IDX)
+            )
+    # realign indicies if more than standard IAMC_IDX were there originally
+    result = pd.concat(dfs)
+    result = (
+        semijoin(result, sidx, how="right")
+        .reorder_levels(sidx.names)
         )
-        raise MissingHarmonisationYear(error_msg)
-
-    if relevant_hist[harmonisation_year].isnull().all():
-        error_msg = "Historical data is null for year {} for `{}` `{}`".format(
-            harmonisation_year, region, variable
-        )
-        raise MissingHarmonisationYear(error_msg)
-
-    # convert units
-    hist_unit = relevant_hist.index.get_level_values("unit").unique()[0]
-    relevant_hist = _convert_units(
-        relevant_hist, current_unit=hist_unit, target_unit=mdata["unit"]
-    )
-    # set index for rest of processing (as units are now consistent)
-    relevant_hist.index = timeseries.index.copy()
-
-    if overrides is not None:
-        method = overrides.copy()
-        for key, value in mdata.items():
-            if key in method:
-                method = method[(method[key] == value) | method[key].isnull()]
-
-    if overrides is not None and method.shape[0] > 1:
-        error_msg = (
-            "Ambiguous harmonisation overrides for metdata `{}`, the "
-            "following methods match: {}".format(mdata, method)
-        )
-        raise AmbiguousHarmonisationMethod(
-            "More than one override for metadata: {}".format(mdata)
-        )
-
-    if overrides is None or method.empty:
-        default, _ = default_methods(
-            relevant_hist, timeseries, base_year=harmonisation_year
-        )
-        method_to_use = default.values[0]
-
-    else:
-        method_to_use = method["method"].values[0]
-
-    return _harmonise_aligned(
-        timeseries, relevant_hist, harmonisation_year, method_to_use
-    )
-
-
-def _convert_units(inp, current_unit, target_unit):
-    # would be simpler using scmdata or pyam
-    out = inp.copy()
-    out.iloc[:, :] = (
-        (out.values * unit_registry(current_unit)).to(target_unit).magnitude
-    )
-    out = out.reset_index("unit")
-    out["unit"] = target_unit
-    out = out.set_index("unit", append=True)
-
-    return out
-
-
-def _harmonise_aligned(timeseries, history, harmonisation_year, method):
-    # seems odd that the methods are stored in a class instance
-    harmonise_func = Harmonizer._methods[method]
-    delta = _get_delta(timeseries, history, method, harmonisation_year)
-
-    return harmonise_func(timeseries, delta, harmonize_year=harmonisation_year)
-
-
-def _get_delta(timeseries, history, method, harmonisation_year):
-    if method == "budget":
-        return history
-
-    offset, ratio = harmonize_factors(timeseries, history, harmonisation_year)
-    if "ratio" in method:
-        return ratio
-
-    return offset
+    if as_pyam:
+        result = pyam.IamDataFrame(result)
+    return result
