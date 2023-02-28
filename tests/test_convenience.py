@@ -533,7 +533,7 @@ def test_override_multi_level(hist_df, scenarios_df):
                 {"region": "World", "method": "constant_ratio"},
                 {"region": "World", "method": "constant_offset"},
             ]
-        ),
+        ).set_index('region')['method'],
         pd.DataFrame(
             [
                 {
@@ -564,7 +564,7 @@ def test_override_multi_level(hist_df, scenarios_df):
 )
 def test_multiple_matching_overrides(hist_df, scenarios_df, overrides):
     with pytest.raises(
-        AmbiguousHarmonisationMethod, match="More than one override for metadata"
+        AmbiguousHarmonisationMethod,
     ):
         harmonise_all(
             scenarios=scenarios_df,

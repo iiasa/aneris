@@ -56,7 +56,7 @@ def convert_units(fr, to, flabel='from', tlabel='to'):
         )
     return pyam.concat(dfs)
 
-def _knead_overrides(overrides, scen):
+def _knead_overrides(overrides, scen, harm_idx):
     """Process overrides to get a form readable by aneris, supporting many different
     use cases
 
@@ -65,11 +65,15 @@ def _knead_overrides(overrides, scen):
     overrides : pd.DataFrame or pd.Series
     scen : pyam.IamDataFrame with data for single scenario and model instance
     """
+    if overrides is None:
+        return None
+
+    # massage into a known format
     # check if no index and single value - this should be the override for everything
     if overrides.index.names == [None] and len(overrides['method']) == 1:
         _overrides = pd.Series(
             overrides['method'].values[0],
-            index=pd.Index(scen.region, name='region'),
+            index=pd.Index(scen.region, name=harm_idx[-1]), # only need to match 1 dim
             name='method',
             )
     # if data is provided per model and scenario, get those explicitly
@@ -79,8 +83,32 @@ def _knead_overrides(overrides, scen):
             .loc[isin(model=scen.model, scenario=scen.scenario)]
             .droplevel(['model', 'scenario'])
         )
+    # some of expected idx in cols, make it a multiindex
+    elif isinstance(overrides, pd.DataFrame) and set(harm_idx) & set(overrides.columns): 
+        idx = list(set(harm_idx) & set(overrides.columns))
+        _overrides = overrides.set_index(idx)
     else:
         _overrides = overrides
+    
+    # do checks
+    if _overrides.isnull().values.any():
+        missing = _overrides[_overrides.isnull().any(axis=1)]
+        raise AmbiguousHarmonisationMethod(
+            f'Overrides are missing for provided data:\n'
+            f'{missing}'
+            )
+    if _overrides.index.to_frame().isnull().values.any():
+        missing = _overrides[_overrides.index.to_frame().isnull().any(axis=1)]
+        raise AmbiguousHarmonisationMethod(
+            f'Defined overrides are missing data:\n'
+            f'{missing}'
+            )
+    if _overrides.index.duplicated().any():
+        raise AmbiguousHarmonisationMethod(
+            'Duplicated values for overrides:\n'
+            f'{_overrides[_overrides.index.duplicated()]}'
+        )
+
     return _overrides
 
 def _check_data(hist, scen, harmonisation_year):
@@ -136,7 +164,7 @@ def harmonize_all2(scenarios, history, harmonisation_year, overrides=None):
             harm_idx=['variable', 'region']
             )
         # knead overrides
-        _overrides = _knead_overrides(overrides, scen)
+        _overrides = _knead_overrides(overrides, scen, harm_idx=['variable', 'region'])
         result = h.harmonize(year=year, overrides=_overrides)
         # need to convert out of internal datastructure
         dfs.append(
