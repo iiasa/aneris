@@ -312,9 +312,6 @@ def test_different_unit_handling_multiple_timeseries_overrides(
         harmonisation_year=harmonisation_year,
         overrides=overrides,
     )
-    print('\nFOO')
-    print(res)
-    print(exp)
     pdt.assert_frame_equal(res, exp, check_like=True)
 
 
@@ -466,7 +463,7 @@ def test_override_multi_level(hist_df, scenarios_df):
                 "method": "reduce_offset_2070",
             },
         ]
-    )
+    ).set_index(['model', 'scenario', 'region', 'variable'])['method']
 
     res = harmonise_all(
         scenarios=scenarios_df,
@@ -482,6 +479,7 @@ def test_override_multi_level(hist_df, scenarios_df):
 
     atol = 1e-4
     pick_rows = co2_rows & world_rows & ~fancy_rows & ~emf33_rows
+    scenarios_df = scenarios_df[[c for c in scenarios_df.columns if c >= 2015]]
     npt.assert_allclose(
         res.loc[pick_rows, :],
         12 / 11 * scenarios_df.loc[pick_rows, :],
@@ -495,34 +493,34 @@ def test_override_multi_level(hist_df, scenarios_df):
 
     npt.assert_allclose(
         res.loc[co2_rows & ~world_rows & ~fancy_rows & ~emf33_rows, :].squeeze(),
-        [7.636363, 8.4, 4.21212121, 5, 3, 1],
+        [8.4, 4.21212121, 5, 3, 1],
         atol=atol,
     )
     npt.assert_allclose(
         res.loc[~co2_rows & ~world_rows & ~fancy_rows & ~emf33_rows, :].squeeze(),
-        [0.11667, 0.175, 0.285714, 0.109524, 0.05, 0.03],
+        [0.175, 0.285714, 0.109524, 0.05, 0.03],
         atol=atol,
     )
 
     npt.assert_allclose(
         res.loc[co2_rows & world_rows & fancy_rows & ~emf33_rows, :].squeeze(),
-        [10.909090, 12, 5.413233, 5.330579, 3.099174, 1],
+        [12, 5.413233, 5.330579, 3.099174, 1],
         atol=atol,
     )
     npt.assert_allclose(
         res.loc[~co2_rows & world_rows & fancy_rows & ~emf33_rows, :].squeeze(),
-        [0.16667, 0.25, 0.405555, 0.15333, 0.067777, 0.03],
+        [0.25, 0.405555, 0.15333, 0.067777, 0.03],
         atol=atol,
     )
 
     npt.assert_allclose(
         res.loc[co2_rows & world_rows & ~fancy_rows & emf33_rows, :].squeeze(),
-        [11.142857, 12, 5.857143, 5.571429, 3, 1],
+        [12, 5.857143, 5.571429, 3, 1],
         atol=atol,
     )
     npt.assert_allclose(
         res.loc[~co2_rows & world_rows & ~fancy_rows & emf33_rows, :].squeeze(),
-        [0.2090909, 0.25, 0.340909, 0.172727, 0.086364, 0.03],
+        [0.25, 0.340909, 0.172727, 0.086364, 0.03],
         atol=atol,
     )
 

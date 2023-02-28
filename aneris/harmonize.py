@@ -21,7 +21,11 @@ from aneris.methods import (
     coeff_of_var,
     default_methods,
 )
-
+from aneris.errors import (
+    MissingHarmonisationYear,
+    MissingHistoricalError,
+    MissingScenarioError,
+)
 
 def _log(msg, *args, **kwargs):
     utils.logger().info(msg, *args, **kwargs)
@@ -29,6 +33,38 @@ def _log(msg, *args, **kwargs):
 
 def _warn(msg, *args, **kwargs):
     utils.logger().warning(msg, *args, **kwargs)
+
+
+def _check_data(hist, scen, year, idx):
+    # @coroa - this may be a very slow way to do this check..
+    def downselect(df):
+        return (
+            df
+            [year]
+            .reset_index()
+            .set_index(idx)
+            .index
+            .unique()
+        )
+    s = downselect(scen)
+    h = downselect(hist)
+    if h.empty:
+        raise MissingHarmonisationYear(
+            'No historical data in harmonization year'
+        )
+
+    if not s.difference(h).empty:
+        raise MissingHistoricalError(
+            'Historical data does not match scenario data in harmonization '
+            f'year for\n {s.difference(h)}'
+            )
+    
+    if not h.difference(s).empty:
+        raise MissingScenarioError(
+            'Scenario data does not match historical data in harmonization '
+            f'year for\n {h.difference(s)}'
+            )
+    
 
 
 class Harmonizer(object):
@@ -236,6 +272,9 @@ class Harmonizer(object):
         overrides
         """
         base_year = year if year is not None else self.base_year or "2015"
+
+        _check_data(self.history, self.data, year, self.harm_idx)
+
         self.model = pd.Series(
             index=self.data.index, name=base_year, dtype=float
         ).to_frame()

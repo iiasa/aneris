@@ -73,8 +73,12 @@ def _knead_overrides(overrides, scen):
             name='method',
             )
     # if data is provided per model and scenario, get those explicitly
-    elif ['model', 'scenario'] in overrides.index.names:
-        _overrides = overrides.loc[isin(model=scen.model, scenario=scen.scenario)]
+    elif set(['model', 'scenario']).issubset(set(overrides.index.names)):
+        _overrides = (
+            overrides
+            .loc[isin(model=scen.model, scenario=scen.scenario)]
+            .droplevel(['model', 'scenario'])
+        )
     else:
         _overrides = overrides
     return _overrides
@@ -125,7 +129,7 @@ def harmonize_all2(scenarios, history, harmonisation_year, overrides=None):
             region=scen.region, variable=scen.variable
             )
         _check_data(hist, scen, harmonisation_year)
-        hist = convert_units(fr=history, to=scen, flabel='history', tlabel='model')
+        hist = convert_units(fr=hist, to=scen, flabel='history', tlabel='model')
         # need to convert to internal datastructure
         h = Harmonizer(
             scen.timeseries(), hist.timeseries(), 
@@ -133,7 +137,6 @@ def harmonize_all2(scenarios, history, harmonisation_year, overrides=None):
             )
         # knead overrides
         _overrides = _knead_overrides(overrides, scen)
-
         result = h.harmonize(year=year, overrides=_overrides)
         # need to convert out of internal datastructure
         dfs.append(
