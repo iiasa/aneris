@@ -27,6 +27,7 @@ from aneris.errors import (
     MissingScenarioError,
 )
 
+
 def _log(msg, *args, **kwargs):
     utils.logger().info(msg, *args, **kwargs)
 
@@ -37,50 +38,44 @@ def _warn(msg, *args, **kwargs):
 
 def _check_data(hist, scen, year, idx):
     # always check that unit exists
-    if 'unit' not in idx:
-        idx += ['unit']
+    if "unit" not in idx:
+        idx += ["unit"]
 
     # @coroa - this may be a very slow way to do this check..
     def downselect(df):
-        return (
-            df
-            [year]
-            .reset_index()
-            .set_index(idx)
-            .index
-            .unique()
-        )
+        return df[year].reset_index().set_index(idx).index.unique()
+
     s = downselect(scen)
     h = downselect(hist)
     if h.empty:
-        raise MissingHarmonisationYear(
-            'No historical data in harmonization year'
-        )
+        raise MissingHarmonisationYear("No historical data in harmonization year")
 
     if not s.difference(h).empty:
         raise MissingHistoricalError(
-            'Historical data does not match scenario data in harmonization '
-            f'year for\n {s.difference(h)}'
-            )
-    
+            "Historical data does not match scenario data in harmonization "
+            f"year for\n {s.difference(h)}"
+        )
+
     if not h.difference(s).empty:
         raise MissingScenarioError(
-            'Scenario data does not match historical data in harmonization '
-            f'year for\n {h.difference(s)}'
-            )
-    
+            "Scenario data does not match historical data in harmonization "
+            f"year for\n {h.difference(s)}"
+        )
+
+
 def _check_overrides(overrides, idx):
     if overrides is None:
         return
-    
+
     if not isinstance(overrides, pd.Series):
-        raise TypeError('Overrides required to be pd.Series')
-    
-    if not overrides.name == 'method':
-        raise ValueError('Overrides name must be method')
-    
+        raise TypeError("Overrides required to be pd.Series")
+
+    if not overrides.name == "method":
+        raise ValueError("Overrides name must be method")
+
     if not overrides.index.name != idx:
-        raise ValueError(f'Overrides must be indexed by {idx}')
+        raise ValueError(f"Overrides must be indexed by {idx}")
+
 
 class Harmonizer(object):
     """A class used to harmonize model data to historical data in the
@@ -103,7 +98,12 @@ class Harmonizer(object):
     }
 
     def __init__(
-        self, data, history, config={}, harm_idx=["region", "gas", "sector"], method_choice=None,
+        self,
+        data,
+        history,
+        config={},
+        harm_idx=["region", "gas", "sector"],
+        method_choice=None,
     ):
         """
         The Harmonizer class prepares and harmonizes historical data to
@@ -130,20 +130,20 @@ class Harmonizer(object):
         hist_check = projectlevel(history.index, harm_idx)
         if not data_check.difference(hist_check).empty:
             raise ValueError(
-                'Data to harmonize exceeds historical data avaiablility:\n'
-                f'{data_check.difference(hist_check)}'
-                )
+                "Data to harmonize exceeds historical data avaiablility:\n"
+                f"{data_check.difference(hist_check)}"
+            )
+
         def check_idx(df, label):
-            final_idx = harm_idx + ['unit']
+            final_idx = harm_idx + ["unit"]
             extra_idx = list(set(df.index.names) - set(final_idx))
             if extra_idx:
                 df = df.droplevel(extra_idx)
-                _warn(
-                    f'Extra index found in {label}, dropping levels {extra_idx}'
-                    )
+                _warn(f"Extra index found in {label}, dropping levels {extra_idx}")
             return df
-        data = check_idx(data, 'data')
-        history = check_idx(history, 'history')
+
+        data = check_idx(data, "data")
+        history = check_idx(history, "history")
         history.columns = history.columns.astype(data.columns.dtype)
 
         # set basic attributes
@@ -152,7 +152,9 @@ class Harmonizer(object):
         self.methods_used = None
 
         # set up defaults
-        self.base_year = str(config["harmonize_year"]) if "harmonize_year" in config else None
+        self.base_year = (
+            str(config["harmonize_year"]) if "harmonize_year" in config else None
+        )
         self.method_choice = method_choice
 
         # get default methods to use in decision tree
@@ -199,7 +201,9 @@ class Harmonizer(object):
     def _default_methods(self, year):
         assert year is not None
         methods, diagnostics = default_methods(
-            self.history.droplevel(list(set(self.history.index.names) - set(self.harm_idx))),
+            self.history.droplevel(
+                list(set(self.history.index.names) - set(self.harm_idx))
+            ),
             self.data.droplevel(list(set(self.data.index.names) - set(self.harm_idx))),
             year,
             method_choice=self.method_choice,
@@ -212,13 +216,14 @@ class Harmonizer(object):
 
     def _harmonize(self, method, idx, check_len, base_year):
         # get data
-        def downselect(df, idx, level='unit'):
+        def downselect(df, idx, level="unit"):
             return df.reset_index(level=level).loc[idx].set_index(level, append=True)
+
         model = downselect(self.data, idx)
         hist = downselect(self.history, idx)
-        offsets = downselect(self.offsets, idx)['offset']
-        ratios = downselect(self.ratios, idx)['ratio']
-        
+        offsets = downselect(self.offsets, idx)["offset"]
+        ratios = downselect(self.ratios, idx)["ratio"]
+
         # get delta
         delta = hist if method == "budget" else ratios if "ratio" in method else offsets
 
@@ -256,35 +261,27 @@ class Harmonizer(object):
             # overrides requires an index
             if overrides.index.names == [None]:
                 raise ValueError(
-                    'overrides must have at least on index dimension '
-                    f'aligned with methods: {methods.index.names}'
-                    )
+                    "overrides must have at least on index dimension "
+                    f"aligned with methods: {methods.index.names}"
+                )
             # expand overrides index to match methods and align indicies
-            overrides = (
-                semijoin(overrides, methods.index, how="right")
-                .reorder_levels(methods.index.names)
+            overrides = semijoin(overrides, methods.index, how="right").reorder_levels(
+                methods.index.names
             )
             if not overrides.index.difference(methods.index).empty:
                 raise ValueError(
-                    'Data to override exceeds model data avaiablility:\n'
-                    f'{overrides.index.difference(methods.index)}'
-                    )
+                    "Data to override exceeds model data avaiablility:\n"
+                    f"{overrides.index.difference(methods.index)}"
+                )
             overrides.name = methods.name
-            
+
             # overwrite defaults with overrides
-            final_methods = (
-                overrides
-                .combine_first(methods)
-                .to_frame()
-            )
+            final_methods = overrides.combine_first(methods).to_frame()
             final_methods["default"] = methods
             final_methods["override"] = overrides
             methods = final_methods
 
         return methods
-
-
-        
 
     def harmonize(self, year=None, overrides=None):
         """Return pd.DataFrame of harmonized trajectories given pd.DataFrame
@@ -396,7 +393,7 @@ class _TrajectoryPreprocessor(object):
         if self.overrides.empty:
             self.overrides = None
         else:
-            idx = list(set(utils.df_idx) - set(['unit']))
+            idx = list(set(utils.df_idx) - set(["unit"]))
             self.overrides = (
                 xlator.to_std(df=self.overrides.copy(), set_metadata=False, unit=False)
                 .set_index(idx)
