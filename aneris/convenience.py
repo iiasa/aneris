@@ -107,13 +107,13 @@ def _knead_overrides(overrides, scen, harm_idx):
 
     return _overrides
 
-def _check_data(hist, scen, harmonisation_year):
+def _check_data(hist, scen, year):
     check = ['region', 'variable']
     # @coroa - this may be a very slow way to do this check..
     def downselect(df):
         return (
             df
-            .filter(year=harmonisation_year)
+            .filter(year=year)
             ._data
             .reset_index()
             .set_index(check)
@@ -135,7 +135,7 @@ def _check_data(hist, scen, harmonisation_year):
     
     
 # maybe this needs to live in pyam?
-def harmonise_all(scenarios, history, harmonisation_year, overrides=None):
+def harmonise_all(scenarios, history, year, overrides=None):
     """
     Harmonise all timeseries in ``scenarios`` to match ``history``
 
@@ -148,7 +148,7 @@ def harmonise_all(scenarios, history, harmonisation_year, overrides=None):
         :obj:`pd.DataFrame` containing the historical timeseries to which
         ``scenarios`` should be harmonised
 
-    harmonisation_year : int
+    year : int
         The year in which ``scenarios`` should be harmonised to ``history``
 
     overrides : :obj:`pd.DataFrame`
@@ -193,7 +193,6 @@ def harmonise_all(scenarios, history, harmonisation_year, overrides=None):
         ``overrides`` do not uniquely specify the harmonisation method for a
         given timeseries
     """
-    year = harmonisation_year # TODO: change this to year
     sidx = scenarios.index # save in case we need to re-add extraneous indicies later
     as_pyam = isinstance(scenarios, pyam.IamDataFrame)
     if not as_pyam:
@@ -206,7 +205,7 @@ def harmonise_all(scenarios, history, harmonisation_year, overrides=None):
         hist = history.filter(
             region=scen.region, variable=scen.variable
             )
-        _check_data(hist, scen, harmonisation_year)
+        _check_data(hist, scen, year)
         hist = convert_units(fr=hist, to=scen, flabel='history', tlabel='model')
         # need to convert to internal datastructure
         h = Harmonizer(

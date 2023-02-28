@@ -147,7 +147,7 @@ def test_different_unit_handling(method, exp_res):
     res = harmonise_all(
         scenarios=scenario,
         history=hist,
-        harmonisation_year=2010,
+        year=2010,
         overrides=overrides,
     )
 
@@ -200,7 +200,7 @@ def scenarios_df():
 
 @pytest.mark.parametrize("extra_col", (False, "mip_era"))
 @pytest.mark.parametrize(
-    "harmonisation_year,scales",
+    "year,scales",
     (
         (2010, [1.1, 2]),
         (2015, [12 / 11, 25 / 15]),
@@ -210,7 +210,7 @@ def test_different_unit_handling_multiple_timeseries_constant_ratio(
     hist_df,
     scenarios_df,
     extra_col,
-    harmonisation_year,
+    year,
     scales,
 ):
     if extra_col:
@@ -219,7 +219,7 @@ def test_different_unit_handling_multiple_timeseries_constant_ratio(
 
     exp = scenarios_df.multiply(scales, axis=0)
     # new requirement - we won't provide data before harmonization year
-    exp = exp[[c for c in exp.columns if c >= harmonisation_year]]
+    exp = exp[[c for c in exp.columns if c >= year]]
 
     overrides = [{"region": "World", "method": "constant_ratio"}]
     overrides = pd.DataFrame(overrides).set_index(['region'])['method']
@@ -227,14 +227,14 @@ def test_different_unit_handling_multiple_timeseries_constant_ratio(
     res = harmonise_all(
         scenarios=scenarios_df,
         history=hist_df,
-        harmonisation_year=harmonisation_year,
+        year=year,
         overrides=overrides,
     )
     pdt.assert_frame_equal(res, exp)
 
 
 @pytest.mark.parametrize(
-    "harmonisation_year,offset",
+    "year,offset",
     (
         (2010, [1, 0.1]),
         (2015, [1, 0.1]),
@@ -244,12 +244,12 @@ def test_different_unit_handling_multiple_timeseries_constant_ratio(
 def test_different_unit_handling_multiple_timeseries_constant_offset(
     hist_df,
     scenarios_df,
-    harmonisation_year,
+    year,
     offset,
 ):
     exp = scenarios_df.add(offset, axis=0)
     # new requirement - we won't provide data before harmonization year
-    exp = exp[[c for c in exp.columns if c >= harmonisation_year]]
+    exp = exp[[c for c in exp.columns if c >= year]]
 
     overrides = [{"method": "constant_offset"}]
     overrides = pd.DataFrame(overrides)
@@ -257,7 +257,7 @@ def test_different_unit_handling_multiple_timeseries_constant_offset(
     res = harmonise_all(
         scenarios=scenarios_df,
         history=hist_df,
-        harmonisation_year=harmonisation_year,
+        year=year,
         overrides=overrides,
     )
 
@@ -268,7 +268,7 @@ def test_different_unit_handling_multiple_timeseries_overrides(
     hist_df,
     scenarios_df,
 ):
-    harmonisation_year = 2015
+    year = 2015
 
     exp = scenarios_df.sort_index()
     for r in exp.index:
@@ -284,7 +284,7 @@ def test_different_unit_handling_multiple_timeseries_overrides(
                     sf = harm_year_ratio
                 else:
                     sf = 1 + (
-                        (harm_year_ratio - 1) * (2050 - c) / (2050 - harmonisation_year)
+                        (harm_year_ratio - 1) * (2050 - c) / (2050 - year)
                     )
 
                 exp.loc[r, c] *= sf
@@ -294,11 +294,11 @@ def test_different_unit_handling_multiple_timeseries_overrides(
                 if c >= 2030:
                     of = 0
                 else:
-                    of = harm_year_offset * (2030 - c) / (2030 - harmonisation_year)
+                    of = harm_year_offset * (2030 - c) / (2030 - year)
 
                 exp.loc[r, c] += of
     # new requirement - we won't provide data before harmonization year
-    exp = exp[[c for c in exp.columns if c >= harmonisation_year]]
+    exp = exp[[c for c in exp.columns if c >= year]]
 
     overrides = [
         {"variable": "Emissions|CO2", "method": "reduce_ratio_2050"},
@@ -309,7 +309,7 @@ def test_different_unit_handling_multiple_timeseries_overrides(
     res = harmonise_all(
         scenarios=scenarios_df,
         history=hist_df,
-        harmonisation_year=harmonisation_year,
+        year=year,
         overrides=overrides,
     )
     pdt.assert_frame_equal(res, exp, check_like=True)
@@ -322,7 +322,7 @@ def test_raise_if_variable_not_in_hist(hist_df, scenarios_df):
         harmonise_all(
             scenarios=scenarios_df,
             history=hist_df,
-            harmonisation_year=2010,
+            year=2010,
             overrides=pd.DataFrame([{"method": "constant_ratio"}]),
         )
 
@@ -339,7 +339,7 @@ def test_raise_if_incompatible_unit(hist_df, scenarios_df):
         harmonise_all(
             scenarios=scenarios_df,
             history=hist_df,
-            harmonisation_year=2010,
+            year=2010,
             overrides=pd.DataFrame([{"method": "constant_ratio"}]),
         )
 
@@ -353,12 +353,12 @@ def test_raise_if_undefined_unit(hist_df, scenarios_df):
         harmonise_all(
             scenarios=scenarios_df,
             history=hist_df,
-            harmonisation_year=2010,
+            year=2010,
             overrides=pd.DataFrame([{"method": "constant_ratio"}]),
         )
 
 
-def test_raise_if_harmonisation_year_missing(hist_df, scenarios_df):
+def test_raise_if_year_missing(hist_df, scenarios_df):
     hist_df = hist_df.drop(2015, axis="columns")
 
     error_msg = re.escape(
@@ -368,12 +368,12 @@ def test_raise_if_harmonisation_year_missing(hist_df, scenarios_df):
         harmonise_all(
             scenarios=scenarios_df,
             history=hist_df,
-            harmonisation_year=2015,
+            year=2015,
             overrides=pd.DataFrame([{"method": "constant_ratio"}]),
         )
 
 
-def test_raise_if_harmonisation_year_nan(hist_df, scenarios_df):
+def test_raise_if_year_nan(hist_df, scenarios_df):
     hist_df.loc[
         hist_df.index.get_level_values("variable").str.endswith("CO2"), 2015
     ] = np.nan
@@ -382,7 +382,7 @@ def test_raise_if_harmonisation_year_nan(hist_df, scenarios_df):
         harmonise_all(
             scenarios=scenarios_df,
             history=hist_df,
-            harmonisation_year=2015,
+            year=2015,
             overrides=pd.DataFrame([{"method": "constant_ratio"}]),
         )
 
@@ -468,7 +468,7 @@ def test_override_multi_level(hist_df, scenarios_df):
     res = harmonise_all(
         scenarios=scenarios_df,
         history=hist_df,
-        harmonisation_year=2015,
+        year=2015,
         overrides=overrides,
     )
 
@@ -569,7 +569,7 @@ def test_multiple_matching_overrides(hist_df, scenarios_df, overrides):
         harmonise_all(
             scenarios=scenarios_df,
             history=hist_df,
-            harmonisation_year=2015,
+            year=2015,
             overrides=overrides,
         )
 
@@ -620,13 +620,13 @@ def test_defaults(hist_df, scenarios_df):
     res = harmonise_all(
         scenarios=scenarios_df,
         history=hist_df,
-        harmonisation_year=2015,
+        year=2015,
     )
 
     exp = harmonise_all(
         scenarios=scenarios_df,
         history=hist_df,
-        harmonisation_year=2015,
+        year=2015,
         overrides=pd.DataFrame(
             [
                 {"variable": "Emissions|CO2", "method": "reduce_ratio_2080"},
