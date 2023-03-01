@@ -67,8 +67,9 @@ def harmonize(
     # TODO: this is a change to the file-based API, and we should probably
     # develop a deprecation schedule or force updates to downloaded files
     # to address it
-    if "Unit" in overrides:
-        overrides = overrides.drop(columns=["Unit"])
+    for col in ["Unit", "unit"]:
+        if col in overrides:
+            overrides = overrides.drop(columns=[col])
     rc = aneris.RunControl(rc=rc)
     rc.recursive_update("config", config)
 
