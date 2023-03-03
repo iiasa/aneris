@@ -42,24 +42,6 @@ def numcols(df):
     return [i for i in dtypes.index if dtypes.loc[i].name.startswith(("float", "int"))]
 
 
-def isin(df=None, **filters):
-    """
-    Constructs a MultiIndex selector.
-
-    Usage
-    -----
-    > df.loc[isin(region="World", gas=["CO2", "N2O"])]
-    or with explicit df to get boolean mask
-    > isin(df, region="World", gas=["CO2", "N2O"])
-    """
-
-    def tester(df):
-        tests = (df.index.isin(np.atleast_1d(v), level=k) for k, v in filters.items())
-        return reduce(and_, tests, next(tests))
-
-    return tester if df is None else tester(df)
-
-
 def isstr(x):
     """
     Returns True if x is a string.
@@ -122,3 +104,7 @@ def pd_write(df, f, *args, **kwargs):
         writer = pd.ExcelWriter(f)
         df.to_excel(writer, index=index, *args, **kwargs)
         writer.save()
+
+
+def normalize(s):
+    return s / s.sum()

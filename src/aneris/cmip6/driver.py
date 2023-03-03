@@ -1,10 +1,13 @@
 import numpy as np
 import pandas as pd
 
+from pandas_indexing import isin
+
 import aneris.cmip6.cmip6_utils as cmip6_utils
 import aneris.utils as utils
 from aneris.harmonize import Harmonizer, _log, _warn
-from aneris.utils import isin, pd_read
+from aneris.utils import pd_read
+
 
 
 class _TrajectoryPreprocessor:

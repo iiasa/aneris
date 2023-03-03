@@ -23,7 +23,7 @@ dependencies = [
   "openpyxl",
   "matplotlib",
   "pyomo>=5",
-  "pandas-indexing",
+  "pandas-indexing>=0.2.7",
 ]
 dynamic = ["version"]
 
@@ -60,6 +60,7 @@ lint = [
 
 [project.scripts]
 aneris = "aneris.cli:main"
+
 
 [tool.setuptools_scm]
 fallback_version = "999"
