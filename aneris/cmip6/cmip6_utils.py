@@ -1,5 +1,3 @@
-import logging
-import os
 import re
 
 import numpy as np
@@ -9,13 +7,11 @@ from aneris.utils import (
     df_idx,
     iamc_idx,
     iamc_path,
-    isin, 
     logger,
     numcols,
     pd_read,
     region_path,
 )
-
 
 
 # gases reported in kt of species
@@ -101,7 +97,8 @@ unit_gas_names = {
 
 
 def check_null(df, name=None, fail=False):
-    """Determines which values, if any in a dataframe are null
+    """
+    Determines which values, if any in a dataframe are null.
 
     Parameters
     ----------
@@ -122,13 +119,17 @@ def check_null(df, name=None, fail=False):
 
 
 def gases(var_col):
-    """The gas associated with each variable"""
+    """
+    The gas associated with each variable.
+    """
     gasidx = lambda x: x.split("|").index("Emissions") + 1
     return var_col.apply(lambda x: x.split("|")[gasidx(x)])
 
 
 def units(var_col):
-    """returns a units column given a variable column"""
+    """
+    Returns a units column given a variable column.
+    """
     gas_col = gases(var_col)
 
     # replace all gas names where name in unit != name in variable,
@@ -142,16 +143,17 @@ def units(var_col):
 
 
 def remove_emissions_prefix(x, gas="XXX"):
-    """Return x with emissions prefix removed, e.g.,
-    Emissions|XXX|foo|bar -> foo|bar
     """
-    return re.sub(r"^Emissions\|{}\|".format(gas), "", x)
-
-
+    Return x with emissions prefix removed, e.g., Emissions|XXX|foo|bar ->
+    foo|bar.
+    """
+    return re.sub(rf"^Emissions\|{gas}\|", "", x)
 
 
 def pd_write(df, f, *args, **kwargs):
-    """Try to write a file with pandas, supports CSV and XLSX"""
+    """
+    Try to write a file with pandas, supports CSV and XLSX.
+    """
     # guess whether to use index, unless we're told otherwise
     index = kwargs.pop("index", isinstance(df.index, pd.MultiIndex))
 
@@ -162,12 +164,14 @@ def pd_write(df, f, *args, **kwargs):
         df.to_excel(writer, index=index, *args, **kwargs)
         writer.save()
 
+
 def recalculated_row_idx(df, prefix="", suffix=""):
-    """Return a boolean array with rows that need to be recalculated.
+    """
+    Return a boolean array with rows that need to be recalculated.
+
     These are rows with total values for a gas species which is a sum of
-    subsectors.
-    During harmonization, subsector totals change, thus this summation must
-    be recalculated.
+    subsectors. During harmonization, subsector totals change, thus this
+    summation must be recalculated.
     """
     df = df.reset_index()
 
@@ -181,13 +185,16 @@ def recalculated_row_idx(df, prefix="", suffix=""):
 
 
 def remove_recalculated_sectors(df, prefix="", suffix=""):
-    """Return df with Total gas (sum of all sectors) removed"""
+    """
+    Return df with Total gas (sum of all sectors) removed.
+    """
     idx = recalculated_row_idx(df, prefix="", suffix="")
     return df[~idx]
 
 
 def subtract_regions_from_world(df, name=None, base_year="2015", threshold=5e-2):
-    """Subtract the sum of regional results in each variable from the World total.
+    """
+    Subtract the sum of regional results in each variable from the World total.
     If the result is a World total below a threshold, set those values to 0.
 
     Parameters
@@ -235,9 +242,10 @@ def combine_rows(
     rowsonly=False,
     newlabel=None,
 ):
-    """Combine rows (add values) in a dataframe. Rows corresponding to the main and
-    other values in a given level (or column) are added together and reattached
-    taking the main value in the new column.
+    """
+    Combine rows (add values) in a dataframe. Rows corresponding to the main
+    and other values in a given level (or column) are added together and
+    reattached taking the main value in the new column.
 
     For example, countries can be combined using this strategy.
 
@@ -303,7 +311,8 @@ def combine_rows(
 def agg_regions(
     df, rfrom="ISO Code", rto="Native Region Code", mapping=None, verify=True
 ):
-    """Aggregate values in a dataframe to a new regional composition
+    """
+    Aggregate values in a dataframe to a new regional composition.
 
     Parameters
     ----------
@@ -339,7 +348,7 @@ def agg_regions(
     check = mapping[rfrom]
     notin = list(set(df.region) - set(check))
     if len(notin) > 0:
-        logger().warning("Removing regions without direct mapping: {}".format(notin))
+        logger().warning(f"Removing regions without direct mapping: {notin}")
         df = df[df.region.isin(check)]
 
     # map and sum
@@ -369,8 +378,10 @@ def agg_regions(
     return dfto
 
 
-class EmissionsAggregator(object):
-    """Helper class to aggregate emissions"""
+class EmissionsAggregator:
+    """
+    Helper class to aggregate emissions.
+    """
 
     def __init__(self, df, model=None, scenario=None):
         """Parameters
@@ -391,7 +402,8 @@ class EmissionsAggregator(object):
         assert (self.df.unit == "kt").all()
 
     def add_variables(self, totals=None, aggregates=True):
-        """Add aggregates and variables with direct mappings.
+        """
+        Add aggregates and variables with direct mappings.
 
         Parameters
         ----------
@@ -407,7 +419,8 @@ class EmissionsAggregator(object):
         return self
 
     def to_template(self, **kwargs):
-        """Create an IAMC template out of the original data frame
+        """
+        Create an IAMC template out of the original data frame.
 
         Parameters
         ----------
@@ -446,8 +459,10 @@ class EmissionsAggregator(object):
         self.df = pd.concat([self.df] + rows)
 
 
-class FormatTranslator(object):
-    """Helper class to translate between IAMC and calcluation formats"""
+class FormatTranslator:
+    """
+    Helper class to translate between IAMC and calcluation formats.
+    """
 
     def __init__(self, df=None, prefix="", suffix=""):
         self.df = df if df is None else df.copy()
@@ -457,7 +472,8 @@ class FormatTranslator(object):
         self.suffix = suffix
 
     def to_std(self, df=None, set_metadata=True, unit=True):
-        """Translate a dataframe from IAMC to standard calculation format
+        """
+        Translate a dataframe from IAMC to standard calculation format.
 
         Parameters
         ----------
@@ -526,7 +542,8 @@ class FormatTranslator(object):
         return df
 
     def to_template(self, df=None, model=None, scenario=None, column_style=None):
-        """Translate a dataframe from standard calculation format to IAMC
+        """
+        Translate a dataframe from standard calculation format to IAMC.
 
         Parameters
         ----------

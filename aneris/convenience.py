@@ -1,16 +1,14 @@
-from openscm_units import unit_registry
-import pyam
 import pandas as pd
+import pyam
+from openscm_units import unit_registry
 from pandas_indexing import isin, semijoin
 
-
-from .harmonize import Harmonizer, default_methods
 from .errors import (
     AmbiguousHarmonisationMethod,
     MissingHarmonisationYear,
     MissingHistoricalError,
 )
-from .methods import harmonize_factors
+from .harmonize import Harmonizer
 
 
 def convert_units(fr, to, flabel="from", tlabel="to"):
@@ -47,8 +45,9 @@ def convert_units(fr, to, flabel="from", tlabel="to"):
 
 
 def _knead_overrides(overrides, scen, harm_idx):
-    """Process overrides to get a form readable by aneris, supporting many different
-    use cases
+    """
+    Process overrides to get a form readable by aneris, supporting many
+    different use cases.
 
     Parameters
     ----------
@@ -183,7 +182,7 @@ def harmonise_all(scenarios, history, year, overrides=None):
         history = pyam.IamDataFrame(history)
 
     dfs = []
-    for (model, scenario) in scenarios.index:
+    for model, scenario in scenarios.index:
         scen = scenarios.filter(model=model, scenario=scenario)
         hist = history.filter(region=scen.region, variable=scen.variable)
         _check_data(hist, scen, year)

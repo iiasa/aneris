@@ -1,11 +1,11 @@
-"""Harmonization CLI for aneris.
+"""
+Harmonization CLI for aneris.
 """
 import argparse
-import logging
 import os
 
 import aneris
-from aneris.utils import hist_path, region_path, logger
+from aneris.utils import hist_path, logger, region_path
 
 
 def read_args():
@@ -54,7 +54,7 @@ def harmonize(
     check = [inf, history, regions, rc]
     for f in check:
         if f and not os.path.exists(f):
-            raise IOError("{} does not exist on the filesystem.".format(f))
+            raise OSError(f"{f} does not exist on the filesystem.")
 
     # read input
     hist = aneris.pd_read(history, str_cols=True)
@@ -74,7 +74,9 @@ def harmonize(
     rc.recursive_update("config", config)
 
     # do core harmonization
-    driver = aneris.cmip6.driver.HarmonizationDriver(rc, hist, model, overrides, regions)
+    driver = aneris.cmip6.driver.HarmonizationDriver(
+        rc, hist, model, overrides, regions
+    )
     for scenario in driver.scenarios():
         driver.harmonize(scenario)
     model, metadata, diagnostics = driver.harmonized_results()
@@ -82,19 +84,19 @@ def harmonize(
     if write_output:
         # write to excel
         prefix = output_prefix or inf.split(".")[0]
-        fname = os.path.join(output_path, "{}_harmonized.xlsx".format(prefix))
-        logger().info("Writing result to: {}".format(fname))
+        fname = os.path.join(output_path, f"{prefix}_harmonized.xlsx")
+        logger().info(f"Writing result to: {fname}")
         aneris.pd_write(model, fname, sheet_name="data")
 
         # save data about harmonization
-        fname = os.path.join(output_path, "{}_metadata.xlsx".format(prefix))
-        logger().info("Writing metadata to: {}".format(fname))
+        fname = os.path.join(output_path, f"{prefix}_metadata.xlsx")
+        logger().info(f"Writing metadata to: {fname}")
         aneris.pd_write(metadata, fname)
 
         # save data about harmonization
         if not diagnostics.empty:
-            fname = os.path.join(output_path, "{}_diagnostics.xlsx".format(prefix))
-            logger().info("Writing diagnostics to: {}".format(fname))
+            fname = os.path.join(output_path, f"{prefix}_diagnostics.xlsx")
+            logger().info(f"Writing diagnostics to: {fname}")
             aneris.pd_write(diagnostics, fname)
 
     if return_result:

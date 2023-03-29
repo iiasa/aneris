@@ -1,37 +1,13 @@
-from __future__ import division
-
 import numpy as np
 import pandas as pd
-from itertools import chain
-from functools import partial
-from pandas_indexing import projectlevel, semijoin
 
 import aneris.cmip6.cmip6_utils as cmip6_utils
 import aneris.utils as utils
-from aneris.utils import isin, pd_read
-from aneris.methods import (
-    harmonize_factors,
-    constant_offset,
-    reduce_offset,
-    constant_ratio,
-    reduce_ratio,
-    linear_interpolate,
-    model_zero,
-    hist_zero,
-    budget,
-    coeff_of_var,
-    default_methods,
-)
-from aneris.errors import (
-    MissingHarmonisationYear,
-    MissingHistoricalError,
-    MissingScenarioError,
-)
 from aneris.harmonize import Harmonizer, _log, _warn
+from aneris.utils import isin, pd_read
 
 
-
-class _TrajectoryPreprocessor(object):
+class _TrajectoryPreprocessor:
     def __init__(self, hist, model, overrides, regions, prefix, suffix):
         self.hist = hist
         self.model = model
@@ -48,7 +24,7 @@ class _TrajectoryPreprocessor(object):
     def _downselect_var(self):
         # separate data
         select = "|".join([self.prefix, self.suffix])
-        _log("Downselecting {} variables".format(select))
+        _log(f"Downselecting {select} variables")
 
         hasprefix = lambda df: df.Variable.str.startswith(self.prefix)
         hassuffix = lambda df: df.Variable.str.endswith(self.suffix)
@@ -130,8 +106,10 @@ class _TrajectoryPreprocessor(object):
         return self.hist, self.model, self.overrides
 
 
-class HarmonizationDriver(object):
-    """A helper class to harmonize all scenarios for a model."""
+class HarmonizationDriver:
+    """
+    A helper class to harmonize all scenarios for a model.
+    """
 
     def __init__(self, rc, hist, model, overrides, regions):
         """Parameters
@@ -162,14 +140,16 @@ class HarmonizationDriver(object):
                 "Country": "World",
                 "Native Region Code": "World",
             }
-            _log("Manually adding global regional definition: {}".format(glb))
+            _log(f"Manually adding global regional definition: {glb}")
             self.regions = self.regions.append(glb, ignore_index=True)
 
         model_names = self.model.Model.unique()
         if len(model_names) > 1:
             raise ValueError("Can not have more than one model to harmonize")
         self.model_name = model_names[0]
-        self._xlator = cmip6_utils.FormatTranslator(prefix=self.prefix, suffix=self.suffix)
+        self._xlator = cmip6_utils.FormatTranslator(
+            prefix=self.prefix, suffix=self.suffix
+        )
         self._model_dfs = []
         self._metadata_dfs = []
         self._diagnostic_dfs = []
@@ -223,7 +203,8 @@ class HarmonizationDriver(object):
         self._model = pd.concat([self._model, exog])
 
     def harmonize(self, scenario, diagnostic_config=None):
-        """Harmonize a given scneario. Get results from
+        """
+        Harmonize a given scneario. Get results from
         aneris.harmonize.HarmonizationDriver.results()
 
         Parameters
@@ -307,11 +288,14 @@ class HarmonizationDriver(object):
         self._diagnostic_dfs.append(self._diag)
 
     def scenarios(self):
-        """Return all known scenarios"""
+        """
+        Return all known scenarios.
+        """
         return self.model["Scenario"].unique()
 
     def harmonized_results(self):
-        """Return 3-tuple of (pd.DataFrame of harmonized trajectories,
+        """
+        Return 3-tuple of (pd.DataFrame of harmonized trajectories,
         pd.DataFrame of metadata, and similar of diagnostic information)
         """
         return (
@@ -370,7 +354,6 @@ def _harmonize_global_total(
 def _harmonize_regions(
     config, prefix, suffix, regions, hist, model, overrides, base_year, add_5regions
 ):
-
     # clean model
     model = cmip6_utils.subtract_regions_from_world(model, "model", base_year)
     model = cmip6_utils.remove_recalculated_sectors(model, prefix, suffix)
@@ -426,7 +409,9 @@ def _harmonize_regions(
     # combine regional values to send back into template form
     model.reset_index(inplace=True)
     model = model.set_index(utils.df_idx).sort_index()
-    glb = cmip6_utils.combine_rows(model, "region", "World", sumall=False, rowsonly=True)
+    glb = cmip6_utils.combine_rows(
+        model, "region", "World", sumall=False, rowsonly=True
+    )
     model = glb.combine_first(model)
 
     # add 5regions
@@ -444,7 +429,7 @@ def _harmonize_regions(
     duplicates = model.index.duplicated(keep="first")
     if duplicates.any():
         regions = model[duplicates].index.get_level_values("region").unique()
-        msg = "Dropping duplicate rows found for regions: {}".format(regions)
+        msg = f"Dropping duplicate rows found for regions: {regions}"
         _warn(msg)
         model = model[~duplicates]
 
@@ -452,8 +437,9 @@ def _harmonize_regions(
 
 
 def diagnostics(unharmonized, model, metadata, config=None):
-    """Provide warnings or throw errors based on harmonized model data and
-    metadata
+    """
+    Provide warnings or throw errors based on harmonized model data and
+    metadata.
 
     Current diagnostics are:
     - large missing values (sector has 20% or more contribution to
@@ -494,7 +480,7 @@ def diagnostics(unharmonized, model, metadata, config=None):
     report = big.loc[bad.index].reset_index()
 
     if not report.empty:
-        _warn("LARGE MISSING Values Found!!:\n {}".format(report))
+        _warn(f"LARGE MISSING Values Found!!:\n {report}")
 
     #
     # report on large medium an dlong-term differences
@@ -506,12 +492,12 @@ def diagnostics(unharmonized, model, metadata, config=None):
     if "mid" in config:
         bigmid = np.abs(model[mid] - unharmonized[mid]) / unharmonized[mid]
         bigmid = bigmid[bigmid > config["mid"]]
-        report["{}_diff".format(mid)] = bigmid
+        report[f"{mid}_diff"] = bigmid
 
     if "end" in config:
         bigend = np.abs(model[end] - unharmonized[end]) / unharmonized[end]
         bigend = bigend[bigend > config["end"]]
-        report["{}_diff".format(end)] = bigend
+        report[f"{end}_diff"] = bigend
 
     report = report.drop(cols, axis=1).dropna(how="all")
     idx = metadata.index.intersection(report.index)
@@ -526,7 +512,7 @@ def diagnostics(unharmonized, model, metadata, config=None):
     neg = m[(m[utils.numcols(m)].T < 0).any()]
 
     if not neg.empty:
-        _warn("Negative Emissions found for non-CO2 gases:\n {}".format(neg))
+        _warn(f"Negative Emissions found for non-CO2 gases:\n {neg}")
         raise ValueError("Harmonization failed due to negative non-CO2 gases")
 
     return report
