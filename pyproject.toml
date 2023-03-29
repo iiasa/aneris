@@ -29,12 +29,14 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 deploy = ["twine", "setuptools", "wheel"]
+convenience = ["pyam-iamc"]
 test = [
     "coverage",
     "pytest",
     "pytest-cov",
     "hypothesis",
-    "pooch"
+    "pooch",
+    "nbformat",
 ]
 units = ["openscm-units"]
 docs = [
