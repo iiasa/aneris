@@ -128,10 +128,11 @@ testpaths = [
 ]
 
 # Use pytest markers to select/deselect specific tests
-# markers = [
+markers = [
 #     "slow: mark tests as slow (deselect with '-m \"not slow\"')",
-#     "system: mark end-to-end system tests"
-# ]
+#     "system: mark end-to-end system tests",
+      "ipopt: requires ipopt installed from conda-forge",
+]
 
 
 [build-system]

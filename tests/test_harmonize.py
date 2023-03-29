@@ -264,6 +264,7 @@ def test_harmonize_linear_interpolation():
     npt.assert_array_almost_equal(obs, exp)
 
 
+@pytest.mark.ipopt
 def test_harmonize_budget():
     df = _df.copy()
     hist = _hist.copy()
