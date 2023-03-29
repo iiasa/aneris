@@ -1,13 +1,10 @@
-import pytest
 import pandas as pd
-
 import pandas.testing as pdt
-
-import aneris.utils as utils
-import aneris.cmip6.cmip6_utils as cutils
-
-
 from test_utils import combine_rows_df
+
+import aneris.cmip6.cmip6_utils as cutils
+import aneris.utils as utils
+
 
 def test_remove_emissions_prefix():
     assert "foo" == cutils.remove_emissions_prefix("foo")

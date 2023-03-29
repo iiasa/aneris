@@ -1,9 +1,9 @@
-import pytest
 import pandas as pd
-
 import pandas.testing as pdt
+import pytest
 
 import aneris.utils as utils
+
 
 def combine_rows_df():
     df = pd.DataFrame(
@@ -23,6 +23,7 @@ def combine_rows_df():
         }
     ).set_index(utils.df_idx)
     return df
+
 
 def test_isin():
     df = combine_rows_df()
