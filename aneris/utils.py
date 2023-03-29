@@ -12,7 +12,7 @@ import pandas as pd
 iamc_idx = ["Model", "Scenario", "Region", "Variable"]
 
 # default dataframe index
-df_idx = ["region", "gas", "sector", "units"]
+df_idx = ["region", "gas", "sector", "unit"]
 
 # paths to data dependencies
 here = os.path.join(os.path.dirname(os.path.realpath(__file__)))
@@ -411,7 +411,7 @@ class EmissionsAggregator(object):
         self.df = df
         self.model = model
         self.scenario = scenario
-        assert (self.df.units == "kt").all()
+        assert (self.df.unit == "kt").all()
 
     def add_variables(self, totals=None, aggregates=True):
         """Add aggregates and variables with direct mappings.
@@ -479,7 +479,7 @@ class FormatTranslator(object):
         self.prefix = prefix
         self.suffix = suffix
 
-    def to_std(self, df=None, set_metadata=True):
+    def to_std(self, df=None, set_metadata=True, unit=True):
         """Translate a dataframe from IAMC to standard calculation format
 
         Parameters
@@ -487,15 +487,17 @@ class FormatTranslator(object):
         df : pd.DataFrame, optional
         set_metadata : bool, optional
             save metadata (model, scenario) for future use
+        unit : bool, optional
+            check 'unit' col is present
         """
         df = self.df if df is None else df
         multi_idx = isinstance(df.index, pd.MultiIndex)
         if multi_idx:
             df.reset_index(inplace=True)
 
-        if len(set(iamc_idx) - set(df.columns)):
+        if set(iamc_idx) - set(df.columns):
             msg = "Columns do not conform with IAMC index: {}"
-            raise ValueError(msg.format(df.columns))
+            raise ValueError(msg.format(set(iamc_idx) - set(df.columns)))
 
         # make sure we're working with good data
         if len(df["Model"].unique()) > 1:
@@ -511,8 +513,9 @@ class FormatTranslator(object):
         # add std columns needed for conversions
         df["region"] = df["Region"]
         df["gas"] = gases(df["Variable"])
-        df["units"] = df["Unit"].apply(lambda x: x.split()[0])
         df["sector"] = df["Variable"]
+        if unit:
+            df["unit"] = df["Unit"].apply(lambda x: x.split()[0])
 
         # convert gas names
         self._convert_gases(df, tostd=True)
@@ -531,7 +534,10 @@ class FormatTranslator(object):
         if not df.empty:
             df["sector"] = df.apply(update_sector, axis=1)
         # drop old columns
-        df.drop(iamc_idx + ["Unit"], axis=1, inplace=True)
+        dropidx = iamc_idx.copy()
+        if unit:
+            dropidx += ["Unit"]
+        df.drop(dropidx, axis=1, inplace=True)
 
         # set up index and column order
         df.set_index(df_idx, inplace=True)
@@ -582,14 +588,14 @@ class FormatTranslator(object):
 
         df["sector"] = df.apply(update_sector, axis=1)
         # write units correctly
-        df["units"] = units(df.sector)
+        df["unit"] = units(df.sector)
 
         # add new columns, remove old
         df["Model"] = model
         df["Scenario"] = scenario
         df["Variable"] = df.sector
         df["Region"] = df.region
-        df["Unit"] = df.units
+        df["Unit"] = df.unit
         df.drop(df_idx, axis=1, inplace=True)
 
         # unit magic to make it always first, would be easier if it was in idx.
@@ -625,12 +631,12 @@ class FormatTranslator(object):
         where = ~df.gas.isin(kt_gases)
         if tostd:
             df.loc[where, numcols(df)] *= 1e3
-            df.loc[where, "units"] = "kt"
-            assert (df.units == "kt").all()
+            df.loc[where, "unit"] = "kt"
+            assert (df.unit == "kt").all()
         else:
-            assert (df.units == "kt").all()
+            assert (df.unit == "kt").all()
             df.loc[where, numcols(df)] /= 1e3
-            df.loc[where, "units"] = "Mt"
+            df.loc[where, "unit"] = "Mt"
 
 
 def isin(df=None, **filters):

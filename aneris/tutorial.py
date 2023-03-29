@@ -57,6 +57,11 @@ def load_data(
     if regions.empty:
         raise ValueError("Region definition is empty")
     model, overrides, config = aneris.read_excel(files["model"])
+    # TODO: this is a change to the file-based API, and we should probably
+    # develop a deprecation schedule or force updates to downloaded files
+    # to address it
+    if "Unit" in overrides:
+        overrides = overrides.drop(columns=["Unit"])
     model.columns = model.columns.astype(str)  # make sure they're all strings
     rc = aneris.RunControl(rc=files["rc"])
     rc.recursive_update("config", config)

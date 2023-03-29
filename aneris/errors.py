@@ -10,6 +10,12 @@ class MissingHistoricalError(ValueError):
     """
 
 
+class MissingScenarioError(ValueError):
+    """
+    Error raised when scenario data is missing
+    """
+
+
 class MissingHarmonisationYear(ValueError):
     """
     Error raised when the harmonisation year is missing

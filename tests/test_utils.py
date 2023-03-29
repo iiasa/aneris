@@ -20,7 +20,7 @@ def test_region_agg_funky_name():
                 "sector": ["foo", "foo"],
                 "region": ["a", "b"],
                 "2010": [1.0, 4.0],
-                "units": ["Mt"] * 2,
+                "unit": ["Mt"] * 2,
                 "gas": ["BC"] * 2,
             }
         )
@@ -34,7 +34,7 @@ def test_region_agg_funky_name():
                 "sector": ["foo"],
                 "region": ["fOO_Bar"],
                 "2010": [5.0],
-                "units": ["Mt"],
+                "unit": ["Mt"],
                 "gas": ["BC"],
             }
         )
@@ -57,7 +57,7 @@ def test_gases():
     pdt.assert_series_equal(obs, exp)
 
 
-def test_units():
+def test_unit():
     var_col = pd.Series(["foo|Emissions|CH4|bar", "Emissions|N2O|baz|zing"])
     exp = pd.Series(["Mt CH4/yr", "kt N2O/yr"])
     obs = utils.units(var_col)
@@ -91,7 +91,7 @@ def test_formatter_to_std():
             "region": ["a", "b"],
             "2010": [5000.0, 2000.0],
             "2020": [-1000.0, 3000.0],
-            "units": ["kt"] * 2,
+            "unit": ["kt"] * 2,
             "gas": ["BC"] * 2,
         }
     )
@@ -133,7 +133,7 @@ def combine_rows_df():
             "region": ["a", "a", "b", "b", "c"],
             "2010": [1.0, 4.0, 2.0, 21, 42],
             "foo": [-1.0, -4.0, 2.0, 21, 42],
-            "units": ["Mt"] * 5,
+            "unit": ["Mt"] * 5,
             "gas": ["BC"] * 5,
         }
     ).set_index(utils.df_idx)
@@ -153,7 +153,7 @@ def test_combine_rows_default():
             "region": ["a", "a", "a", "c"],
             "2010": [3.0, 4.0, 21, 42],
             "foo": [1.0, -4.0, 21, 42],
-            "units": ["Mt"] * 4,
+            "unit": ["Mt"] * 4,
             "gas": ["BC"] * 4,
         }
     ).set_index(utils.df_idx)
@@ -179,7 +179,7 @@ def test_combine_rows_dropothers():
             "region": ["a", "a", "a", "b", "b", "c"],
             "2010": [3.0, 4.0, 21, 2.0, 21, 42],
             "foo": [1.0, -4.0, 21, 2.0, 21, 42],
-            "units": ["Mt"] * 6,
+            "unit": ["Mt"] * 6,
             "gas": ["BC"] * 6,
         }
     ).set_index(utils.df_idx)
@@ -202,7 +202,7 @@ def test_combine_rows_sumall():
             "region": ["a", "a", "c"],
             "2010": [2.0, 21, 42],
             "foo": [2.0, 21, 42],
-            "units": ["Mt"] * 3,
+            "unit": ["Mt"] * 3,
             "gas": ["BC"] * 3,
         }
     ).set_index(utils.df_idx)
@@ -225,7 +225,7 @@ def test_isin():
             "region": ["a", "a", "b"],
             "2010": [1.0, 4.0, 2.0],
             "foo": [-1.0, -4.0, 2.0],
-            "units": ["Mt"] * 3,
+            "unit": ["Mt"] * 3,
             "gas": ["BC"] * 3,
         }
     ).set_index(utils.df_idx)

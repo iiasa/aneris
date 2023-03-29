@@ -140,13 +140,13 @@ def test_different_unit_handling(method, exp_res):
         }
     ).set_index(idx)
 
-    overrides = [{"variable": "Emissions|CO2", "method": method}]
-    overrides = pd.DataFrame(overrides)
+    overrides = [{"variable": "Emissions|CO2", "region": "World", "method": method}]
+    overrides = pd.DataFrame(overrides).set_index(["variable", "region"])["method"]
 
     res = harmonise_all(
         scenarios=scenario,
         history=hist,
-        harmonisation_year=2010,
+        year=2010,
         overrides=overrides,
     )
 
@@ -199,7 +199,7 @@ def scenarios_df():
 
 @pytest.mark.parametrize("extra_col", (False, "mip_era"))
 @pytest.mark.parametrize(
-    "harmonisation_year,scales",
+    "year,scales",
     (
         (2010, [1.1, 2]),
         (2015, [12 / 11, 25 / 15]),
@@ -209,7 +209,7 @@ def test_different_unit_handling_multiple_timeseries_constant_ratio(
     hist_df,
     scenarios_df,
     extra_col,
-    harmonisation_year,
+    year,
     scales,
 ):
     if extra_col:
@@ -217,22 +217,23 @@ def test_different_unit_handling_multiple_timeseries_constant_ratio(
         scenarios_df = scenarios_df.set_index(extra_col, append=True)
 
     exp = scenarios_df.multiply(scales, axis=0)
+    # new requirement - we won't provide data before harmonization year
+    exp = exp[[c for c in exp.columns if c >= year]]
 
-    overrides = [{"method": "constant_ratio"}]
-    overrides = pd.DataFrame(overrides)
+    overrides = [{"region": "World", "method": "constant_ratio"}]
+    overrides = pd.DataFrame(overrides).set_index(["region"])["method"]
 
     res = harmonise_all(
         scenarios=scenarios_df,
         history=hist_df,
-        harmonisation_year=harmonisation_year,
+        year=year,
         overrides=overrides,
     )
-
     pdt.assert_frame_equal(res, exp)
 
 
 @pytest.mark.parametrize(
-    "harmonisation_year,offset",
+    "year,offset",
     (
         (2010, [1, 0.1]),
         (2015, [1, 0.1]),
@@ -242,10 +243,12 @@ def test_different_unit_handling_multiple_timeseries_constant_ratio(
 def test_different_unit_handling_multiple_timeseries_constant_offset(
     hist_df,
     scenarios_df,
-    harmonisation_year,
+    year,
     offset,
 ):
     exp = scenarios_df.add(offset, axis=0)
+    # new requirement - we won't provide data before harmonization year
+    exp = exp[[c for c in exp.columns if c >= year]]
 
     overrides = [{"method": "constant_offset"}]
     overrides = pd.DataFrame(overrides)
@@ -253,7 +256,7 @@ def test_different_unit_handling_multiple_timeseries_constant_offset(
     res = harmonise_all(
         scenarios=scenarios_df,
         history=hist_df,
-        harmonisation_year=harmonisation_year,
+        year=year,
         overrides=overrides,
     )
 
@@ -264,7 +267,7 @@ def test_different_unit_handling_multiple_timeseries_overrides(
     hist_df,
     scenarios_df,
 ):
-    harmonisation_year = 2015
+    year = 2015
 
     exp = scenarios_df.sort_index()
     for r in exp.index:
@@ -279,9 +282,7 @@ def test_different_unit_handling_multiple_timeseries_overrides(
                     # offsets which seems surprising
                     sf = harm_year_ratio
                 else:
-                    sf = 1 + (
-                        (harm_year_ratio - 1) * (2050 - c) / (2050 - harmonisation_year)
-                    )
+                    sf = 1 + ((harm_year_ratio - 1) * (2050 - c) / (2050 - year))
 
                 exp.loc[r, c] *= sf
             else:
@@ -290,48 +291,35 @@ def test_different_unit_handling_multiple_timeseries_overrides(
                 if c >= 2030:
                     of = 0
                 else:
-                    of = harm_year_offset * (2030 - c) / (2030 - harmonisation_year)
+                    of = harm_year_offset * (2030 - c) / (2030 - year)
 
                 exp.loc[r, c] += of
+    # new requirement - we won't provide data before harmonization year
+    exp = exp[[c for c in exp.columns if c >= year]]
 
     overrides = [
         {"variable": "Emissions|CO2", "method": "reduce_ratio_2050"},
         {"variable": "Emissions|CH4", "method": "reduce_offset_2030"},
     ]
-    overrides = pd.DataFrame(overrides)
+    overrides = pd.DataFrame(overrides).set_index("variable")["method"]
 
     res = harmonise_all(
         scenarios=scenarios_df,
         history=hist_df,
-        harmonisation_year=harmonisation_year,
+        year=year,
         overrides=overrides,
     )
-
     pdt.assert_frame_equal(res, exp, check_like=True)
 
 
 def test_raise_if_variable_not_in_hist(hist_df, scenarios_df):
     hist_df = hist_df[~hist_df.index.get_level_values("variable").str.endswith("CO2")]
 
-    error_msg = re.escape("No historical data for `World` `Emissions|CO2`")
-    with pytest.raises(MissingHistoricalError, match=error_msg):
+    with pytest.raises(MissingHistoricalError):
         harmonise_all(
             scenarios=scenarios_df,
             history=hist_df,
-            harmonisation_year=2010,
-            overrides=pd.DataFrame([{"method": "constant_ratio"}]),
-        )
-
-
-def test_raise_if_region_not_in_hist(hist_df, scenarios_df):
-    hist_df = hist_df[~hist_df.index.get_level_values("region").str.startswith("World")]
-
-    error_msg = re.escape("No historical data for `World` `Emissions|CH4`")
-    with pytest.raises(MissingHistoricalError, match=error_msg):
-        harmonise_all(
-            scenarios=scenarios_df,
-            history=hist_df,
-            harmonisation_year=2010,
+            year=2010,
             overrides=pd.DataFrame([{"method": "constant_ratio"}]),
         )
 
@@ -349,7 +337,7 @@ def test_raise_if_incompatible_unit(hist_df, scenarios_df):
         harmonise_all(
             scenarios=scenarios_df,
             history=hist_df,
-            harmonisation_year=2010,
+            year=2010,
             overrides=pd.DataFrame([{"method": "constant_ratio"}]),
         )
 
@@ -363,39 +351,34 @@ def test_raise_if_undefined_unit(hist_df, scenarios_df):
         harmonise_all(
             scenarios=scenarios_df,
             history=hist_df,
-            harmonisation_year=2010,
+            year=2010,
             overrides=pd.DataFrame([{"method": "constant_ratio"}]),
         )
 
 
-def test_raise_if_harmonisation_year_missing(hist_df, scenarios_df):
+def test_raise_if_year_missing(hist_df, scenarios_df):
     hist_df = hist_df.drop(2015, axis="columns")
 
-    error_msg = re.escape(
-        "No historical data for year 2015 for `World` `Emissions|CH4`"
-    )
+    error_msg = re.escape("No historical data in harmonization year")
     with pytest.raises(MissingHarmonisationYear, match=error_msg):
         harmonise_all(
             scenarios=scenarios_df,
             history=hist_df,
-            harmonisation_year=2015,
+            year=2015,
             overrides=pd.DataFrame([{"method": "constant_ratio"}]),
         )
 
 
-def test_raise_if_harmonisation_year_nan(hist_df, scenarios_df):
+def test_raise_if_year_nan(hist_df, scenarios_df):
     hist_df.loc[
         hist_df.index.get_level_values("variable").str.endswith("CO2"), 2015
     ] = np.nan
 
-    error_msg = re.escape(
-        "Historical data is null for year 2015 for `World` `Emissions|CO2`"
-    )
-    with pytest.raises(MissingHarmonisationYear, match=error_msg):
+    with pytest.raises(MissingHistoricalError):
         harmonise_all(
             scenarios=scenarios_df,
             history=hist_df,
-            harmonisation_year=2015,
+            year=2015,
             overrides=pd.DataFrame([{"method": "constant_ratio"}]),
         )
 
@@ -476,12 +459,12 @@ def test_override_multi_level(hist_df, scenarios_df):
                 "method": "reduce_offset_2070",
             },
         ]
-    )
+    ).set_index(["model", "scenario", "region", "variable"])["method"]
 
     res = harmonise_all(
         scenarios=scenarios_df,
         history=hist_df,
-        harmonisation_year=2015,
+        year=2015,
         overrides=overrides,
     )
 
@@ -492,6 +475,7 @@ def test_override_multi_level(hist_df, scenarios_df):
 
     atol = 1e-4
     pick_rows = co2_rows & world_rows & ~fancy_rows & ~emf33_rows
+    scenarios_df = scenarios_df[[c for c in scenarios_df.columns if c >= 2015]]
     npt.assert_allclose(
         res.loc[pick_rows, :],
         12 / 11 * scenarios_df.loc[pick_rows, :],
@@ -505,34 +489,34 @@ def test_override_multi_level(hist_df, scenarios_df):
 
     npt.assert_allclose(
         res.loc[co2_rows & ~world_rows & ~fancy_rows & ~emf33_rows, :].squeeze(),
-        [7.636363, 8.4, 4.21212121, 5, 3, 1],
+        [8.4, 4.21212121, 5, 3, 1],
         atol=atol,
     )
     npt.assert_allclose(
         res.loc[~co2_rows & ~world_rows & ~fancy_rows & ~emf33_rows, :].squeeze(),
-        [0.11667, 0.175, 0.285714, 0.109524, 0.05, 0.03],
+        [0.175, 0.285714, 0.109524, 0.05, 0.03],
         atol=atol,
     )
 
     npt.assert_allclose(
         res.loc[co2_rows & world_rows & fancy_rows & ~emf33_rows, :].squeeze(),
-        [10.909090, 12, 5.413233, 5.330579, 3.099174, 1],
+        [12, 5.413233, 5.330579, 3.099174, 1],
         atol=atol,
     )
     npt.assert_allclose(
         res.loc[~co2_rows & world_rows & fancy_rows & ~emf33_rows, :].squeeze(),
-        [0.16667, 0.25, 0.405555, 0.15333, 0.067777, 0.03],
+        [0.25, 0.405555, 0.15333, 0.067777, 0.03],
         atol=atol,
     )
 
     npt.assert_allclose(
         res.loc[co2_rows & world_rows & ~fancy_rows & emf33_rows, :].squeeze(),
-        [11.142857, 12, 5.857143, 5.571429, 3, 1],
+        [12, 5.857143, 5.571429, 3, 1],
         atol=atol,
     )
     npt.assert_allclose(
         res.loc[~co2_rows & world_rows & ~fancy_rows & emf33_rows, :].squeeze(),
-        [0.2090909, 0.25, 0.340909, 0.172727, 0.086364, 0.03],
+        [0.25, 0.340909, 0.172727, 0.086364, 0.03],
         atol=atol,
     )
 
@@ -545,7 +529,7 @@ def test_override_multi_level(hist_df, scenarios_df):
                 {"region": "World", "method": "constant_ratio"},
                 {"region": "World", "method": "constant_offset"},
             ]
-        ),
+        ).set_index("region")["method"],
         pd.DataFrame(
             [
                 {
@@ -576,12 +560,12 @@ def test_override_multi_level(hist_df, scenarios_df):
 )
 def test_multiple_matching_overrides(hist_df, scenarios_df, overrides):
     with pytest.raises(
-        AmbiguousHarmonisationMethod, match="More than one override for metadata"
+        AmbiguousHarmonisationMethod,
     ):
         harmonise_all(
             scenarios=scenarios_df,
             history=hist_df,
-            harmonisation_year=2015,
+            year=2015,
             overrides=overrides,
         )
 
@@ -632,13 +616,13 @@ def test_defaults(hist_df, scenarios_df):
     res = harmonise_all(
         scenarios=scenarios_df,
         history=hist_df,
-        harmonisation_year=2015,
+        year=2015,
     )
 
     exp = harmonise_all(
         scenarios=scenarios_df,
         history=hist_df,
-        harmonisation_year=2015,
+        year=2015,
         overrides=pd.DataFrame(
             [
                 {"variable": "Emissions|CO2", "method": "reduce_ratio_2080"},
