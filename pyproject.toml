@@ -29,7 +29,16 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 deploy = ["twine", "setuptools", "wheel"]
-tests = ["pytest", "coverage", "coveralls", "pytest", "pytest-cov[all]", "black"]
+convenience = ["pyam-iamc"]
+test = [
+    "coverage",
+    "pytest",
+    "pytest-cov",
+    "hypothesis",
+    "pooch",
+    "nbformat",
+    "nbconvert",
+]
 units = ["openscm-units"]
 docs = [
         "sphinx",
@@ -44,14 +53,17 @@ docs = [
         "jupyter_contrib_nbextensions",
         "pillow",
     ]
-    
+lint = [
+    "black",
+    "ruff"
+]
+
 [project.scripts]
 aneris = "aneris.cli:main"
 
 [tool.setuptools_scm]
-# See configuration details in https://github.com/pypa/setuptools_scm
-version_scheme = "no-guess-dev"
-write_to = "aneris/_version.py"
+fallback_version = "999"
+
 
 [tool.flake8]
 ignore = ["I002", "F403", "E402", "E731", "E203", "W503"]
@@ -60,6 +72,44 @@ exclude = [
 	"doc",
 	"tests"
 ]
+
+[tool.ruff]
+target-version = "py38"
+builtins = ["ellipsis"]
+exclude = [
+    ".eggs",
+    "doc",
+    "_typed_ops.pyi",
+]
+# E402: module level import not at top of file
+# E501: line too long - let black worry about that
+# E731: do not assign a lambda expression, use a def
+# E741: ambiguous variable names
+ignore = [
+    "E402",
+    "E501",
+    "E731",
+    "E741"
+]
+select = [
+    # Pyflakes
+    "F",
+    # Pycodestyle
+    "E",
+    "W",
+    # isort
+    "I",
+    # Pyupgrade
+    "UP",
+]
+
+[tool.ruff.per-file-ignores]
+# F401: imported but unsued
+"__init__.py" = ["F401"]
+
+[tool.ruff.isort]
+lines-after-imports = 2
+known-first-party = ["aneris"]
 
 [tool.pytest.ini_options]
 # Specify command line options as you would do when invoking pytest directly.
@@ -79,21 +129,13 @@ testpaths = [
 ]
 
 # Use pytest markers to select/deselect specific tests
-# markers = [
+markers = [
 #     "slow: mark tests as slow (deselect with '-m \"not slow\"')",
-#     "system: mark end-to-end system tests"
-# ]
+#     "system: mark end-to-end system tests",
+      "ipopt: requires ipopt installed from conda-forge",
+]
 
-[tool.black]
-extend-exclude = '''
-(
-  _version.py |
-  ^/doc
-)
-'''
-line-length = 88
-target-version = ['py39']
 
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools>=46.1.0", "setuptools_scm[toml]>=5", "wheel", "tomli; python_version < '3.11'"]
+requires = ["setuptools>=46.1.0", "setuptools_scm[toml]>=6.2"]

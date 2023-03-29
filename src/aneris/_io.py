@@ -1,14 +1,16 @@
-"""Provides helper functions for reading input data and configuration files.
+"""
+Provides helper functions for reading input data and configuration files.
 
 The default configuration values are provided in aneris.RC_DEFAULTS.
 """
-from collections import abc
 import os
-import yaml
+from collections import abc
 
 import pandas as pd
+import yaml
 
-from aneris.utils import isstr, isnum, iamc_idx, pd_read
+from aneris.utils import iamc_idx, isnum, isstr, pd_read
+
 
 RC_DEFAULTS = """
 config:
@@ -51,7 +53,8 @@ def _recursive_update(d, u):
 
 
 def read_excel(f):
-    """Read an excel-based input file for harmonization.
+    """
+    Read an excel-based input file for harmonization.
 
     Parameters
     ----------
@@ -93,9 +96,11 @@ def read_excel(f):
 
 
 class RunControl(abc.Mapping):
-    """A thin wrapper around a Python Dictionary to support configuration of
-    harmonization execution. Input can be provided as dictionaries or YAML
-    files.
+    """
+    A thin wrapper around a Python Dictionary to support configuration of
+    harmonization execution.
+
+    Input can be provided as dictionaries or YAML files.
     """
 
     def __init__(self, rc=None, defaults=None):
@@ -137,7 +142,7 @@ class RunControl(abc.Mapping):
             msg = (
                 "YAML key '{}' in {}: {} is not a valid relative " + "or absolute path"
             )
-            raise IOError(msg.format(key, fyaml, fname))
+            raise OSError(msg.format(key, fyaml, fname))
         return _fname
 
     def _fill_relative_paths(self, fyaml, d):
@@ -164,7 +169,8 @@ class RunControl(abc.Mapping):
         return obj
 
     def recursive_update(self, k, d):
-        """Recursively update a top-level option in the run control
+        """
+        Recursively update a top-level option in the run control.
 
         Parameters
         ----------

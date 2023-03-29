@@ -1,11 +1,13 @@
 import os
 
+
 try:
     from urllib.request import urlretrieve  # py3
 except ImportError:
     from urllib import urlretrieve  # py2
 
 import aneris
+
 
 _default_cache_dir = os.path.join("~", ".aneris_tutorial_data")
 
@@ -67,7 +69,9 @@ def load_data(
     rc.recursive_update("config", config)
 
     # get driver
-    driver = aneris.HarmonizationDriver(rc, hist, model, overrides, regions)
+    driver = aneris.cmip6.driver.HarmonizationDriver(
+        rc, hist, model, overrides, regions
+    )
 
     if not cache:
         for localfile in files.values():

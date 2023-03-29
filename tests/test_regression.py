@@ -1,13 +1,13 @@
-import pytest
 import os
 import shutil
-
-import pandas as pd
-
-from pandas.testing import assert_frame_equal
 from os.path import join
 
+import pandas as pd
+import pytest
+from pandas.testing import assert_frame_equal
+
 from aneris import cli
+
 
 # This is a class that runs all tests through the harmonize CLI Note that it
 # uses the actual harmonize API rather than subprocessing the CLI because
@@ -47,9 +47,9 @@ class TestHarmonizeRegression:
         reg = join(prefix, reg)
         rc = join(prefix, rc)
         inf = join(prefix, inf)
-        outf = join(prefix, "{}_harmonized.xlsx".format(name))
-        outf_meta = join(prefix, "{}_metadata.xlsx".format(name))
-        outf_diag = join(prefix, "{}_diagnostics.xlsx".format(name))
+        outf = join(prefix, f"{name}_harmonized.xlsx")
+        outf_meta = join(prefix, f"{name}_metadata.xlsx")
+        outf_diag = join(prefix, f"{name}_diagnostics.xlsx")
         clean = [outf, outf_meta, outf_diag]
 
         # make sure we're fresh
@@ -96,11 +96,11 @@ class TestHarmonizeRegression:
     def test_basic_run(self, file_suffix):
         # this is run no matter what
         prefix = "test_data"
-        checkf = "test_{}.xlsx".format(file_suffix)
-        hist = "history_{}.xls".format(file_suffix)
-        reg = "regions_{}.csv".format(file_suffix)
-        inf = "model_{}.xls".format(file_suffix)
-        rc = "aneris_{}.yaml".format(file_suffix)
+        checkf = f"test_{file_suffix}.xlsx"
+        hist = f"history_{file_suffix}.xls"
+        reg = f"regions_{file_suffix}.csv"
+        inf = f"model_{file_suffix}.xls"
+        rc = f"aneris_{file_suffix}.yaml"
 
         # get all arguments
         self._run(inf, checkf, hist, reg, rc, prefix, file_suffix)
@@ -108,8 +108,8 @@ class TestHarmonizeRegression:
     @pytest.mark.skipif(not ON_CI, reason=ON_CI_REASON)
     @pytest.mark.parametrize("name", ["msg", "gcam"])
     def test_regression_ci(self, name):
-        prefix = join(ci_path, "test-{}".format(name))
-        checkf = "{}_harmonized.xlsx".format(name)
+        prefix = join(ci_path, f"test-{name}")
+        checkf = f"{name}_harmonized.xlsx"
         hist = "history.csv"
         reg = "regiondef.xlsx"
         rc = "rc.yaml"
