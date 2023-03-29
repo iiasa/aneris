@@ -1,6 +1,8 @@
 import os
-import requests
 import tarfile
+
+import requests
+
 
 username = os.environ["ANERIS_CI_USER"]
 password = os.environ["ANERIS_CI_PW"]
@@ -12,20 +14,18 @@ def download(filename):
     r = requests.get(url + filename, auth=(username, password))
 
     if r.status_code == 200:
-        print("Downloading {} from {}".format(filename, url))
+        print(f"Downloading {filename} from {url}")
         with open(filename, "wb") as out:
             for bits in r.iter_content():
                 out.write(bits)
         assert os.path.exists(filename)
-        print("Untarring {}".format(filename))
+        print(f"Untarring {filename}")
         tar = tarfile.open(filename, "r:gz")
         tar.extractall()
         tar.close()
         os.remove(filename)
     else:
-        raise IOError(
-            "Failed download with user/pass: {}/{}".format(username, password)
-        )
+        raise OSError(f"Failed download with user/pass: {username}/{password}")
 
 
 download("data.tar.gz")

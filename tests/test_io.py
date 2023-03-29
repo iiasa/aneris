@@ -1,7 +1,9 @@
-import pytest
 import tempfile
 
+import pytest
+
 from aneris import _io
+
 
 _defaults = {
     "config": {

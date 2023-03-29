@@ -1,11 +1,9 @@
-import io
 import os
 import subprocess
 import sys
-import tempfile
+
 import nbformat
-import pytest
-import jupyter
+
 
 here = os.path.dirname(os.path.realpath(__file__))
 tut_path = os.path.join(here, "..", "doc", "source")
@@ -15,15 +13,17 @@ tut_path = os.path.join(here, "..", "doc", "source")
 
 
 def _notebook_run(path, kernel=None, capsys=None):
-    """Execute a notebook via nbconvert and collect output.
+    """
+    Execute a notebook via nbconvert and collect output.
+
     :returns (parsed nb object, execution errors)
     """
     assert os.path.exists(path)
     major_version = sys.version_info[0]
-    kernel = kernel or "python{}".format(major_version)
+    kernel = kernel or f"python{major_version}"
     if capsys is not None:
         with capsys.disabled():
-            print("using py version {} with kernel {}".format(major_version, kernel))
+            print(f"using py version {major_version} with kernel {kernel}")
     dirname, __ = os.path.split(path)
     os.chdir(dirname)
     fname = os.path.join(here, "test.ipynb")
@@ -34,14 +34,14 @@ def _notebook_run(path, kernel=None, capsys=None):
         "notebook",
         "--execute",
         "--ExecutePreprocessor.timeout=60",
-        "--ExecutePreprocessor.kernel_name={}".format(kernel),
+        f"--ExecutePreprocessor.kernel_name={kernel}",
         "--output",
         fname,
         path,
     ]
     subprocess.check_call(args)
 
-    nb = nbformat.read(io.open(fname, encoding="utf-8"), nbformat.current_nbformat)
+    nb = nbformat.read(open(fname, encoding="utf-8"), nbformat.current_nbformat)
 
     errors = [
         output

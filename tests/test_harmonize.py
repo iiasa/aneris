@@ -1,11 +1,10 @@
+import numpy as np
+import numpy.testing as npt
 import pandas as pd
 import pytest
-import numpy as np
 
-import numpy.testing as npt
+from aneris import harmonize, utils
 
-from aneris import harmonize
-from aneris import utils
 
 nvals = 6
 
@@ -125,7 +124,7 @@ def test_harmonize_reduce_offset():
     # this is bad, there should be a test for each case
     for tf in [2050, 2100, 2150]:
         print(tf)
-        method = "reduce_offset_{}".format(tf)
+        method = f"reduce_offset_{tf}"
         methods["method"] = [method] * nvals
         res = h.harmonize(year="2015", overrides=methods["method"])
 
@@ -155,7 +154,7 @@ def test_harmonize_reduce_ratio():
     # this is bad, there should be a test for each case
     for tf in [2050, 2100, 2150]:
         print(tf)
-        method = "reduce_ratio_{}".format(tf)
+        method = f"reduce_ratio_{tf}"
         methods["method"] = [method] * nvals
         res = h.harmonize(year="2015", overrides=methods["method"])
 
@@ -189,7 +188,7 @@ def test_harmonize_reduce_ratio_different_units():
 
     tf = 2050
 
-    method = "reduce_ratio_{}".format(tf)
+    method = f"reduce_ratio_{tf}"
     methods["method"] = [method] * nvals
     res = h.harmonize(year="2015", overrides=methods["method"])
 
