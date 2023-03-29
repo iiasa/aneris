@@ -1,30 +1,27 @@
-from __future__ import division
-
-import numpy as np
-import pandas as pd
-from itertools import chain
 from functools import partial
+from itertools import chain
+
+import pandas as pd
 from pandas_indexing import projectlevel, semijoin
 
 from aneris import utils
-from aneris.utils import isin, pd_read
-from aneris.methods import (
-    harmonize_factors,
-    constant_offset,
-    reduce_offset,
-    constant_ratio,
-    reduce_ratio,
-    linear_interpolate,
-    model_zero,
-    hist_zero,
-    budget,
-    coeff_of_var,
-    default_methods,
-)
 from aneris.errors import (
     MissingHarmonisationYear,
     MissingHistoricalError,
     MissingScenarioError,
+)
+from aneris.methods import (
+    budget,
+    coeff_of_var,
+    constant_offset,
+    constant_ratio,
+    default_methods,
+    harmonize_factors,
+    hist_zero,
+    linear_interpolate,
+    model_zero,
+    reduce_offset,
+    reduce_ratio,
 )
 
 
@@ -77,9 +74,10 @@ def _check_overrides(overrides, idx):
         raise ValueError(f"Overrides must be indexed by {idx}")
 
 
-class Harmonizer(object):
-    """A class used to harmonize model data to historical data in the
-    standard calculation format
+class Harmonizer:
+    """
+    A class used to harmonize model data to historical data in the standard
+    calculation format.
     """
 
     _methods = {
@@ -106,8 +104,8 @@ class Harmonizer(object):
         method_choice=None,
     ):
         """
-        The Harmonizer class prepares and harmonizes historical data to
-        model data.
+        The Harmonizer class prepares and harmonizes historical data to model
+        data.
 
         It has a strict requirement that all index values match between
         the historical and data DataFrames.
@@ -164,7 +162,9 @@ class Harmonizer(object):
         self.luc_cov_threshold = config.get("luc_cov_threshold")
 
     def metadata(self):
-        """Return pd.DataFrame of method choice metadata"""
+        """
+        Return pd.DataFrame of method choice metadata.
+        """
         methods = self.methods_used
         if isinstance(methods, pd.Series):  # only defaults used
             methods = methods.to_frame()
@@ -249,8 +249,9 @@ class Harmonizer(object):
     def methods(self, year=None, overrides=None):
         # TODO: next issue is that other 'convenience' methods have less
         # robust override indices. need to decide how to support this
-        """Return pd.DataFrame of methods to use for harmonization given
-        pd.DataFrame of overrides
+        """
+        Return pd.DataFrame of methods to use for harmonization given
+        pd.DataFrame of overrides.
         """
         # get method listing
         base_year = year if year is not None else self.base_year or "2015"
@@ -284,8 +285,9 @@ class Harmonizer(object):
         return methods
 
     def harmonize(self, year=None, overrides=None):
-        """Return pd.DataFrame of harmonized trajectories given pd.DataFrame
-        overrides
+        """
+        Return pd.DataFrame of harmonized trajectories given pd.DataFrame
+        overrides.
         """
         base_year = year if year is not None else self.base_year or "2015"
         _check_data(self.history, self.data, base_year, self.harm_idx)
@@ -315,7 +317,7 @@ class Harmonizer(object):
         dfs = []
         y = base_year
         for method in methods.unique():
-            _log("Harmonizing with {}".format(method))
+            _log(f"Harmonizing with {method}")
             # get subset indicies
             idx = methods[methods == method].index
             check_len = len(methods.unique()) > 1

@@ -1,18 +1,20 @@
-"""This module defines all possible functional forms of harmonization methods
-and the default decision tree for choosing which method to use.
-
+"""
+This module defines all possible functional forms of harmonization methods and
+the default decision tree for choosing which method to use.
 """
 
-import pandas as pd
-import numpy as np
 from bisect import bisect
+
+import numpy as np
+import pandas as pd
 import pyomo.environ as pyo
 
 from aneris import utils
 
 
 def harmonize_factors(df, hist, harmonize_year="2015"):
-    """Calculate offset and ratio values between data and history
+    """
+    Calculate offset and ratio values between data and history.
 
     Parameters
     ----------
@@ -39,7 +41,8 @@ def harmonize_factors(df, hist, harmonize_year="2015"):
 
 
 def constant_offset(df, offset, harmonize_year="2015"):
-    """Calculate constant offset harmonized trajectory
+    """
+    Calculate constant offset harmonized trajectory.
 
     Parameters
     ----------
@@ -63,7 +66,8 @@ def constant_offset(df, offset, harmonize_year="2015"):
 
 
 def constant_ratio(df, ratios, harmonize_year="2015"):
-    """Calculate constant ratio harmonized trajectory
+    """
+    Calculate constant ratio harmonized trajectory.
 
     Parameters
     ----------
@@ -87,7 +91,8 @@ def constant_ratio(df, ratios, harmonize_year="2015"):
 
 
 def linear_interpolate(df, offset, final_year="2050", harmonize_year="2015"):
-    """Calculate linearly interpolated convergence harmonized trajectory
+    """
+    Calculate linearly interpolated convergence harmonized trajectory.
 
     Parameters
     ----------
@@ -118,7 +123,8 @@ def linear_interpolate(df, offset, final_year="2050", harmonize_year="2015"):
 
 
 def reduce_offset(df, offset, final_year="2050", harmonize_year="2015"):
-    """Calculate offset convergence harmonized trajectory
+    """
+    Calculate offset convergence harmonized trajectory.
 
     Parameters
     ----------
@@ -152,7 +158,8 @@ def reduce_offset(df, offset, final_year="2050", harmonize_year="2015"):
 
 
 def reduce_ratio(df, ratios, final_year="2050", harmonize_year="2015"):
-    """Calculate ratio convergence harmonized trajectory
+    """
+    Calculate ratio convergence harmonized trajectory.
 
     Parameters
     ----------
@@ -191,7 +198,8 @@ def reduce_ratio(df, ratios, final_year="2050", harmonize_year="2015"):
 
 
 def budget(df, df_hist, harmonize_year="2015"):
-    r"""Calculate budget harmonized trajectory
+    r"""
+    Calculate budget harmonized trajectory.
 
     Parameters
     ----------
@@ -343,7 +351,9 @@ def budget(df, df_hist, harmonize_year="2015"):
 
 
 def model_zero(df, offset, harmonize_year="2015"):
-    """Returns result of aneris.methods.constant_offset()"""
+    """
+    Returns result of aneris.methods.constant_offset()
+    """
     # current decision is to return a simple offset, this will be a straight
     # line for all time periods. previous behavior was to set df[numcols] = 0,
     # i.e., report 0 if model reports 0.
@@ -351,14 +361,17 @@ def model_zero(df, offset, harmonize_year="2015"):
 
 
 def hist_zero(df, *args, **kwargs):
-    """Returns df (no change)"""
+    """
+    Returns df (no change)
+    """
     # TODO: should this set values to 0?
     df = df.copy()
     return df
 
 
 def coeff_of_var(s):
-    """Returns coefficient of variation of a Series
+    """
+    Returns coefficient of variation of a Series.
 
     .. math:: c_v = \\frac{\\sigma(s^{\\prime}(t))}{\\mu(s^{\\prime}(t))}
 
@@ -379,7 +392,8 @@ def coeff_of_var(s):
 def default_method_choice(
     row, ratio_method, offset_method, luc_method, luc_cov_threshold
 ):
-    """Default decision tree as documented at
+    """
+    Default decision tree as documented at.
 
     Refer to choice flow chart at
     https://drive.google.com/drive/folders/0B6_Oqvcg8eP9QXVKX2lFVUJiZHc
@@ -424,7 +438,8 @@ def default_method_choice(
 
 
 def default_methods(hist, model, base_year, method_choice=None, **kwargs):
-    """Determine default harmonization methods to use.
+    """
+    Determine default harmonization methods to use.
 
     See http://mattgidden.com/aneris/theory.html#default-decision-tree for a
     graphical description of the decision tree.
