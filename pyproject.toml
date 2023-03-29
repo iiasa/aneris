@@ -37,6 +37,7 @@ test = [
     "hypothesis",
     "pooch",
     "nbformat",
+    "pyam-iamc",
 ]
 units = ["openscm-units"]
 docs = [
