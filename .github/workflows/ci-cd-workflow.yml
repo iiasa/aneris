@@ -3,12 +3,9 @@ name: ci
 
 on:
   push:
-    branches:
-      - 'main'
-      - 'dev'
+    branches: [ 'master' ]
   pull_request:
-      - 'main'
-      - 'dev'
+    branches: [ '**' ]
 
 jobs:
   test:
