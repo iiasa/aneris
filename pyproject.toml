@@ -37,6 +37,7 @@ test = [
     "hypothesis",
     "pooch",
     "nbformat",
+    "nbconvert",
 ]
 units = ["openscm-units"]
 docs = [
