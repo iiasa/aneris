@@ -1,7 +1,7 @@
 import pandas as pd
 import pyam
 from openscm_units import unit_registry
-from pandas_indexing import isin, semijoin
+from pandas_indexing import isin, semijoin, projectlevel
 
 from .errors import (
     AmbiguousHarmonisationMethod,
@@ -100,9 +100,8 @@ def _knead_overrides(overrides, scen, harm_idx):
 def _check_data(hist, scen, year):
     check = ["region", "variable"]
 
-    # @coroa - this may be a very slow way to do this check..
     def downselect(df):
-        return df.filter(year=year)._data.reset_index().set_index(check).index.unique()
+        return projectlevel(df._data.index[isin(df._data, year=year)], check)
 
     s = downselect(scen)
     h = downselect(hist)
