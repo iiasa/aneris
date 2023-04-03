@@ -37,8 +37,9 @@ def grid(
     as_flux=False,
 ):
     # TODO: add docstrings
-    # Note that area normalization has been kept with `as_flux`, but other unit conversions need to happen outside
-    # this function: kg_per_mt = 1e9, s_per_yr = 365 * 24 * 60 * 60
+    # Note that area normalization has been kept with `as_flux`,
+    # but other unit conversions need to happen outside this function:
+    # kg_per_mt = 1e9, s_per_yr = 365 * 24 * 60 * 60
     # Otherwise, operates as currently in `prototype_gridding.ipynb`
     df_dim_diff = set(extra_coords + [value_col, shape_col]).difference(set(df.columns))
     if df_dim_diff:
