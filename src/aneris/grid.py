@@ -7,13 +7,10 @@ from aneris import utils
 from aneris.errors import MissingColumns, MissingCoordinateValue, MissingDimension
 
 
-def check_coord_overlap(
-    x, y, coord, x_strict=False, y_strict=False, strict=False, warn=False
-):
+def check_coord_overlap(x, y, coord, x_strict=False, y_strict=False, warn=False):
+    # TODO: add docs and try to generalize iso coord logic
     x, y = set(np.unique(x[coord])), set(np.unique(y[coord]))
     msg = ""
-    if strict:
-        x_strict, y_strict = True, True
     if x_strict and x - y:
         missing = x - y
         if coord == "iso":
@@ -62,13 +59,15 @@ def grid(
     weighted_proxy = idx_raster * proxy
     normalized_proxy = weighted_proxy / weighted_proxy.sum(dim=["lat", "lon"])
 
-    for coord in ["gas", "sector", "year"]:
-        check_coord_overlap(normalized_proxy, map_data, coord, strict=True)
+    for coord in extra_coords:
+        check_coord_overlap(
+            normalized_proxy, map_data, coord, x_strict=True, y_strict=True
+        )
+    check_coord_overlap(normalized_proxy, map_data, shape_col, y_strict=True)
     # warn here because sometimes we have more small countries than data
-    check_coord_overlap(normalized_proxy, map_data, "iso", x_strict=True, warn=True)
-    check_coord_overlap(normalized_proxy, map_data, "iso", y_strict=True)
+    check_coord_overlap(normalized_proxy, map_data, shape_col, x_strict=True, warn=True)
 
-    result = (map_data * normalized_proxy).sum(dim="iso")[value_col]
+    result = (map_data * normalized_proxy).sum(dim=shape_col)[value_col]
     if as_flux:
         lat_areas_in_m2 = xr.DataArray.from_series(pt.cell_area_from_file(proxy))
         result /= lat_areas_in_m2
