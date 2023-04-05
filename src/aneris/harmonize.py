@@ -60,7 +60,7 @@ def _check_data(hist, scen, year, idx):
         )
 
 
-def _check_overrides(overrides, idx):
+def _check_overrides(overrides, data_index):
     if overrides is None:
         return
 
@@ -70,8 +70,16 @@ def _check_overrides(overrides, idx):
     if not overrides.name == "method":
         raise ValueError("Overrides name must be method")
 
-    if not overrides.index.name != idx:
-        raise ValueError(f"Overrides must be indexed by {idx}")
+    # Check whether there exists an override for at least one data variable
+    _, lidx, _ = overrides.index.join(data_index, how="right", return_indexers=True)
+    if lidx is None:
+        return
+
+    if (lidx == -1).all():
+        raise ValueError(
+            "overrides must have at least one index dimension "
+            f"aligned with methods: {data_index.names}"
+        )
 
 
 class Harmonizer:
@@ -155,11 +163,11 @@ class Harmonizer:
         )
         self.method_choice = method_choice
 
-        # get default methods to use in decision tree
-        self.ratio_method = config.get("default_ratio_method")
-        self.offset_method = config.get("default_offset_method")
-        self.luc_method = config.get("default_luc_method")
-        self.luc_cov_threshold = config.get("luc_cov_threshold")
+        # set default methods to use in decision tree
+        self.ratio_method = config.get("default_ratio_method", "reduce_ratio_2080")
+        self.offset_method = config.get("default_offset_method", "reduce_offset_2080")
+        self.luc_method = config.get("default_luc_method", "reduce_offset_2150_cov")
+        self.luc_cov_threshold = config.get("luc_cov_threshold", 10)
 
     def metadata(self):
         """
@@ -216,13 +224,10 @@ class Harmonizer:
 
     def _harmonize(self, method, idx, check_len, base_year):
         # get data
-        def downselect(df, idx, level="unit"):
-            return df.reset_index(level=level).loc[idx].set_index(level, append=True)
-
-        model = downselect(self.data, idx)
-        hist = downselect(self.history, idx)
-        offsets = downselect(self.offsets, idx)["offset"]
-        ratios = downselect(self.ratios, idx)["ratio"]
+        model = semijoin(self.data, idx, how="right")
+        hist = semijoin(self.history, idx, how="right")
+        offsets = semijoin(self.offsets, idx, how="right")
+        ratios = semijoin(self.ratios, idx, how="right")
 
         # get delta
         delta = hist if method == "budget" else ratios if "ratio" in method else offsets
@@ -255,16 +260,10 @@ class Harmonizer:
         """
         # get method listing
         base_year = year if year is not None else self.base_year or "2015"
-        _check_overrides(overrides, self.harm_idx)
+        _check_overrides(overrides, self.data.index)
         methods = self._default_methods(year=base_year)
 
         if overrides is not None:
-            # overrides requires an index
-            if overrides.index.names == [None]:
-                raise ValueError(
-                    "overrides must have at least on index dimension "
-                    f"aligned with methods: {methods.index.names}"
-                )
             # expand overrides index to match methods and align indicies
             overrides = semijoin(overrides, methods.index, how="right").reorder_levels(
                 methods.index.names
@@ -277,10 +276,11 @@ class Harmonizer:
             overrides.name = methods.name
 
             # overwrite defaults with overrides
-            final_methods = overrides.combine_first(methods).to_frame()
-            final_methods["default"] = methods
-            final_methods["override"] = overrides
-            methods = final_methods
+            methods = (
+                overrides.combine_first(methods)
+                .to_frame()
+                .assign(default=methods, override=overrides)
+            )
 
         return methods
 
@@ -291,7 +291,6 @@ class Harmonizer:
         """
         base_year = year if year is not None else self.base_year or "2015"
         _check_data(self.history, self.data, base_year, self.harm_idx)
-        _check_overrides(overrides, self.harm_idx)
 
         self.model = pd.Series(
             index=self.data.index, name=base_year, dtype=float

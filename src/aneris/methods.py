@@ -439,7 +439,7 @@ def default_method_choice(
 
 def default_methods(hist, model, base_year, method_choice=None, **kwargs):
     """
-    Determine default harmonization methods to use.
+    Determine default harmonization or downscaling methods to use.
 
     See http://mattgidden.com/aneris/theory.html#default-decision-tree for a
     graphical description of the decision tree.
@@ -455,16 +455,23 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
     method_choice : function, optional
         codified decision tree, see `default_method_choice` function
     **kwargs :
-        Additional parameters passed on to the choice function:
+        Additional parameters passed on to the choice functions.
 
-        ratio_method : string, optional
+        Harmonization functions might depend on the following method names:
+        ratio_method : string
             method to use for ratio harmonization, default: reduce_ratio_2080
-        offset_method : string, optional
+        offset_method : string
             method to use for offset harmonization, default: reduce_offset_2080
-        luc_method : string, optional
+        luc_method : string
             method to use for high coefficient of variation, reduce_offset_2150_cov
         luc_cov_threshold : float
             cov threshold above which to use `luc_method`
+
+        Downscaling functions require the following choices:
+        intensity_method : string
+            method to use for intensity convergence, default ipat_gdp_2100
+        luc_method : string
+            method to use for agriculture and luc emissions, default base_year_pattern
 
     Returns
     -------
@@ -477,15 +484,6 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
     --------
     `default_method_choice`
     """
-
-    if kwargs.get("ratio_method") is None:
-        kwargs["ratio_method"] = "reduce_ratio_2080"
-    if kwargs.get("offset_method") is None:
-        kwargs["offset_method"] = "reduce_offset_2080"
-    if kwargs.get("luc_method") is None:
-        kwargs["luc_method"] = "reduce_offset_2150_cov"
-    if kwargs.get("luc_cov_threshold") is None:
-        kwargs["luc_cov_threshold"] = 10
 
     y = str(base_year)
     try:
