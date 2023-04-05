@@ -108,3 +108,16 @@ def growth_rate(
     return model * weights
 
 
+def default_method_choice(traj, intensity_method, luc_method):
+    """Default downscaling decision tree"""
+
+    # special cases
+    if traj.h == 0:
+        return luc_method
+    if traj.zero_m:
+        return luc_method
+
+    if traj.get("sector", None) in ("Agriculture", "LULUCF"):
+        return luc_method
+
+    return intensity_method

@@ -9,6 +9,11 @@ class MissingHistoricalError(ValueError):
     Error raised when historical data is missing.
     """
 
+class MissingProxyError(ValueError):
+    """
+    Error raised when required proxy data is missing.
+    """
+
 
 class MissingScenarioError(ValueError):
     """

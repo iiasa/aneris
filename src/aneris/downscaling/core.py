@@ -1,12 +1,18 @@
-from typing import Optional, Sequence, Callable
 from functools import partial
+from typing import Optional, Sequence
 
-from pandas import DataFrame, Series, Index
-from pandas_indexing import projectlevel, semijoin
+from pandas import DataFrame, Series
+from pandas_indexing import semijoin
 
+from ..errors import MissingHistoricalError, MissingProxyError
 from ..methods import default_methods
 from .data import DownscalingContext
-from .methods import base_year_pattern, growth_rate, intensity_convergence
+from .methods import (
+    base_year_pattern,
+    default_method_choice,
+    growth_rate,
+    intensity_convergence,
+)
 
 
 DEFAULT_INDEX = ("sector", "gas")
@@ -31,6 +37,7 @@ class Downscaler:
         self,
         model: DataFrame,
         hist: DataFrame,
+        year: int,
         region_mapping: Series,
         index: Sequence[str] = DEFAULT_INDEX,
         return_type=DataFrame,
@@ -38,6 +45,7 @@ class Downscaler:
     ):
         self.model = model
         self.hist = hist
+        self.year = year
         self.region_mapping = region_mapping
         self.index = index
         self.return_type = return_type
@@ -47,17 +55,83 @@ class Downscaler:
         self.country_level = self.region_mapping.index.name
 
         assert (
-            hist.groupby(list(index) + [self.region_level]).count() <= 1
-        ).all(), "More than one hist"
-        assert (
-            projectlevel(model.index, list(index) + [self.region_level])
-            .difference(projectlevel(hist.index, list(index) + [self.region_level]))
-            .empty
-        ), "History missing for some"
+            hist[year].groupby(list(index) + [self.country_level]).count() <= 1
+        ).all(), "Ambiguous history"
+
+        missing_hist = (
+            model.index.join(self.context.regionmap_index, how="right")
+            .idx.project(list(index) + [self.country_level])
+            .difference(hist.index.idx.project(list(index) + [self.country_level]))
+        )
+        if not missing_hist.empty:
+            raise MissingHistoricalError(
+                "History missing for variables/countries:\n"
+                + missing_hist.to_frame().to_string(index=False),
+                missing_hist,
+            )
 
         # TODO Make configurable by re-using config just as in harmonizer
         self.intensity_method = "ipat_2100_gdp"
         self.linear_method = "base_year_pattern"
+
+
+    @property
+    def context(self):
+        return DownscalingContext(
+            self.index,
+            self.region_mapping,
+            self.additional_data,
+            self.country_level,
+            self.region_level,
+        )
+
+    def check_proxies(self, methods: Series) -> None:
+        """Checks proxies required for chosen `methods`
+
+        Parameters
+        ----------
+        methods : Series
+            Methods to be used for each trajectory
+
+        Raises
+        ------
+        MissingProxyError
+            if a required proxy is missing or incomplete
+        """
+        # TODO: Check that data contains what is needed for all methods in use, ie.
+        # inspect partial keywords
+        for method in methods.unique():
+            proxy_name = getattr(self._methods[method], "kwargs", {}).get("proxy_name")
+            if proxy_name is None:
+                continue
+
+            proxy = self.additional_data.get(proxy_name)
+            if proxy is None:
+                raise MissingProxyError(
+                    f"Downscaling method `{method}` requires the additional data"
+                    f" `{proxy_name}`"
+                )
+
+            # TODO checking the columns/years might also be a good idea
+            trajectory_index = methods.index[methods == method]
+
+            # trajectory index typically has the levels model, scenario, region, sector,
+            # gas, while proxy data is expected on country level (and probably no model,
+            # scenario dependency, but potentially)
+            proxy = semijoin(proxy, self.context.regionmap_index, how="right")
+
+            common_levels = proxy.index.names.intersection(trajectory_index.names)
+            missing_proxy = (
+                trajectory_index.idx.project(common_levels)
+                .difference(proxy.index.idx.project(common_levels))
+                .unique()
+            )
+            if not missing_proxy.empty:
+                raise MissingProxyError(
+                    f"The proxy data `{proxy} is missing data:\n"
+                    + missing_proxy.to_frame().to_string(index=False),
+                    missing_proxy,
+                )
 
     def downscale(self, methods: Optional[Series] = None) -> DataFrame:
         """Downscale aligned model data from historical data, and socio-economic scenario
@@ -78,7 +152,16 @@ class Downscaler:
         if methods is None:
             methods = self.methods()
 
-        # Check that data contains what is needed for all methods in use, ie. inspect partial keywords
+        hist_ext = semijoin(self.hist, self.context.regionmap_index, how="right")
+        self.check_proxies(methods)
+
+        downscaled = []
+        method_groups = methods.index.groupby(methods)
+        for method, trajectory_index in method_groups.items():
+            hist = semijoin(hist_ext, trajectory_index, how="right")
+            model = semijoin(self.model, trajectory_index, how="right")
+
+            downscaled.append(self._methods[method](model, hist, self.context))
 
         return self.return_type(downscaled)
 
@@ -90,19 +173,24 @@ class Downscaler:
             method_choice = default_method_choice
 
         hist_agg = (
-            semijoin(self.hist, self.context.regionmap_index)
-            .groupby(list(self.index) + [self.country_level], dropna=False)
+            semijoin(self.hist, self.context.regionmap_index, how="right")
+            .groupby(list(self.index) + [self.region_level], dropna=False)
             .sum()
         )
-        methods = default_methods(
-            projectlevel(self.model, list(self.index) + [self.region_level]),
-            hist_agg,
+        methods, meta = default_methods(
+            semijoin(hist_agg, self.model.index, how="right").reorder_levels(
+                self.model.index.names
+            ),
+            self.model,
+            self.year,
             method_choice=method_choice,
             intensity_method=self.intensity_method,
-            linear_method=self.linear_method,
+            luc_method=self.luc_method,
         )
 
-        if isinstance(overwrites, str):
+        if overwrites is None:
+            return methods
+        elif isinstance(overwrites, str):
             return Series(overwrites, methods.index)
         elif isinstance(overwrites, dict):
             overwrites = Series(overwrites).rename_axis("sector")
@@ -112,28 +200,3 @@ class Downscaler:
             .fillna(methods)
             .rename("method")
         )
-
-    @property
-    def context(self):
-        return DownscalingContext(
-            self.index,
-            self.region_mapping,
-            self.additional_data,
-            self.country_level,
-            self.region_level,
-        )
-
-
-def default_method_choice(traj, intensity_method, linear_method):
-    """Default downscaling decision tree"""
-
-    # special cases
-    if traj.h == 0:
-        return linear_method
-    if traj.zero_m:
-        return linear_method
-
-    if traj.get("sector", None) in ("Agriculture", "LULUCF"):
-        return linear_method
-
-    return intensity_method
