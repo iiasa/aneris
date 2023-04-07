@@ -1,18 +1,15 @@
 import logging
-from collections.abc import Sequence
-from dataclasses import dataclass, field
-from typing import Optional, Union
+from typing import Union
 
-from pandas import DataFrame, MultiIndex, Series
+from pandas import DataFrame, Series
 from pandas_indexing import semijoin
 
 from ..utils import normalize
 from .data import DownscalingContext
-from .intensity_convergence import intensity_convergence
+from .intensity_convergence import intensity_convergence  # noqa: F401
 
 
 logger = logging.getLogger(__name__)
-
 
 
 def base_year_pattern(
@@ -50,12 +47,12 @@ def base_year_pattern(
         hist = hist.iloc[:, -1]
 
     weights = (
-        semijoin(hist, context.regionmap_index)
-        .groupby(list(context.index) + [context.region_level])
+        semijoin(hist, context.regionmap_index, how="right")
+        .groupby(list(context.index) + [context.region_level], dropna=False)
         .transform(normalize)
     )
 
-    return model.idx.multiply(weights, join="left")
+    return model.idx.multiply(weights, join="left").where(model != 0, 0)
 
 
 def growth_rate(
@@ -98,14 +95,14 @@ def growth_rate(
 
     weights = (
         cumulative_growth_rates.idx.multiply(
-            semijoin(hist, context.regionmap_index),
+            semijoin(hist, context.regionmap_index, how="right"),
             join="left",
         )
-        .groupby(list(context.index) + [context.region_level])
+        .groupby(model.index.names, dropna=False)
         .transform(normalize)
     )
 
-    return model * weights
+    return model.idx.multiply(weights, join="left").where(model != 0, 0)
 
 
 def default_method_choice(traj, intensity_method, luc_method):

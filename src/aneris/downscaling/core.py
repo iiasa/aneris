@@ -2,7 +2,7 @@ from functools import partial
 from typing import Optional, Sequence
 
 from pandas import DataFrame, Series
-from pandas_indexing import semijoin
+from pandas_indexing import concat, semijoin
 
 from ..errors import MissingHistoricalError, MissingProxyError
 from ..methods import default_methods
@@ -60,15 +60,14 @@ class Downscaler:
         ).all(), "Ambiguous history"
 
         missing_hist = (
-            model.index.join(self.context.regionmap_index, how="right")
+            model.index.join(self.context.regionmap_index, how="left")
             .idx.project(list(index) + [self.country_level])
             .difference(hist.index.idx.project(list(index) + [self.country_level]))
         )
         if not missing_hist.empty:
             raise MissingHistoricalError(
                 "History missing for variables/countries:\n"
-                + missing_hist.to_frame().to_string(index=False),
-                missing_hist,
+                + missing_hist.to_frame().to_string(index=False)
             )
 
         # TODO Make configurable by re-using config just as in harmonizer
@@ -183,7 +182,7 @@ class Downscaler:
 
             downscaled.append(self._methods[method](model, hist, self.context))
 
-        return self.return_type(downscaled)
+        return self.return_type(concat(downscaled))
 
     def methods(self, method_choice=None, overwrites=None):
         if method_choice is not None:
@@ -217,6 +216,6 @@ class Downscaler:
 
         return (
             semijoin(overwrites, methods.index, how="right")
-            .fillna(methods)
+            .combine_first(methods)
             .rename("method")
         )

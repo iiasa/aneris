@@ -2,7 +2,7 @@ import logging
 from typing import Any, Optional, Union
 
 import numpy as np
-from pandas import DataFrame, Series, concat
+from pandas import DataFrame, MultiIndex, Series, concat
 from pandas_indexing import isin, semijoin
 from scipy.interpolate import interp1d
 from scipy.optimize import root_scalar
@@ -25,6 +25,12 @@ def make_affine_transform(x1, x2, y1=0.0, y2=1.0):
         return (y2 - y1) * (x - x1) / (x2 - x1) + y1
 
     return f
+
+
+def make_affine_transform_pair(x1, x2, y1, y2):
+    f = make_affine_transform(x1, x2, y1, y2)
+    inv_f = make_affine_transform(y1, y2, x1, x2)
+    return f, inv_f
 
 
 def compute_intensity(
@@ -87,17 +93,14 @@ def determine_scaling_parameter(
     -------
     gamma : float
     """
-    levels = list(context.index) + [context.region_level]
-
-    negative_at_start = intensity.iloc[0]
+    negative_at_start = intensity.iloc[0] < 0
     if negative_at_start:
         raise ConvergenceError("Trajectory is fully negative")
 
-    selector_levels = isin(**{k: v for k, v in index.items() if k in levels})
-    reference = reference.loc[selector_levels]
-    intensity_hist = intensity_hist.loc[selector_levels]
-
-    intensity_projection_linear = intensity_projection_linear.loc[isin(**index)]
+    selector = isin(**index, ignore_missing_levels=True)
+    reference = reference.loc[selector]
+    intensity_hist = intensity_hist.loc[selector]
+    intensity_projection_linear = intensity_projection_linear.loc[selector]
 
     # determine alpha_star, where projected emissions become negative
     res = root_scalar(
@@ -125,7 +128,7 @@ def determine_scaling_parameter(
 
     ref = at_alpha_star(reference, alpha=alpha[: len(reference.columns)])
 
-    if intensity_projection_linear is not None:
+    if not intensity_projection_linear.empty:
         offset = (ref * at_alpha_star(intensity_projection_linear)).sum()
     else:
         offset = 0
@@ -134,8 +137,7 @@ def determine_scaling_parameter(
     # the transformed model vanish at alpha_star
     def sum_weight_at_alpha_star(gamma):
         x0, x1 = intensity.iloc[[0, -1]]
-        f = make_affine_transform(x0, x1, gamma, 1.0)
-        inv_f = make_affine_transform(gamma, 1.0, x0, x1)
+        f, inv_f = make_affine_transform_pair(x0, x1, gamma, 1.0)
 
         return (
             ref * inv_f((f(x1) / f(intensity_hist)) ** alpha_star * f(intensity_hist))
@@ -215,7 +217,6 @@ def negative_exponential_intensity_model(
     gammas = np.empty(len(intensity))
 
     for i, (index, intensity_traj) in enumerate(intensity.iterrows()):
-
         index = dict(zip(intensity.index.names, index))
         try:
             gammas[i] = determine_scaling_parameter(
@@ -234,27 +235,39 @@ def negative_exponential_intensity_model(
 
     gammas = Series(gammas, intensity.index)
 
-    f = make_affine_transform(intensity.iloc[:, 0], intensity.iloc[:, -1], gammas, 1.0)
-    inv_f = make_affine_transform(
-        gammas, 1.0, intensity.iloc[:, 0], intensity.iloc[:, -1]
+    intensity_conv, intensity_hist_conv = intensity.loc[gammas.notna()].align(
+        intensity_hist, join="left", axis=0, copy=False
     )
+    gammas_conv = semijoin(gammas, intensity_conv.index, how="right")
 
-    intensity, intensity_hist = intensity.align(intensity_hist, join="left", axis=0)
+    def ts(s):
+        return np.asarray(s)[:, np.newaxis]
 
+    f, inv_f = make_affine_transform_pair(
+        ts(intensity_conv.iloc[:, 0]),
+        ts(intensity_conv.iloc[:, -1]),
+        ts(gammas_conv),
+        1.0,
+    )
     intensity_projection = DataFrame(
         inv_f(
-            (f(intensity.values[:, -1]) / f(intensity_hist.values))[:, np.newaxis]
-            ** alpha.values
-            * f(intensity_hist.values)[:, np.newaxis]
+            (
+                (f(ts(intensity_conv.values[:, -1])) / f(ts(intensity_hist_conv)))
+                ** alpha.values
+            )
+            * f(ts(intensity_hist_conv))
         ),
-        index=intensity_hist.index,
+        index=intensity_hist_conv.index,
         columns=intensity.columns,
-    ).where(
-        gammas.notna(),
-        intensity_growth_rate_model(intensity, intensity_hist),
     )
 
-    return intensity_projection
+    return concat(
+        [
+            intensity_projection,
+            intensity_growth_rate_model(intensity.loc[gammas.isna()], intensity_hist),
+        ],
+        sort=False,
+    )
 
 
 def exponential_intensity_model(
@@ -264,19 +277,19 @@ def exponential_intensity_model(
     if positive_intensity.all():
         f = inv_f = lambda x: x
     else:
-        f = lambda x: np.where(positive_intensity, x, x + 1)
-        inv_f = lambda x: np.where(positive_intensity, x, x - 1)
+        f = lambda x: x.where(positive_intensity, x + 1)
+        inv_f = lambda x: x.where(positive_intensity, x - 1)
 
     intensity_hist = semijoin(intensity_hist, intensity.index, how="right")
 
-    intensity_projection = DataFrame(
-        inv_f(
-            (f(intensity.values[:, -1]) / f(intensity_hist.values))[:, np.newaxis]
+    intensity_projection = inv_f(
+        DataFrame(
+            (f(intensity.iloc[:, -1]) / f(intensity_hist)).values[:, np.newaxis]
             ** alpha.values
-            * f(intensity_hist.values)[:, np.newaxis]
+            * f(intensity_hist).values[:, np.newaxis],
+            index=intensity_hist.index,
+            columns=intensity.columns,
         ),
-        index=intensity_hist.index,
-        columns=intensity.columns,
     )
 
     return intensity_projection
@@ -285,9 +298,12 @@ def exponential_intensity_model(
 def linear_intensity_model(
     alpha: Series, intensity_hist: Series, intensity: DataFrame
 ) -> DataFrame:
+    intensity, intensity_hist = intensity.align(
+        intensity_hist, join="left", copy=False, axis=0
+    )
     intensity_projection = DataFrame(
         (1 - alpha).values * intensity_hist.values[:, np.newaxis]
-        + alpha.values * intensity.values[:, -1],
+        + alpha.values * intensity.values[:, -1:],
         index=intensity.index,
         columns=intensity.columns,
     )
@@ -298,6 +314,10 @@ def linear_intensity_model(
 def intensity_growth_rate_model(
     intensity: DataFrame, intensity_hist: Series
 ) -> DataFrame:
+    intensity, intensity_hist = intensity.align(
+        intensity_hist, join="left", axis=0, copy=False
+    )
+
     years_downscaling = intensity.columns
     intensity_projection = DataFrame(
         (
@@ -359,7 +379,9 @@ def intensity_convergence(
     if isinstance(hist, DataFrame):
         hist = hist.iloc[:, -1]
 
-    reference = semijoin(context.additional_data[proxy_name], context.regionmap_index)
+    reference = semijoin(context.additional_data[proxy_name], context.regionmap_index)[
+        model.columns
+    ]
     reference_region = reference.groupby(context.region_level).sum()
     hist = semijoin(hist, context.regionmap_index)
 
@@ -372,6 +394,14 @@ def intensity_convergence(
     intensity_countries, intensity_hist = intensity.align(
         intensity_hist, join="left", axis=0
     )
+    intensity_idx = intensity_countries.index
+
+    levels = list(model.index.names) + [context.country_level]
+    empty_intensity = DataFrame(
+        [],
+        index=MultiIndex.from_arrays([[] for _ in levels], names=levels),
+        columns=intensity.columns,
+    )
 
     # use a linear model for sub-regions with an intensity below the convergence intensity
     low_intensity = intensity_hist <= intensity_countries.iloc[:, -1]
@@ -383,11 +413,11 @@ def intensity_convergence(
             intensity_countries.loc[low_intensity],
         )
         logger.debug(
-            "Linear model was chosen for some trajectories: %s",
-            ", ".join(intensity_hist.index[low_intensity]),
+            "Linear model was chosen for some trajectories:\n%s",
+            intensity_hist.index[low_intensity].to_frame().to_string(index=False),
         )
     else:
-        intensity_projection_linear = None
+        intensity_projection_linear = empty_intensity
     del intensity_countries
 
     negative_convergence = intensity.iloc[:, -1] < 0
@@ -399,16 +429,12 @@ def intensity_convergence(
             intensity_hist,
             intensity.loc[negative_convergence],
             reference,
-            None
-            if intensity_projection_linear is None
-            else semijoin(
-                intensity_projection_linear, negative_convergence_i, how="right"
-            ),
-            context
+            semijoin(intensity_projection_linear, negative_convergence_i, how="inner"),
+            context,
         )
 
     else:
-        negative_intensity_projection = None
+        negative_intensity_projection = empty_intensity
 
     if not negative_convergence.all():
         exponential_intensity_projection = exponential_intensity_model(
@@ -417,21 +443,19 @@ def intensity_convergence(
             intensity.loc[~negative_convergence],
         )
     else:
-        exponential_intensity_projection = None
+        exponential_intensity_projection = empty_intensity
 
     intensity_projection = concat(
-        filter(
-            None,
-            [
-                exponential_intensity_projection,
-                negative_intensity_projection,
-                intensity_projection_linear,
-            ],
-        ),
+        [
+            exponential_intensity_projection,
+            negative_intensity_projection,
+            intensity_projection_linear,
+        ],
         sort=False,
-    ).reindex(index=intensity.index)
+    ).reindex(index=intensity_idx)
 
-    intensity_projection = intensity_projection.loc[:, model.columns[-1]]
+    # if convergence year is past model horizon, intensity_projection is longer
+    intensity_projection = intensity_projection.loc[:, : model.columns[-1]]
 
     if model.columns[-1] > intensity_projection.columns[-1]:
         # Extend modelled intensity projection beyond year_convergence
@@ -440,8 +464,8 @@ def intensity_convergence(
         )
 
     weights = (
-        (reference * intensity_projection)
-        .groupby(list(context.index) + [context.region_level])
+        intensity_projection.idx.multiply(reference, join="left")
+        .groupby(model.index.names, dropna=False)
         .transform(normalize)
     )
-    return model.multiply(weights, how="left")
+    return model.idx.multiply(weights, join="left").where(model != 0, 0)
