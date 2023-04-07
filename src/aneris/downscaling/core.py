@@ -46,13 +46,14 @@ class Downscaler:
         self.model = model
         self.hist = hist
         self.year = year
-        self.region_mapping = region_mapping
-        self.index = index
         self.return_type = return_type
-        self.additional_data = additional_data
-
-        self.region_level = self.region_mapping.name
-        self.country_level = self.region_mapping.index.name
+        self.context = DownscalingContext(
+            index,
+            region_mapping,
+            additional_data,
+            country_level=region_mapping.index.name,
+            region_level=region_mapping.name,
+        )
 
         assert (
             hist[year].groupby(list(index) + [self.country_level]).count() <= 1
@@ -72,18 +73,27 @@ class Downscaler:
 
         # TODO Make configurable by re-using config just as in harmonizer
         self.intensity_method = "ipat_2100_gdp"
-        self.linear_method = "base_year_pattern"
-
+        self.luc_method = "base_year_pattern"
 
     @property
-    def context(self):
-        return DownscalingContext(
-            self.index,
-            self.region_mapping,
-            self.additional_data,
-            self.country_level,
-            self.region_level,
-        )
+    def index(self):
+        return self.context.index
+
+    @property
+    def region_mapping(self):
+        return self.context.regionmap
+
+    @property
+    def additional_data(self):
+        return self.context.additional_data
+
+    @property
+    def country_level(self):
+        return self.context.country_level
+
+    @property
+    def region_level(self):
+        return self.context.region_level
 
     def check_proxies(self, methods: Series) -> None:
         """Checks proxies required for chosen `methods`
