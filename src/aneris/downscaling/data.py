@@ -7,7 +7,8 @@ from pandas import DataFrame, MultiIndex, Series
 
 @dataclass
 class DownscalingContext:
-    """Context in which downscaling needs to happen
+    """
+    Context in which downscaling needs to happen.
 
     Attributes
     ----------

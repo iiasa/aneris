@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 def base_year_pattern(
     model: DataFrame, hist: Union[Series, DataFrame], context: DownscalingContext
 ) -> DataFrame:
-    """Downscales emission data using a base year pattern
+    """
+    Downscales emission data using a base year pattern.
 
     Parameters
     ----------
@@ -60,7 +61,8 @@ def growth_rate(
     hist: Union[Series, DataFrame],
     context: DownscalingContext,
 ) -> DataFrame:
-    """Downscales emission data using growth rates
+    """
+    Downscales emission data using growth rates.
 
     Assumes growth rates in all sub regions are the same as in the macro_region
 
@@ -106,7 +108,9 @@ def growth_rate(
 
 
 def default_method_choice(traj, intensity_method, luc_method):
-    """Default downscaling decision tree"""
+    """
+    Default downscaling decision tree.
+    """
 
     # special cases
     if traj.h == 0:

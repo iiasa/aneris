@@ -95,7 +95,8 @@ class Downscaler:
         return self.context.region_level
 
     def check_proxies(self, methods: Series) -> None:
-        """Checks proxies required for chosen `methods`
+        """
+        Checks proxies required for chosen `methods`
 
         Parameters
         ----------
@@ -129,7 +130,7 @@ class Downscaler:
             proxy = semijoin(proxy, self.context.regionmap_index, how="right")
 
             common_levels = [
-                l for l in trajectory_index.names if l in proxy.index.names
+                lvl for lvl in trajectory_index.names if lvl in proxy.index.names
             ]
             missing_proxy = (
                 trajectory_index.idx.project(common_levels)
@@ -138,8 +139,8 @@ class Downscaler:
             )
             if not missing_proxy.empty:
                 raise MissingProxyError(
-                    f"The proxy data `{proxy_name}` is missing data for the following trajectories:\n"
-                    + missing_proxy.to_frame().to_string(index=False)
+                    f"The proxy data `{proxy_name}` is missing for the following "
+                    "trajectories:\n" + missing_proxy.to_frame().to_string(index=False)
                 )
 
             if not isinstance(proxy, DataFrame):
@@ -153,7 +154,9 @@ class Downscaler:
                 )
 
     def downscale(self, methods: Optional[Series] = None) -> DataFrame:
-        """Downscale aligned model data from historical data, and socio-economic scenario
+        """
+        Downscale aligned model data from historical data, and socio-economic
+        scenario.
 
         Notes
         -----

@@ -19,7 +19,9 @@ class ConvergenceError(RuntimeError):
 
 
 def make_affine_transform(x1, x2, y1=0.0, y2=1.0):
-    """Returns an affine transform that maps `x1` to `y1` and `x2` to `y2`"""
+    """
+    Returns an affine transform that maps `x1` to `y1` and `x2` to `y2`
+    """
 
     def f(x):
         return (y2 - y1) * (x - x1) / (x2 - x1) + y1
@@ -69,7 +71,8 @@ def determine_scaling_parameter(
     index: dict[str, Any],
     context: DownscalingContext,
 ) -> float:
-    """Determine scaling parameter for negative exponential intensity model
+    """
+    Determine scaling parameter for negative exponential intensity model.
 
     Gamma parameter for a single macro trajectory
 
@@ -187,7 +190,8 @@ def negative_exponential_intensity_model(
     context: DownscalingContext,
     allow_fallback_to_linear: bool = True,
 ) -> DataFrame:
-    """Create a per-country time-series of intensities w/ negative intensities
+    """
+    Create a per-country time-series of intensities w/ negative intensities.
 
     Parameters
     ----------
@@ -341,7 +345,8 @@ def intensity_convergence(
     convergence_year: Optional[int] = 2100,
     allow_fallback_to_linear: bool = True,
 ) -> DataFrame:
-    """Downscales emission data using emission intensity convergence
+    """
+    Downscales emission data using emission intensity convergence.
 
     Parameters
     ----------
@@ -403,7 +408,7 @@ def intensity_convergence(
         columns=intensity.columns,
     )
 
-    # use a linear model for sub-regions with an intensity below the convergence intensity
+    # use a linear model for countries with an intensity below the convergence intensity
     low_intensity = intensity_hist <= intensity_countries.iloc[:, -1]
 
     if low_intensity.any():

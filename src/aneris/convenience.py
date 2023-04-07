@@ -1,7 +1,7 @@
 import pandas as pd
 import pyam
 from openscm_units import unit_registry
-from pandas_indexing import isin, semijoin, projectlevel
+from pandas_indexing import isin, projectlevel, semijoin
 
 from .errors import (
     AmbiguousHarmonisationMethod,

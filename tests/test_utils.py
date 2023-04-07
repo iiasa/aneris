@@ -1,6 +1,4 @@
 import pandas as pd
-import pandas.testing as pdt
-import pytest
 
 import aneris.utils as utils
 
