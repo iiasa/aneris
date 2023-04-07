@@ -98,10 +98,10 @@ class Downscaler:
         MissingProxyError
             if a required proxy is missing or incomplete
         """
-        # TODO: Check that data contains what is needed for all methods in use, ie.
-        # inspect partial keywords
         for method in methods.unique():
-            proxy_name = getattr(self._methods[method], "kwargs", {}).get("proxy_name")
+            proxy_name = getattr(self._methods[method], "keywords", {}).get(
+                "proxy_name"
+            )
             if proxy_name is None:
                 continue
 
@@ -112,7 +112,6 @@ class Downscaler:
                     f" `{proxy_name}`"
                 )
 
-            # TODO checking the columns/years might also be a good idea
             trajectory_index = methods.index[methods == method]
 
             # trajectory index typically has the levels model, scenario, region, sector,
@@ -120,7 +119,9 @@ class Downscaler:
             # scenario dependency, but potentially)
             proxy = semijoin(proxy, self.context.regionmap_index, how="right")
 
-            common_levels = proxy.index.names.intersection(trajectory_index.names)
+            common_levels = [
+                l for l in trajectory_index.names if l in proxy.index.names
+            ]
             missing_proxy = (
                 trajectory_index.idx.project(common_levels)
                 .difference(proxy.index.idx.project(common_levels))
@@ -128,9 +129,18 @@ class Downscaler:
             )
             if not missing_proxy.empty:
                 raise MissingProxyError(
-                    f"The proxy data `{proxy} is missing data:\n"
-                    + missing_proxy.to_frame().to_string(index=False),
-                    missing_proxy,
+                    f"The proxy data `{proxy_name}` is missing data for the following trajectories:\n"
+                    + missing_proxy.to_frame().to_string(index=False)
+                )
+
+            if not isinstance(proxy, DataFrame):
+                return
+
+            missing_years = self.model.columns.difference(proxy.columns)
+            if not missing_years.empty:
+                raise MissingProxyError(
+                    f"The proxy data `{proxy_name}` is missing model year(s): "
+                    + ", ".join(missing_years.astype(str))
                 )
 
     def downscale(self, methods: Optional[Series] = None) -> DataFrame:
