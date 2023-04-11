@@ -71,5 +71,5 @@ def grid(
     result = (map_data * normalized_proxy).sum(dim=shape_col)[value_col]
     if as_flux:
         lat_areas_in_m2 = xr.DataArray.from_series(pt.cell_area_from_file(proxy))
-        result /= lat_areas_in_m2
+        result = result / lat_areas_in_m2
     return result
