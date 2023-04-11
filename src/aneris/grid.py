@@ -36,11 +36,39 @@ def grid(
     extra_coords=["year", "gas", "sector"],
     as_flux=False,
 ):
-    # TODO: add docstrings
-    # Note that area normalization has been kept with `as_flux`,
-    # but other unit conversions need to happen outside this function:
-    # kg_per_mt = 1e9, s_per_yr = 365 * 24 * 60 * 60
-    # Otherwise, operates as currently in `prototype_gridding.ipynb`
+    """
+    Develops spatial grids for emissions data.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        downscaled emissions provided per country (iso)
+    proxy : xarray.DataArray
+        proxy data used to apply emissions to spatial grids
+    idx_raster : xarray.DataArray
+        a raster mapping data in `df` to spatial grids
+    value_col : str, optional
+        the column in `df` which is gridded
+    shape_col : str, optional
+        the column in `df` which aligns with `idx_raster`
+    extra_coords : Collection of str, optional
+        the additional columns in `df` which will become coordinates
+        in the returned DataArray
+    as_flux : bool, optional
+        if True, divide the result by the latitude-resolved cell areas
+        to estimate parameter as a flux rather than bulk magnitude
+
+    Returns
+    -------
+    xarray.DataArray:
+        gridded emissions from `df`
+
+    Notes
+    -----
+    1. `df` must have columns including `extra_coords`, `value_col`, and `shape_col`
+    2. `proxy` must have coodrinates including `extra_coords`, "lat", and "lon"
+    3. `idx_rater` must have coodrinates including `shape_col`, "lat", and "lon"
+    """
     df_dim_diff = set(extra_coords + [value_col, shape_col]).difference(set(df.columns))
     if df_dim_diff:
         raise MissingColumns(f"df missing columns: {df_dim_diff}")
