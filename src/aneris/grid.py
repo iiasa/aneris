@@ -8,6 +8,25 @@ from aneris.errors import MissingColumns, MissingCoordinateValue, MissingDimensi
 
 
 def check_coord_overlap(x, y, coord, x_strict=False, y_strict=False, warn=False):
+    """
+    Checks whether the coordinates or columns between two xarray.DataArrays.
+
+    Parameters
+    ----------
+    x : xarray.DataArray
+    y : xarray.DataArray
+    coord : str
+    x_strict : bool, optional
+        the check fails if the coordinates in `y` are not a subset of `x`
+    y_strict : bool, optional
+        the check fails if the coordinates in `x` are not a subset of `y`
+    warn : bool, optional
+        if the check fails, issue a warning rather than a `MissingCoordinateValue` error
+
+    Raises
+    ------
+    `MissingCoordinateValue` if check fails
+    """
     # TODO: add docs and try to generalize iso coord logic
     x, y = set(np.unique(x[coord])), set(np.unique(y[coord]))
     msg = ""
