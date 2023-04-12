@@ -121,4 +121,4 @@ def pd_write(df, f, *args, **kwargs):
     else:
         writer = pd.ExcelWriter(f)
         df.to_excel(writer, index=index, *args, **kwargs)
-        writer.save()
+        writer.close()
