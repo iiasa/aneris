@@ -56,6 +56,48 @@ def base_year_pattern(
     return model.idx.multiply(weights, join="left").where(model != 0, 0)
 
 
+def simple_proxy(
+    model: DataFrame,
+    _hist: Union[Series, DataFrame],
+    context: DownscalingContext,
+    proxy_name: str,
+) -> DataFrame:
+    """
+    Downscales emission data using the shares in a proxy scenario
+
+    Parameters
+    ----------
+    model : DataFrame
+        model emissions for each world region and trajectory
+    _hist : DataFrame or Series
+        historic emissions for each country and trajectory.
+        Unused for this method.
+    context : DownscalingContext
+        settings for downscaling, like the regionmap
+    proxy_name : str
+        name of the additional data to be used as proxy
+
+    Returns
+    -------
+    DataFrame:
+        downscaled emissions for countries
+
+    See also
+    --------
+    DownscalingContext
+    """
+
+    proxy_data = context.additional_data[proxy_name]
+    common_levels = [lvl for lvl in context.index if lvl in proxy_data.index.names]
+    weights = (
+        semijoin(proxy_data, context.regionmap_index)[model.columns]
+        .groupby(common_levels + [context.region_level], dropna=False)
+        .transform(normalize)
+    )
+
+    return model.idx.multiply(weights, join="left").where(model != 0, 0)
+
+
 def growth_rate(
     model: DataFrame,
     hist: Union[Series, DataFrame],
@@ -114,9 +156,9 @@ def default_method_choice(traj, intensity_method, luc_method):
 
     # special cases
     if traj.h == 0:
-        return luc_method
+        return "proxy_gdp"
     if traj.zero_m:
-        return luc_method
+        return "proxy_gdp"
 
     if traj.get("sector", None) in ("Agriculture", "LULUCF"):
         return luc_method

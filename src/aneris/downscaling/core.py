@@ -12,6 +12,7 @@ from .methods import (
     default_method_choice,
     growth_rate,
     intensity_convergence,
+    simple_proxy,
 )
 
 
@@ -28,6 +29,8 @@ class Downscaler:
         ),
         "base_year_pattern": base_year_pattern,
         "growth_rate": growth_rate,
+        "proxy_gdp": partial(simple_proxy, proxy_name="gdp"),
+        "proxy_pop": partial(simple_proxy, proxy_name="gdp"),
     }
 
     def add_method(self, name, method):
