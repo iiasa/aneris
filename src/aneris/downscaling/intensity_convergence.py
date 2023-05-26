@@ -2,6 +2,7 @@ import logging
 from typing import Any, Optional, Union
 
 import numpy as np
+import pandas_indexing.accessors  # noqa: F401
 from pandas import DataFrame, MultiIndex, Series, concat
 from pandas_indexing import isin, semijoin
 from scipy.interpolate import interp1d

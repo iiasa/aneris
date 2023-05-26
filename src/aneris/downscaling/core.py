@@ -1,6 +1,7 @@
 from functools import partial
 from typing import Optional, Sequence
 
+import pandas_indexing.accessors  # noqa: F401
 from pandas import DataFrame, Series
 from pandas_indexing import concat, semijoin
 
