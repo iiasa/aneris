@@ -1,6 +1,7 @@
 import logging
 from typing import Union
 
+import pandas_indexing.accessors  # noqa: F401
 from pandas import DataFrame, Series
 from pandas_indexing import semijoin
 
