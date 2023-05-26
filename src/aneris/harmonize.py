@@ -164,10 +164,10 @@ class Harmonizer:
         self.method_choice = method_choice
 
         # set default methods to use in decision tree
-        self.ratio_method = config.get("default_ratio_method", "reduce_ratio_2080")
-        self.offset_method = config.get("default_offset_method", "reduce_offset_2080")
-        self.luc_method = config.get("default_luc_method", "reduce_offset_2150_cov")
-        self.luc_cov_threshold = config.get("luc_cov_threshold", 10)
+        self.ratio_method = config.get("default_ratio_method")
+        self.offset_method = config.get("default_offset_method")
+        self.luc_method = config.get("default_luc_method")
+        self.luc_cov_threshold = config.get("luc_cov_threshold")
 
     def metadata(self):
         """
@@ -208,17 +208,21 @@ class Harmonizer:
 
     def _default_methods(self, year):
         assert year is not None
+
+        kwargs = {
+            "method_choice": self.method_choice,
+            "ratio_method": self.ratio_method,
+            "offset_method": self.offset_method,
+            "luc_method": self.luc_method,
+            "luc_cov_threshold": self.luc_cov_threshold,
+        }
         methods, diagnostics = default_methods(
             self.history.droplevel(
                 list(set(self.history.index.names) - set(self.harm_idx))
             ),
             self.data.droplevel(list(set(self.data.index.names) - set(self.harm_idx))),
             year,
-            method_choice=self.method_choice,
-            ratio_method=self.ratio_method,
-            offset_method=self.offset_method,
-            luc_method=self.luc_method,
-            luc_cov_threshold=self.luc_cov_threshold,
+            **{k: v for k, v in kwargs.items() if v is not None},
         )
         return methods
 

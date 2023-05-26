@@ -149,16 +149,21 @@ def growth_rate(
     return model.idx.multiply(weights, join="left").where(model != 0, 0)
 
 
-def default_method_choice(traj, intensity_method, luc_method):
+def default_method_choice(
+    traj,
+    fallback_method="proxy_gdp",
+    intensity_method="ipat_2100_gdp",
+    luc_method="base_year_pattern",
+):
     """
     Default downscaling decision tree.
     """
 
     # special cases
     if traj.h == 0:
-        return "proxy_gdp"
+        return fallback_method
     if traj.zero_m:
-        return "proxy_gdp"
+        return fallback_method
 
     if traj.get("sector", None) in ("Agriculture", "LULUCF"):
         return luc_method

@@ -74,8 +74,9 @@ class Downscaler:
             )
 
         # TODO Make configurable by re-using config just as in harmonizer
-        self.intensity_method = "ipat_2100_gdp"
-        self.luc_method = "base_year_pattern"
+        self.fallback_method = None
+        self.intensity_method = None
+        self.luc_method = None
 
     @property
     def index(self):
@@ -197,6 +198,13 @@ class Downscaler:
         if method_choice is None:
             method_choice = default_method_choice
 
+        kwargs = {
+            "method_choice": method_choice,
+            "fallback_method": self.fallback_method,
+            "intensity_method": self.intensity_method,
+            "luc_method": self.luc_method,
+        }
+
         hist_agg = (
             semijoin(self.hist, self.context.regionmap_index, how="right")
             .groupby(list(self.index) + [self.region_level], dropna=False)
@@ -208,9 +216,7 @@ class Downscaler:
             ),
             self.model,
             self.year,
-            method_choice=method_choice,
-            intensity_method=self.intensity_method,
-            luc_method=self.luc_method,
+            **{k: v for k, v in kwargs.items() if v is not None},
         )
 
         if overwrites is None:

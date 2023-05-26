@@ -390,7 +390,11 @@ def coeff_of_var(s):
 
 
 def default_method_choice(
-    row, ratio_method, offset_method, luc_method, luc_cov_threshold
+    row,
+    ratio_method="reduce_ratio_2080",
+    offset_method="reduce_offset_2080",
+    luc_method="reduce_offset_2150_cov",
+    luc_cov_threshold=10,
 ):
     """
     Default decision tree as documented at.

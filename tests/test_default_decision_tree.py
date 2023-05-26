@@ -127,7 +127,13 @@ def test_branch6(index1):
 
 
 def test_custom_method_choice(index1, index1_co2):
-    def method_choice(row, ratio_method, offset_method, luc_method, luc_cov_threshold):
+    def method_choice(
+        row,
+        ratio_method="reduce_ratio_2080",
+        offset_method=None,
+        luc_method=None,
+        luc_cov_threshold=None,
+    ):
         return "budget" if row.gas == "CO2" else ratio_method
 
     # CH4
