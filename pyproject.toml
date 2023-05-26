@@ -57,6 +57,12 @@ lint = [
     "black",
     "ruff"
 ]
+geo = [
+  "ptolemy-iamc @ git+https://github.com/gidden/ptolemy.git",
+  "pycountry",
+  "xarray",
+  "dask",
+]
 
 [project.scripts]
 aneris = "aneris.cli:main"

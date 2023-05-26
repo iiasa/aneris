@@ -26,3 +26,21 @@ class MissingHarmonisationYear(ValueError):
     """
     Error raised when the harmonisation year is missing.
     """
+
+
+class MissingColumns(ValueError):
+    """
+    Error raised when a column of dataframe is expected but missing.
+    """
+
+
+class MissingDimension(ValueError):
+    """
+    Error raised when a spatial dimension is expected but missing.
+    """
+
+
+class MissingCoordinateValue(ValueError):
+    """
+    Error raised when a spatial dimension is expected but missing.
+    """
