@@ -16,7 +16,7 @@ jobs:
         python-version: [3.8, 3.11] # to minimise complexity we only test a min and a max version
         include:
           # on all platforms and versions do everything
-          - tox-envs: [docs, lint, build, test]
+          - tox-envs: [lint, test, docs, build]
 
     runs-on: ${{ matrix.platform }}
 
@@ -24,10 +24,17 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
+    # pandoc is required by nbsphinx for building the notebook-based docs
+    - name: Setup pandoc for building docs
+      uses: r-lib/actions/setup-pandoc@v2
+      with:
+        pandoc-version: '2.19.2'
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+        cache: 'pip'
 
     - name: Install tox
       run: |
