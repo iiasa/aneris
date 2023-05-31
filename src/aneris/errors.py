@@ -28,9 +28,9 @@ class MissingHarmonisationYear(ValueError):
     """
 
 
-class MissingColumns(ValueError):
+class MissingLevels(ValueError):
     """
-    Error raised when a column of dataframe is expected but missing.
+    Error raised when an index level is expected but missing.
     """
 
 

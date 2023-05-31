@@ -2,6 +2,7 @@ import logging
 import os
 
 import pandas as pd
+import pycountry
 
 
 _logger = None
@@ -104,3 +105,8 @@ def pd_write(df, f, *args, **kwargs):
 
 def normalize(s):
     return s / s.sum()
+
+
+def country_name(iso: str):
+    country_obj = pycountry.countries.get(alpha_3=iso)
+    return iso if country_obj is None else country_obj.name
