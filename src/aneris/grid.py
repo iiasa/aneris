@@ -7,7 +7,13 @@ from aneris import utils
 from aneris.errors import MissingColumns, MissingCoordinateValue, MissingDimension
 
 
-def check_coord_overlap(x, y, coord, x_strict=False, y_strict=False, warn=False):
+def country_name(country: str):
+    return pycountry.countries.get(alpha_3=country).name
+
+
+def check_coord_overlap(
+    x, y, coord, x_strict=False, y_strict=False, warn=False, labels=None
+):
     """
     Checks whether the coordinates or columns between two xarray.DataArrays.
 
@@ -22,24 +28,27 @@ def check_coord_overlap(x, y, coord, x_strict=False, y_strict=False, warn=False)
         the check fails if the coordinates in `x` are not a subset of `y`
     warn : bool, optional
         if the check fails, issue a warning rather than a `MissingCoordinateValue` error
+    labels : callable or dict
+        what to report for missing coordinates
 
     Raises
     ------
     `MissingCoordinateValue` if check fails
     """
-    # TODO: add docs and try to generalize iso coord logic
+    if labels is None:
+        labels = lambda x: x
+    if isinstance(labels, dict):
+        label_dict = labels
+        labels = lambda x: label_dict.get(x, x)
+
     x, y = set(np.unique(x[coord])), set(np.unique(y[coord]))
     msg = ""
     if x_strict and x - y:
         missing = x - y
-        if coord == "iso":
-            missing = [pycountry.countries.get(alpha_3=c).name for c in missing]
-        msg += f"Missing from x {coord}: {missing}\n"
+        msg += f"Missing from x {coord}: {', '.join(str(labels(x)) for x in missing)}\n"
     if y_strict and y - x:
         missing = y - x
-        if coord == "iso":
-            missing = [pycountry.countries.get(alpha_3=c).name for c in missing]
-        msg += f"Missing from y {coord}: {missing}\n"
+        msg += f"Missing from y {coord}: {', '.join(str(labels(x)) for x in missing)}\n"
     if msg and not warn:
         raise MissingCoordinateValue(msg)
     elif msg and warn:
