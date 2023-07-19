@@ -44,6 +44,7 @@ class Downscaler:
         year: int,
         region_mapping: Series,
         index: Sequence[str] = DEFAULT_INDEX,
+        method_choice: Optional[callable] = None,
         return_type=DataFrame,
         **additional_data: DataFrame,
     ):
@@ -71,13 +72,14 @@ class Downscaler:
         if not missing_hist.empty:
             raise MissingHistoricalError(
                 "History missing for variables/countries:\n"
-                + missing_hist.to_frame().to_string(index=False)
+                + missing_hist.to_frame().to_string(index=False, max_rows=100)
             )
 
         # TODO Make configurable by re-using config just as in harmonizer
         self.fallback_method = None
         self.intensity_method = None
         self.luc_method = None
+        self.method_choice = None
 
     @property
     def index(self):
@@ -145,7 +147,8 @@ class Downscaler:
             if not missing_proxy.empty:
                 raise MissingProxyError(
                     f"The proxy data `{proxy_name}` is missing for the following "
-                    "trajectories:\n" + missing_proxy.to_frame().to_string(index=False)
+                    "trajectories:\n"
+                    + missing_proxy.to_frame().to_string(index=False, max_rows=100)
                 )
 
             if not isinstance(proxy, DataFrame):
@@ -193,7 +196,7 @@ class Downscaler:
         return self.return_type(concat(downscaled))
 
     def methods(self, method_choice=None, overwrites=None):
-        if method_choice is not None:
+        if method_choice is None:
             method_choice = self.method_choice
 
         if method_choice is None:

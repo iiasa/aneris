@@ -12,7 +12,7 @@ import pyomo.environ as pyo
 from aneris import utils
 
 
-def harmonize_factors(df, hist, harmonize_year="2015"):
+def harmonize_factors(df, hist, harmonize_year=2015):
     """
     Calculate offset and ratio values between data and history.
 
@@ -40,7 +40,7 @@ def harmonize_factors(df, hist, harmonize_year="2015"):
     return offset, ratios
 
 
-def constant_offset(df, offset, harmonize_year="2015"):
+def constant_offset(df, offset, harmonize_year=2015):
     """
     Calculate constant offset harmonized trajectory.
 
@@ -65,7 +65,7 @@ def constant_offset(df, offset, harmonize_year="2015"):
     return df
 
 
-def constant_ratio(df, ratios, harmonize_year="2015"):
+def constant_ratio(df, ratios, harmonize_year=2015):
     """
     Calculate constant ratio harmonized trajectory.
 
@@ -90,7 +90,7 @@ def constant_ratio(df, ratios, harmonize_year="2015"):
     return df
 
 
-def linear_interpolate(df, offset, final_year="2050", harmonize_year="2015"):
+def linear_interpolate(df, offset, final_year=2050, harmonize_year=2015):
     """
     Calculate linearly interpolated convergence harmonized trajectory.
 
@@ -122,7 +122,7 @@ def linear_interpolate(df, offset, final_year="2050", harmonize_year="2015"):
     return df
 
 
-def reduce_offset(df, offset, final_year="2050", harmonize_year="2015"):
+def reduce_offset(df, offset, final_year=2050, harmonize_year=2015):
     """
     Calculate offset convergence harmonized trajectory.
 
@@ -157,7 +157,7 @@ def reduce_offset(df, offset, final_year="2050", harmonize_year="2015"):
     return df
 
 
-def reduce_ratio(df, ratios, final_year="2050", harmonize_year="2015"):
+def reduce_ratio(df, ratios, final_year=2050, harmonize_year=2015):
     """
     Calculate ratio convergence harmonized trajectory.
 
@@ -197,7 +197,7 @@ def reduce_ratio(df, ratios, final_year="2050", harmonize_year="2015"):
     return df
 
 
-def budget(df, df_hist, harmonize_year="2015"):
+def budget(df, df_hist, harmonize_year=2015):
     r"""
     Calculate budget harmonized trajectory.
 
@@ -253,8 +253,8 @@ def budget(df, df_hist, harmonize_year="2015"):
 
     harmonize_year = int(harmonize_year)
 
-    df = df.set_axis(df.columns.astype(int), axis="columns")
-    df_hist = df_hist.set_axis(df_hist.columns.astype(int), axis="columns")
+    # df = df.set_axis(df.columns.astype(int), axis="columns")
+    # df_hist = df_hist.set_axis(df_hist.columns.astype(int), axis="columns")
 
     data_years = df.columns
     hist_years = df_hist.columns
@@ -344,13 +344,13 @@ def budget(df, df_hist, harmonize_year="2015"):
     df_harm = pd.DataFrame(
         harmonized,
         index=df.index,
-        columns=years.astype(str),
+        columns=years,
     )
 
     return df_harm
 
 
-def model_zero(df, offset, harmonize_year="2015"):
+def model_zero(df, offset, harmonize_year=2015):
     """
     Returns result of aneris.methods.constant_offset()
     """

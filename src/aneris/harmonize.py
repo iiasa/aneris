@@ -2,7 +2,7 @@ from functools import partial
 from itertools import chain
 
 import pandas as pd
-from pandas_indexing import projectlevel, semijoin
+from pandas_indexing import projectlevel, semijoin, uniquelevel
 
 from aneris import utils
 from aneris.errors import (
@@ -38,25 +38,21 @@ def _check_data(hist, scen, year, idx):
     if "unit" not in idx:
         idx += ["unit"]
 
-    # @coroa - this may be a very slow way to do this check..
-    def downselect(df):
-        return df[year].reset_index().set_index(idx).index.unique()
-
-    s = downselect(scen)
-    h = downselect(hist)
+    s = uniquelevel(scen, idx)
+    h = uniquelevel(hist, idx)
     if h.empty:
         raise MissingHarmonisationYear("No historical data in harmonization year")
 
     if not s.difference(h).empty:
         raise MissingHistoricalError(
             "Historical data does not match scenario data in harmonization "
-            f"year for\n {s.difference(h)}"
+            f"year for\n {s.difference(h).to_frame().to_string(index=False, max_rows=100)}"
         )
 
     if not h.difference(s).empty:
         raise MissingScenarioError(
             "Scenario data does not match historical data in harmonization "
-            f"year for\n {h.difference(s)}"
+            f"year for\n {h.difference(s).to_frame().to_string(index=False, max_rows=100)}"
         )
 
 
@@ -169,10 +165,12 @@ class Harmonizer:
         self.luc_method = config.get("default_luc_method")
         self.luc_cov_threshold = config.get("luc_cov_threshold")
 
-    def metadata(self):
+    def metadata(self, year=None):
         """
         Return pd.DataFrame of method choice metadata.
         """
+        base_year = year if year is not None else self.base_year or 2015
+
         methods = self.methods_used
         if isinstance(methods, pd.Series):  # only defaults used
             methods = methods.to_frame()
@@ -186,10 +184,10 @@ class Harmonizer:
                 methods["override"],
                 self.offsets,
                 self.ratios,
-                self.history[self.base_year],
+                self.history[base_year],
                 self.history.apply(coeff_of_var, axis=1),
-                self.data[self.base_year],
-                self.model[self.base_year],
+                self.data[base_year],
+                self.model[base_year],
             ],
             axis=1,
         )
@@ -246,11 +244,12 @@ class Harmonizer:
         # harmonize
         model = Harmonizer._methods[method](model, delta, harmonize_year=base_year)
 
-        y = str(base_year)
         if model.isnull().values.any():
             msg = "{} method produced NaNs: {}, {}"
             where = model.isnull().any(axis=1)
-            raise ValueError(msg.format(method, model.loc[where, y], delta.loc[where]))
+            raise ValueError(
+                msg.format(method, model.loc[where, base_year], delta.loc[where])
+            )
 
         # construct the full df of history and future
         return model
@@ -263,7 +262,7 @@ class Harmonizer:
         pd.DataFrame of overrides.
         """
         # get method listing
-        base_year = year if year is not None else self.base_year or "2015"
+        base_year = year if year is not None else self.base_year or 2015
         _check_overrides(overrides, self.data.index)
         methods = self._default_methods(year=base_year)
 
@@ -293,12 +292,9 @@ class Harmonizer:
         Return pd.DataFrame of harmonized trajectories given pd.DataFrame
         overrides.
         """
-        base_year = year if year is not None else self.base_year or "2015"
+        base_year = year if year is not None else self.base_year or 2015
         _check_data(self.history, self.data, base_year, self.harm_idx)
 
-        self.model = pd.Series(
-            index=self.data.index, name=base_year, dtype=float
-        ).to_frame()
         self.offsets, self.ratios = harmonize_factors(
             self.data, self.history, base_year
         )
@@ -310,10 +306,13 @@ class Harmonizer:
         if isinstance(methods, pd.DataFrame):
             methods = methods["method"]  # drop default and override info
         if (methods == "unicorn").any():
+            self.model = pd.Series(
+                index=self.data.index, name=base_year, dtype=float
+            ).to_frame()
             msg = """Values found where model has positive and negative values
             and is zero in base year. Unsure how to proceed:\n{}\n{}"""
             cols = ["history", "unharmonized"]
-            df1 = self.metadata().loc[methods == "unicorn", cols]
+            df1 = self.metadata(year=base_year).loc[methods == "unicorn", cols]
             df2 = self.data.loc[methods == "unicorn"]
             raise ValueError(msg.format(df1.reset_index(), df2.reset_index()))
 
