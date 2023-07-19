@@ -432,7 +432,7 @@ def intensity_convergence(
         # sum does not work here. We need the individual per-country dimension
         negative_intensity_projection = negative_exponential_intensity_model(
             alpha,
-            intensity_hist,
+            intensity_hist.loc[~low_intensity],
             intensity.loc[negative_convergence],
             reference,
             semijoin(intensity_projection_linear, negative_convergence_i, how="inner"),
