@@ -235,16 +235,16 @@ class Harmonizer:
         delta = hist if method == "budget" else ratios if "ratio" in method else offsets
 
         # checks
-        assert not model.isnull().values.any()
-        assert not hist.isnull().values.any()
-        assert not delta.isnull().values.any()
+        assert not model.isnull().any(axis=None)
+        assert not hist.isnull().any(axis=None)
+        assert not delta.isnull().any(axis=None)
         if check_len:
             assert (len(model) < len(self.data)) & (len(hist) < len(self.history))
 
         # harmonize
         model = Harmonizer._methods[method](model, delta, harmonize_year=base_year)
 
-        if model.isnull().values.any():
+        if model.isnull().any(axis=None):
             msg = "{} method produced NaNs: {}, {}"
             where = model.isnull().any(axis=1)
             raise ValueError(
@@ -318,11 +318,11 @@ class Harmonizer:
 
         dfs = []
         y = base_year
+        check_len = len(methods.unique()) > 1
         for method in methods.unique():
             _log(f"Harmonizing with {method}")
             # get subset indicies
             idx = methods[methods == method].index
-            check_len = len(methods.unique()) > 1
             # harmonize
             df = self._harmonize(method, idx, check_len, base_year=base_year)
             if method not in ["model_zero", "hist_zero"]:

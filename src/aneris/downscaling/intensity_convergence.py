@@ -474,4 +474,5 @@ def intensity_convergence(
         .groupby(model.index.names, dropna=False)
         .transform(normalize)
     )
-    return model.idx.multiply(weights, join="left").where(model != 0, 0)
+    res = model.pix.multiply(weights, join="left")
+    return res.where(semijoin(model != 0, res.index, how="right"), 0)

@@ -66,8 +66,8 @@ class Downscaler:
 
         missing_hist = (
             model.index.join(self.context.regionmap_index, how="left")
-            .idx.project(list(index) + [self.country_level])
-            .difference(hist.index.idx.project(list(index) + [self.country_level]))
+            .pix.project(list(index) + [self.country_level])
+            .difference(hist.index.pix.project(list(index) + [self.country_level]))
         )
         if not missing_hist.empty:
             raise MissingHistoricalError(
@@ -140,8 +140,8 @@ class Downscaler:
                 lvl for lvl in trajectory_index.names if lvl in proxy.index.names
             ]
             missing_proxy = (
-                trajectory_index.idx.project(common_levels)
-                .difference(proxy.index.idx.project(common_levels))
+                trajectory_index.pix.project(common_levels)
+                .difference(proxy.index.pix.project(common_levels))
                 .unique()
             )
             if not missing_proxy.empty:

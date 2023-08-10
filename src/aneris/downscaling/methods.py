@@ -54,7 +54,9 @@ def base_year_pattern(
         .transform(normalize)
     )
 
-    return model.idx.multiply(weights, join="left").where(model != 0, 0)
+    # the semijoin in where should not be necessary, but pandas fails without it
+    res = model.pix.multiply(weights, join="left")
+    return res.where(semijoin(model != 0, res.index, how="right"), 0)
 
 
 def simple_proxy(
@@ -89,14 +91,16 @@ def simple_proxy(
     """
 
     proxy_data = context.additional_data[proxy_name]
-    common_levels = [lvl for lvl in context.index if lvl in proxy_data.index.names]
+    common_levels = [lvl for lvl in model.index.names if lvl in proxy_data.index.names]
     weights = (
         semijoin(proxy_data, context.regionmap_index)[model.columns]
         .groupby(common_levels + [context.region_level], dropna=False)
         .transform(normalize)
     )
 
-    return model.idx.multiply(weights, join="left").where(model != 0, 0)
+    # the semijoin in where should not be necessary, but pandas fails without it
+    res = model.pix.multiply(weights, join="left")
+    return res.where(semijoin(model != 0, res.index, how="right"), 0)
 
 
 def growth_rate(
@@ -139,7 +143,7 @@ def growth_rate(
     )
 
     weights = (
-        cumulative_growth_rates.idx.multiply(
+        cumulative_growth_rates.pix.multiply(
             semijoin(hist, context.regionmap_index, how="right"),
             join="left",
         )
@@ -147,7 +151,9 @@ def growth_rate(
         .transform(normalize)
     )
 
-    return model.idx.multiply(weights, join="left").where(model != 0, 0)
+    # the semijoin in where should not be necessary, but pandas fails without it
+    res = model.pix.multiply(weights, join="left")
+    return res.where(semijoin(model != 0, res.index, how="right"), 0)
 
 
 def default_method_choice(
