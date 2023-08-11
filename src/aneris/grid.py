@@ -238,7 +238,9 @@ class Gridder:
                 proxy_index = MultiIndex.from_product(
                     [proxy.indexes[dim] for dim in self.index]
                 )
-                tabular = semijoin(self.data, proxy_index, how="right")
+                # dropna is required when data is allowed to have less dimension
+                # values than proxy (e.g., fewer years)
+                tabular = semijoin(self.data, proxy_index, how="right").dropna()
 
                 for iter_vals in tabular.idx.unique(iter_levels):
                     iter_ids = dict(zip(iter_levels, iter_vals))
@@ -255,17 +257,28 @@ class Gridder:
                 with ProgressBar():
                     dask.compute(write_tasks)
 
-    def write_output(self, proxy_cfg, gridded: DataArray, indexes, iter_ids):
+    def write_output(
+        self,
+        proxy_cfg,
+        gridded: DataArray,
+        indexes,
+        iter_ids,
+        comp=dict(zlib=True, complevel=5),
+    ):
         # TODO: need to add attr definitions and dimension bounds
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         ids = {dim: index[0] for dim, index in indexes.items() if len(index) == 1}
-        path = (
-            self.output_dir
-            / proxy_cfg.template.format(name=proxy_cfg.name, **ids, **iter_ids)
-        ).with_suffix(".nc")
+        fname = (
+            proxy_cfg.template.format(name=proxy_cfg.name, **ids, **iter_ids).replace(
+                " ", "__"
+            )
+            + ".nc"
+        )
+        path = self.output_dir / fname
         logger().info(f"Writing to {path}")
         if not proxy_cfg.separate_shares:
             return gridded.to_dataset(name=proxy_cfg.name).to_netcdf(
-                path, compute=False
+                path, compute=False, encoding={proxy_cfg.name: comp}
             )
 
         if isinstance(proxy_cfg.separate_shares, str):
@@ -280,7 +293,7 @@ class Gridder:
         total = gridded.sum(shares_dims)
         shares = gridded / total
         return total.to_dataset(name=proxy_cfg.name).to_netcdf(
-            path, compute=False
+            path, compute=False, encoding={proxy_cfg.name: comp}
         ), shares.to_dataset(name=f"{proxy_cfg.name}-shares").to_netcdf(
-            shares_path, compute=False
+            shares_path, compute=False, encoding={proxy_cfg.name: comp}
         )
