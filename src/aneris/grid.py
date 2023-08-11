@@ -1,10 +1,11 @@
+import warnings
 from contextlib import contextmanager
+from functools import reduce
 from itertools import repeat
 from pathlib import Path
 from typing import Optional, Sequence, Union
 
 import dask
-import pandas as pd
 import pandas_indexing.accessors  # noqa: F401
 import ptolemy as pt
 import xarray as xr
@@ -31,7 +32,8 @@ class Gridder:
         country_level: str = "country",
         output_dir: Optional[Union[Path, str]] = None,
     ):
-        """Prepare gridding data
+        """
+        Prepare gridding data.
 
         Parameters
         ----------
@@ -82,8 +84,21 @@ class Gridder:
 
         self.output_dir = Path.cwd() if output_dir is None else Path(output_dir)
 
-    def check(self) -> None:
-        """Check levels and dimensions of gridding data
+    def check(
+        self, strict_proxy_data: bool = False, global_label: str = "World"
+    ) -> None:
+        """
+        Check levels and dimensions of gridding data.
+
+        Parameters
+        ----------
+        strict_proxy_data : bool, default True
+            If true, proxy data must align with tabular data. If false, proxy
+            data can have additional data than is provided in tabular data
+            (e.g., additional years)
+        global_label : str, default "World"
+            The regional label applied to global data which should not be
+            checked against country proxy data
 
         Raises
         ------
@@ -114,7 +129,9 @@ class Gridder:
             )
 
         # Check data and idxraster alignment
-        countries_data = set(self.data.idx.unique(self.country_level))
+        countries_data = set(self.data.idx.unique(self.country_level)) - set(
+            [global_label]
+        )
         countries_idx = set(self.idxraster.indexes[self.country_level])
         missing_from_idxraster = countries_data - countries_idx
         if missing_from_idxraster:
@@ -152,14 +169,21 @@ class Gridder:
                 index = MultiIndex.from_product([get_index(dim) for dim in self.index])
                 missing_from_data = index.difference(data_index)
                 if not missing_from_data.empty:
-                    raise MissingCoordinateValue(
+                    msg = (
                         f"Proxy '{proxy_cfg.name}' has values missing from `data`:\n"
                         + missing_from_data.to_frame().to_string(index=False)
                     )
+                    if strict_proxy_data:
+                        raise MissingCoordinateValue(msg)
+                    else:
+                        warnings.warn(msg)
 
                 proxy_index.append(index)
 
-        proxy_index = pd.concat(proxy_index)
+        def concat(objs):
+            return reduce(lambda x, y: x.append(y), objs)
+
+        proxy_index = concat(proxy_index)
         missing_from_proxy = data_index.difference(proxy_index)
         if not missing_from_proxy.empty:
             raise MissingCoordinateValue(
@@ -190,7 +214,7 @@ class Gridder:
 
     def grid(self, skip_check: bool = False) -> None:
         """
-        Grid data onto configured proxies
+        Grid data onto configured proxies.
 
         Parameters
         ----------
