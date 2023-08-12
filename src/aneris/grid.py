@@ -241,7 +241,6 @@ class Gridder:
         iter_levels = iter_levels or self.data.index.names.difference(
             self.index + [self.country_level]
         )
-        print(iter_levels)
 
         for proxy_cfg in self.proxy_cfg.itertuples():
             logger().info("Collecting tasks for proxy %s", proxy_cfg.name)
