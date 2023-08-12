@@ -192,9 +192,9 @@ class Gridder:
             )
 
     @contextmanager
-    def open_and_normalize_proxy(self, proxy_cfg):
+    def open_and_normalize_proxy(self, proxy_cfg, chunk_proxy_dims):
         with xr.open_dataarray(
-            proxy_cfg.path, chunks=dict(zip(self.index, repeat(1)))
+            proxy_cfg.path, chunks=dict(zip(self.index + chunk_proxy_dims, repeat(1)))
         ) as proxy:
             for idx in self.index:
                 mapping = self.index_mappings.get(idx)
@@ -212,7 +212,16 @@ class Gridder:
 
             yield normalized
 
-    def grid(self, skip_check: bool = False) -> None:
+    # TODO: iter_levels was added because some trajectories can have different
+    # downscaling methods applied? E.g., for burning emissions, proxy_gdp and
+    # ipat are both used, causing the gridding process to be called twice in
+    # `for iter_vals in tabular.idx.unique(iter_levels)`
+    def grid(
+        self,
+        skip_check: bool = False,
+        chunk_proxy_dims: Sequence[str] = [],
+        iter_levels: Sequence[str] = [],
+    ) -> None:
         """
         Grid data onto configured proxies.
 
@@ -220,19 +229,24 @@ class Gridder:
         ----------
         skip_check : bool, default False
             If set, skips structural and alignment checks
+        chunk_proxy_dims : Sequence[str], default []
+            Additional dimensions to chunk when opening proxy files
+        iter_levels : Sequence[str], default []
+            Explicit levels over which to iterate (e.g., model and scenario)
         """
 
         if not skip_check:
             self.check()
 
-        iter_levels = self.data.index.names.difference(
+        iter_levels = iter_levels or self.data.index.names.difference(
             self.index + [self.country_level]
         )
+        print(iter_levels)
 
         for proxy_cfg in self.proxy_cfg.itertuples():
             logger().info("Collecting tasks for proxy %s", proxy_cfg.name)
 
-            with self.open_and_normalize_proxy(proxy_cfg) as proxy:
+            with self.open_and_normalize_proxy(proxy_cfg, chunk_proxy_dims) as proxy:
                 write_tasks = []
 
                 proxy_index = MultiIndex.from_product(
@@ -281,13 +295,14 @@ class Gridder:
                 path, compute=False, encoding={proxy_cfg.name: comp}
             )
 
-        if isinstance(proxy_cfg.separate_shares, str):
-            shares_stem = proxy_cfg.separate_shares.format(name=proxy_cfg.name, **ids)
-        else:
-            shares_stem = proxy_cfg.template.format(
-                name=f"{proxy_cfg.name}-shares", **ids
-            )
-        shares_path = (self.output_dir / shares_stem).with_suffix(".nc")
+        shares_fname = (
+            proxy_cfg.template.format(
+                name=f"{proxy_cfg.name}-shares", **ids, **iter_ids
+            ).replace(" ", "__")
+            + ".nc"
+        )
+        shares_path = self.output_dir / shares_fname
+        logger().info(f"Writing to {shares_path}")
 
         shares_dims = [dim for dim in self.index if dim not in ids]
         total = gridded.sum(shares_dims)
@@ -295,5 +310,5 @@ class Gridder:
         return total.to_dataset(name=proxy_cfg.name).to_netcdf(
             path, compute=False, encoding={proxy_cfg.name: comp}
         ), shares.to_dataset(name=f"{proxy_cfg.name}-shares").to_netcdf(
-            shares_path, compute=False, encoding={proxy_cfg.name: comp}
+            shares_path, compute=False, encoding={f"{proxy_cfg.name}-shares": comp}
         )
