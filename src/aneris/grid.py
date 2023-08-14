@@ -44,7 +44,7 @@ class Gridder:
             Rasterized country map (should sum to 1 over `country_level`)
         proxy_cfg : DataFrame
             Configuration of proxies with the columns:
-            "name", "path", "template", "as_flux", "separate_shares"
+            "name", "path", "template", "as_flux", "global_only", "separate_shares"
         index : Sequence[str], optional
             level names on which to align between tabular data and proxies, by default
             DEFAULT_INDEX
@@ -74,6 +74,8 @@ class Gridder:
                 )
             if "as_flux" not in proxy_cfg.columns:
                 proxy_cfg["as_flux"] = True
+            if "global_only" not in proxy_cfg.columns:
+                proxy_cfg["global_only"] = False
             if "separate_shares" not in proxy_cfg.columns:
                 proxy_cfg["separate_shares"] = False
         self.proxy_cfg = proxy_cfg
@@ -201,7 +203,7 @@ class Gridder:
                 if mapping is not None:
                     proxy[idx] = proxy.indexes[idx].map(mapping)
 
-            separate = self.idxraster * proxy
+            separate = proxy if proxy_cfg.global_only else self.idxraster * proxy
             normalized = separate / separate.sum(["lat", "lon"])
 
             if proxy_cfg.as_flux:
