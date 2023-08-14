@@ -218,6 +218,9 @@ class Gridder:
     # downscaling methods applied? E.g., for burning emissions, proxy_gdp and
     # ipat are both used, causing the gridding process to be called twice in
     # `for iter_vals in tabular.idx.unique(iter_levels)`
+    #
+    # TODO: chunk_proxy_dims can in principle be moved into Gridder.proxy_cfg,
+    # but requires supporting lists, so need to decide how to deal with that
     def grid(
         self,
         skip_check: bool = False,
