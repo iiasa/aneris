@@ -316,6 +316,7 @@ def linear_intensity_model(
     return intensity_projection
 
 
+@np.errstate(invalid="ignore")
 def intensity_growth_rate_model(
     intensity: DataFrame, intensity_hist: Series
 ) -> DataFrame:
@@ -334,7 +335,7 @@ def intensity_growth_rate_model(
         * intensity_hist.values[:, np.newaxis],
         index=intensity_hist.index,
         columns=years_downscaling.rename("year"),
-    )
+    ).where(intensity_hist != 0, 0.)
     return intensity_projection
 
 
