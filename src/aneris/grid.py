@@ -81,6 +81,8 @@ class Gridder:
         self.proxy_cfg = proxy_cfg
 
         self.index = list(index)
+        self.spatial_dims = ["lat", "lon", "level"]
+        self.mean_time_dims = ["month"]
         self.index_mappings = index_mappings if index_mappings is not None else dict()
         self.country_level = country_level
 
@@ -203,9 +205,16 @@ class Gridder:
                 if mapping is not None:
                     proxy[idx] = proxy.indexes[idx].map(mapping)
 
-            # separate = proxy if proxy_cfg.global_only else self.idxraster * proxy # TODO: this maybe isn't needed anymore with 'World' included in idxraster
+            # TODO: this maybe isn't needed anymore with 'World' included in idxraster
+            # separate = proxy if proxy_cfg.global_only else self.idxraster * proxy
             separate = self.idxraster * proxy
-            normalized = separate / separate.sum(["lat", "lon"])
+            # NB: this only preserves seasonality if years and months are
+            #     separate dimensions in the proxy raster. If instead they are
+            #     combined into a single 'time' dimension, seasonality is lost.
+            sum_spatial_dims = list(set(separate.dims).intersection(self.spatial_dims))
+            normalized = separate / separate.mean(self.mean_time_dims).sum(
+                sum_spatial_dims
+            )
 
             if proxy_cfg.as_flux:
                 lat_areas_in_m2 = xr.DataArray.from_series(
@@ -229,6 +238,7 @@ class Gridder:
         iter_levels: Sequence[str] = [],
         write: bool = True,  # TODO: make docs
         share_dims: Sequence[str] = ["sector"],  # TODO: make docs
+        verify_output: bool = False,  # TODO: make docs
     ) -> None:
         """
         Grid data onto configured proxies.
@@ -249,7 +259,6 @@ class Gridder:
         iter_levels = iter_levels or self.data.index.names.difference(
             self.index + [self.country_level]
         )
-
         ret = []
         for proxy_cfg in self.proxy_cfg.itertuples():
             logger().info("Collecting tasks for proxy %s", proxy_cfg.name)
@@ -272,6 +281,9 @@ class Gridder:
                     )
                     gridded = (data * proxy).sum(self.country_level)
 
+                    if verify_output:
+                        write_tasks.append(self.verify_output(tabular, gridded))
+
                     write_tasks.append(
                         self.compute_output(
                             proxy_cfg,
@@ -290,6 +302,44 @@ class Gridder:
                     ret.append(write_tasks)
 
         return ret
+
+    def verify_output(
+        self,
+        tabular,
+        gridded,
+    ):
+        # TODO: this is complex and can be given to us by the user?
+        # the point of this function is to compute global totals across
+        # self.index (nominally sector, gas, year), and compare with
+        # the same values summed up in the original tabular data provided
+        # to confirm that gridded values comport with provided global totals
+        sum_spatial_dims = list(set(gridded.dims).intersection(self.spatial_dims))
+        droplevel = list(
+            set(gridded.dims).difference(
+                set(self.index + self.spatial_dims + self.mean_time_dims)
+            )
+        )
+        grid_df = (
+            (xr.DataArray(pt.cell_area_from_file(gridded)) * gridded)
+            .mean(dim=self.mean_time_dims)
+            .sum(dim=sum_spatial_dims)
+            .to_dataframe(name="emissions")
+            .unstack("year")
+            .droplevel(droplevel)["emissions"]
+        )
+        tab_df = (
+            semijoin(tabular, grid_df.index, how="inner")
+            .groupby(level=grid_df.index.names)
+            .sum()[grid_df.columns]
+        )
+        rel_diff = (grid_df - tab_df).abs() / tab_df
+        lim = 1e-4
+        if not (rel_diff < lim).all().all():
+            logger().warning(
+                f"Yearly global totals not within {lim} relative values:\n"
+                f"{rel_diff}"
+            )
+        return rel_diff
 
     def compute_output(
         self,
