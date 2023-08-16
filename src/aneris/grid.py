@@ -203,7 +203,8 @@ class Gridder:
                 if mapping is not None:
                     proxy[idx] = proxy.indexes[idx].map(mapping)
 
-            separate = proxy if proxy_cfg.global_only else self.idxraster * proxy
+            # separate = proxy if proxy_cfg.global_only else self.idxraster * proxy # TODO: this maybe isn't needed anymore with 'World' included in idxraster
+            separate = self.idxraster * proxy
             normalized = separate / separate.sum(["lat", "lon"])
 
             if proxy_cfg.as_flux:
@@ -226,6 +227,8 @@ class Gridder:
         skip_check: bool = False,
         chunk_proxy_dims: Sequence[str] = [],
         iter_levels: Sequence[str] = [],
+        write: bool = True,  # TODO: make docs
+        share_dims: Sequence[str] = ["sector"],  # TODO: make docs
     ) -> None:
         """
         Grid data onto configured proxies.
@@ -247,6 +250,7 @@ class Gridder:
             self.index + [self.country_level]
         )
 
+        ret = []
         for proxy_cfg in self.proxy_cfg.itertuples():
             logger().info("Collecting tasks for proxy %s", proxy_cfg.name)
 
@@ -258,7 +262,7 @@ class Gridder:
                 )
                 # dropna is required when data is allowed to have less dimension
                 # values than proxy (e.g., fewer years)
-                tabular = semijoin(self.data, proxy_index, how="right").dropna()
+                tabular = semijoin(self.data, proxy_index, how="inner")
 
                 for iter_vals in tabular.idx.unique(iter_levels):
                     iter_ids = dict(zip(iter_levels, iter_vals))
@@ -269,18 +273,32 @@ class Gridder:
                     gridded = (data * proxy).sum(self.country_level)
 
                     write_tasks.append(
-                        self.write_output(proxy_cfg, gridded, data.indexes, iter_ids)
+                        self.compute_output(
+                            proxy_cfg,
+                            gridded,
+                            data.indexes,
+                            iter_ids,
+                            write=write,
+                            share_dims=share_dims,
+                        )
                     )
 
-                with ProgressBar():
-                    dask.compute(write_tasks)
+                if write:
+                    with ProgressBar():
+                        dask.compute(write_tasks)
+                else:
+                    ret.append(write_tasks)
 
-    def write_output(
+        return ret
+
+    def compute_output(
         self,
         proxy_cfg,
         gridded: DataArray,
         indexes,
         iter_ids,
+        write=True,
+        share_dims=["sector"],
         comp=dict(zlib=True, complevel=5),
     ):
         # TODO: need to add attr definitions and dimension bounds
@@ -295,9 +313,13 @@ class Gridder:
         path = self.output_dir / fname
         logger().info(f"Writing to {path}")
         if not proxy_cfg.separate_shares:
-            return gridded.to_dataset(name=proxy_cfg.name).to_netcdf(
-                path, compute=False, encoding={proxy_cfg.name: comp}
-            )
+            gridded = gridded.to_dataset(name=proxy_cfg.name)
+            if write:
+                return gridded.to_netcdf(
+                    path, compute=False, encoding={proxy_cfg.name: comp}
+                )
+            else:
+                return gridded
 
         shares_fname = (
             proxy_cfg.template.format(
@@ -308,11 +330,15 @@ class Gridder:
         shares_path = self.output_dir / shares_fname
         logger().info(f"Writing to {shares_path}")
 
-        shares_dims = [dim for dim in self.index if dim not in ids]
-        total = gridded.sum(shares_dims)
+        total = gridded.sum(share_dims)
         shares = gridded / total
-        return total.to_dataset(name=proxy_cfg.name).to_netcdf(
-            path, compute=False, encoding={proxy_cfg.name: comp}
-        ), shares.to_dataset(name=f"{proxy_cfg.name}-shares").to_netcdf(
-            shares_path, compute=False, encoding={f"{proxy_cfg.name}-shares": comp}
-        )
+        total = total.to_dataset(name=proxy_cfg.name)
+        shares = shares.to_dataset(name=f"{proxy_cfg.name}-shares")
+        if write:
+            return total.to_netcdf(
+                path, compute=False, encoding={proxy_cfg.name: comp}
+            ), shares.to_netcdf(
+                shares_path, compute=False, encoding={f"{proxy_cfg.name}-shares": comp}
+            )
+        else:
+            return total, shares
