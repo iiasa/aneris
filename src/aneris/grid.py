@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from functools import reduce
 from itertools import repeat
 from pathlib import Path
-from typing import Optional, Sequence, Union
+from typing import Mapping, Optional, Sequence, Union
 
 import dask
 import pandas_indexing.accessors  # noqa: F401
@@ -196,9 +196,10 @@ class Gridder:
             )
 
     @contextmanager
-    def open_and_normalize_proxy(self, proxy_cfg, chunk_proxy_dims):
+    def open_and_normalize_proxy(self, proxy_cfg, chunk_proxy_dims={}):
         with xr.open_dataarray(
-            proxy_cfg.path, chunks=dict(zip(self.index + chunk_proxy_dims, repeat(1)))
+            proxy_cfg.path,
+            chunks=dict(**zip(self.index, repeat(1)), **chunk_proxy_dims),
         ) as proxy:
             for idx in self.index:
                 mapping = self.index_mappings.get(idx)
@@ -236,7 +237,7 @@ class Gridder:
     def grid(
         self,
         skip_check: bool = False,
-        chunk_proxy_dims: Sequence[str] = [],
+        chunk_proxy_dims: Mapping[str, int] = {},
         iter_levels: Sequence[str] = [],
         write: bool = True,  # TODO: make docs
         share_dims: Sequence[str] = ["sector"],  # TODO: make docs
