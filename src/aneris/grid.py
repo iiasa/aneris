@@ -21,6 +21,24 @@ from .utils import country_name, logger
 DEFAULT_INDEX = ("sector", "gas", "year")
 
 
+@dask.delayed
+def verify_global_values(aggregated, tabular, proxy_name, index, reltol=1e-4):
+    grid_df = aggregated.to_series().pix.project(index).unstack("year")
+    tab_df = (
+        semijoin(tabular, grid_df.index, how="inner")[grid_df.columns]
+        .groupby(grid_df.index.names)
+        .sum()
+    )
+
+    reldiff = abs(grid_df - tab_df) / tab_df
+    if (reldiff >= reltol).any(axis=None):
+        logger().warning(
+            f"Yearly global totals ({proxy_name}) not within {reltol} relative values:\n"
+            f"{reldiff}"
+        )
+    return reldiff
+
+
 class Gridder:
     def __init__(
         self,
@@ -199,10 +217,7 @@ class Gridder:
     def open_and_normalize_proxy(self, proxy_cfg, chunk_proxy_dims={}):
         with xr.open_dataarray(
             proxy_cfg.path,
-            chunks=dict(
-                **dict(zip(self.index, repeat(1))), 
-                **chunk_proxy_dims
-                ),
+            chunks=dict(zip(self.index, repeat(1))) | chunk_proxy_dims,
         ) as proxy:
             for idx in self.index:
                 mapping = self.index_mappings.get(idx)
@@ -287,7 +302,9 @@ class Gridder:
                     gridded = (data * proxy).sum(self.country_level)
 
                     if verify_output:
-                        write_tasks.append(self.verify_output(tabular, gridded))
+                        write_tasks.append(
+                            self.verify_output(proxy_cfg, tabular, gridded)
+                        )
 
                     write_tasks.append(
                         self.compute_output(
@@ -310,6 +327,7 @@ class Gridder:
 
     def verify_output(
         self,
+        proxy_cfg,
         tabular,
         gridded,
     ):
@@ -323,32 +341,14 @@ class Gridder:
         # the same values summed up in the original tabular data provided
         # to confirm that gridded values comport with provided global totals
         sum_spatial_dims = list(set(gridded.dims).intersection(self.spatial_dims))
-        droplevel = list(
-            set(gridded.dims).difference(
-                set(self.index + self.spatial_dims + self.mean_time_dims)
-            )
-        )
-        grid_df = (
-            (xr.DataArray(pt.cell_area_from_file(gridded)) * gridded)
-            .mean(dim=self.mean_time_dims)
-            .sum(dim=sum_spatial_dims)
-            .to_dataframe(name="emissions")
-            .unstack("year")
-            .droplevel(droplevel)["emissions"]
-        )
-        tab_df = (
-            semijoin(tabular, grid_df.index, how="inner")
-            .groupby(level=grid_df.index.names)
-            .sum()[grid_df.columns]
-        )
-        rel_diff = (grid_df - tab_df).abs() / tab_df
-        lim = 1e-4
-        if not (rel_diff < lim).all().all():
-            logger().warning(
-                f"Yearly global totals not within {lim} relative values:\n"
-                f"{rel_diff}"
-            )
-        return rel_diff
+
+        if proxy_cfg.as_flux:
+            lat_areas_in_m2 = xr.DataArray.from_series(pt.cell_area_from_file(gridded))
+            gridded = gridded * lat_areas_in_m2
+
+        aggregated = gridded.mean(dim=self.mean_time_dims).sum(dim=sum_spatial_dims)
+
+        return verify_global_values(aggregated, tabular, proxy_cfg.name, self.index)
 
     def compute_output(
         self,
