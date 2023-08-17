@@ -206,8 +206,10 @@ class Gridder:
                     proxy[idx] = proxy.indexes[idx].map(mapping)
 
             # TODO: this maybe isn't needed anymore with 'World' included in idxraster
-            # separate = proxy if proxy_cfg.global_only else self.idxraster * proxy
-            separate = self.idxraster * proxy
+            #       but need to confirm 'World' is also in the proxy rasters
+            separate = proxy if proxy_cfg.global_only else self.idxraster * proxy
+            # separate = self.idxraster * proxy
+
             # NB: this only preserves seasonality if years and months are
             #     separate dimensions in the proxy raster. If instead they are
             #     combined into a single 'time' dimension, seasonality is lost.
@@ -308,6 +310,10 @@ class Gridder:
         tabular,
         gridded,
     ):
+        # TODO: figure out correct message here
+        # ids = {dim: index[0] for dim, index in indexes.items() if len(index) == 1}
+        # logger().info(f"Veryifying output for {ids}")
+
         # TODO: this is complex and can be given to us by the user?
         # the point of this function is to compute global totals across
         # self.index (nominally sector, gas, year), and compare with
