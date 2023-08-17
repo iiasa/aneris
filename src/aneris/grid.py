@@ -199,7 +199,10 @@ class Gridder:
     def open_and_normalize_proxy(self, proxy_cfg, chunk_proxy_dims={}):
         with xr.open_dataarray(
             proxy_cfg.path,
-            chunks=dict(**zip(self.index, repeat(1)), **chunk_proxy_dims),
+            chunks=dict(
+                **dict(zip(self.index, repeat(1))), 
+                **chunk_proxy_dims
+                ),
         ) as proxy:
             for idx in self.index:
                 mapping = self.index_mappings.get(idx)
@@ -255,7 +258,6 @@ class Gridder:
         iter_levels : Sequence[str], default []
             Explicit levels over which to iterate (e.g., model and scenario)
         """
-
         if not skip_check:
             self.check()
 
