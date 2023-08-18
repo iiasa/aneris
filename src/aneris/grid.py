@@ -24,8 +24,9 @@ DEFAULT_INDEX = ("sector", "gas", "year")
 @dask.delayed
 def verify_global_values(aggregated, tabular, proxy_name, index, reltol=1e-4):
     grid_df = aggregated.to_series().pix.project(index).unstack("year")
+    tab_df = tabular.pix.project(index).unstack("year")
     tab_df = (
-        semijoin(tabular, grid_df.index, how="inner")[grid_df.columns]
+        semijoin(tab_df, grid_df.index, how="inner")[grid_df.columns]
         .groupby(grid_df.index.names)
         .sum()
     )
@@ -33,8 +34,12 @@ def verify_global_values(aggregated, tabular, proxy_name, index, reltol=1e-4):
     reldiff = abs(grid_df - tab_df) / tab_df
     if (reldiff >= reltol).any(axis=None):
         logger().warning(
-            f"Yearly global totals ({proxy_name}) not within {reltol} relative values:\n"
+            f"Yearly global totals relative values between grids and global data for ({proxy_name}) not within {reltol}:\n"
             f"{reldiff}"
+        )
+    else:
+        logger().info(
+            f"Yearly global totals relative values between grids and global data for ({proxy_name}) within tolerance"
         )
     return reldiff
 
@@ -305,23 +310,21 @@ class Gridder:
                         write_tasks.append(
                             self.verify_output(proxy_cfg, tabular, gridded)
                         )
-
-                    write_tasks.append(
-                        self.compute_output(
-                            proxy_cfg,
-                            gridded,
-                            data.indexes,
-                            iter_ids,
-                            write=write,
-                            share_dims=share_dims,
+                    if write:
+                        write_tasks.append(
+                            self.compute_output(
+                                proxy_cfg,
+                                gridded,
+                                data.indexes,
+                                iter_ids,
+                                write=write,
+                                share_dims=share_dims,
+                            )
                         )
-                    )
 
-                if write:
-                    with ProgressBar():
-                        dask.compute(write_tasks)
-                else:
-                    ret.append(write_tasks)
+                with ProgressBar():
+                    dask.compute(write_tasks)
+                ret.append(write_tasks)
 
         return ret
 
