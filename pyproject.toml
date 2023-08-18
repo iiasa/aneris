@@ -24,6 +24,7 @@ dependencies = [
   "matplotlib",
   "pyomo>=5",
   "pandas-indexing>=0.2.7",
+  "pycountry",
 ]
 dynamic = ["version"]
 
