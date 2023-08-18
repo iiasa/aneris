@@ -335,7 +335,7 @@ def intensity_growth_rate_model(
         * intensity_hist.values[:, np.newaxis],
         index=intensity_hist.index,
         columns=years_downscaling.rename("year"),
-    ).where(intensity_hist != 0, 0.)
+    ).where(intensity_hist != 0, 0.0)
     return intensity_projection
 
 
