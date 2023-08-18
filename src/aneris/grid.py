@@ -23,8 +23,14 @@ DEFAULT_INDEX = ("sector", "gas", "year")
 
 @dask.delayed
 def verify_global_values(aggregated, tabular, proxy_name, index, reltol=1e-4):
-    grid_df = aggregated.to_series().pix.project(index).unstack("year")
     tab_df = tabular.pix.project(index).groupby(level=index).sum().unstack("year")
+    grid_df = (
+        aggregated.to_series()
+        .pix.project(index)
+        .groupby(level=index)
+        .sum()
+        .unstack("year")
+    )
     tab_df = semijoin(tab_df, grid_df.index, how="inner")[grid_df.columns]
 
     reldiff = abs(grid_df - tab_df) / tab_df
