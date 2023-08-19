@@ -66,7 +66,7 @@ def simple_proxy(
     proxy_name: str,
 ) -> DataFrame:
     """
-    Downscales emission data using the shares in a proxy scenario
+    Downscales emission data using the shares in a proxy scenario.
 
     Parameters
     ----------
@@ -161,10 +161,12 @@ def default_method_choice(
     fallback_method="proxy_gdp",
     intensity_method="ipat_2100_gdp",
     luc_method="base_year_pattern",
+    luc_sectors=None,
 ):
     """
     Default downscaling decision tree.
     """
+    luc_sectors = luc_sectors or ("Agriculture", "LULUCF")
 
     # special cases
     if traj.h == 0:
@@ -172,7 +174,7 @@ def default_method_choice(
     if traj.zero_m:
         return fallback_method
 
-    if traj.get("sector", None) in ("Agriculture", "LULUCF"):
+    if traj.get("sector", None) in luc_sectors:
         return luc_method
 
     return intensity_method

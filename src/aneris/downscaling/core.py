@@ -43,6 +43,7 @@ class Downscaler:
         hist: DataFrame,
         year: int,
         region_mapping: Series,
+        luc_sectors: Sequence[str] = [],
         index: Sequence[str] = DEFAULT_INDEX,
         method_choice: Optional[callable] = None,
         return_type=DataFrame,
@@ -80,6 +81,7 @@ class Downscaler:
         self.intensity_method = None
         self.luc_method = None
         self.method_choice = None
+        self.luc_sectors = luc_sectors
 
     @property
     def index(self):
@@ -207,6 +209,7 @@ class Downscaler:
             "fallback_method": self.fallback_method,
             "intensity_method": self.intensity_method,
             "luc_method": self.luc_method,
+            "luc_sectors": self.luc_sectors,
         }
 
         hist_agg = (
