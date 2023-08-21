@@ -45,13 +45,11 @@ docs = [
         "sphinx",
         "sphinxcontrib-bibtex",
         "sphinxcontrib-programoutput",
+        "sphinxcontrib-exceltable",
         "sphinx-gallery",
         "nbsphinx",
         "numpydoc",
         "nbformat",
-        "ipython",
-        "jupyter",
-        "jupyter_contrib_nbextensions",
         "pillow",
     ]
 lint = [
