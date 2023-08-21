@@ -23,15 +23,9 @@ DEFAULT_INDEX = ("sector", "gas", "year")
 
 @dask.delayed
 def verify_global_values(aggregated, tabular, proxy_name, index, reltol=1e-4):
-    tab_df = tabular.pix.project(index).groupby(level=index).sum().unstack("year")
-    grid_df = (
-        aggregated.to_series()
-        .pix.project(index)
-        .groupby(level=index)
-        .sum()
-        .unstack("year")
-    )
-    tab_df = semijoin(tab_df, grid_df.index, how="inner")[grid_df.columns]
+    tab_df = tabular.groupby(level=index).sum().unstack("year")
+    grid_df = aggregated.to_series().groupby(level=index).sum().unstack("year")
+    grid_df, tab_df = grid_df.align(tab_df, join="inner")
 
     reldiff = abs(grid_df - tab_df) / tab_df
     if (reldiff >= reltol).any(axis=None):
@@ -303,14 +297,15 @@ class Gridder:
                 for iter_vals in tabular.idx.unique(iter_levels):
                     iter_ids = dict(zip(iter_levels, iter_vals))
                     logger().info("Adding tasks for %s", iter_ids)
-                    data = DataArray.from_series(
-                        tabular.loc[isin(**iter_ids)].droplevel(iter_levels)
+                    single_tabular = tabular.loc[isin(**iter_ids)].droplevel(
+                        iter_levels
                     )
+                    data = DataArray.from_series(single_tabular)
                     gridded = (data * proxy).sum(self.country_level)
 
                     if verify_output:
                         write_tasks.append(
-                            self.verify_output(proxy_cfg, tabular, gridded)
+                            self.verify_output(proxy_cfg, single_tabular, gridded)
                         )
                     if write:
                         write_tasks.append(
@@ -325,17 +320,11 @@ class Gridder:
                         )
 
                 with ProgressBar():
-                    dask.compute(write_tasks)
-                ret.append(write_tasks)
+                    ret.append(dask.compute(write_tasks))
 
         return ret
 
-    def verify_output(
-        self,
-        proxy_cfg,
-        tabular,
-        gridded,
-    ):
+    def verify_output(self, proxy_cfg, tabular, gridded):
         # TODO: figure out correct message here
         # ids = {dim: index[0] for dim, index in indexes.items() if len(index) == 1}
         # logger().info(f"Veryifying output for {ids}")
