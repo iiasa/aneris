@@ -91,7 +91,9 @@ def test_harmonize_constant_offset():
 def test_no_model():
     df = pd.DataFrame({"2015": [0]})
     hist = pd.DataFrame({"2015": [1.5]})
-    obsoffset, obsratio = harmonize.harmonize_factors(df.copy(), hist.copy(), harmonize_year="2015")
+    obsoffset, obsratio = harmonize.harmonize_factors(
+        df.copy(), hist.copy(), harmonize_year="2015"
+    )
     exp = np.array([1.5])
     npt.assert_array_almost_equal(exp, obsoffset)
     exp = np.array([0])
