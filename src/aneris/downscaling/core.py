@@ -7,6 +7,7 @@ from pandas_indexing import concat, semijoin
 
 from ..errors import MissingHistoricalError, MissingProxyError
 from ..methods import default_methods
+from ..utils import logger
 from .data import DownscalingContext
 from .methods import (
     base_year_pattern,
@@ -31,7 +32,7 @@ class Downscaler:
         "base_year_pattern": base_year_pattern,
         "growth_rate": growth_rate,
         "proxy_gdp": partial(simple_proxy, proxy_name="gdp"),
-        "proxy_pop": partial(simple_proxy, proxy_name="gdp"),
+        "proxy_pop": partial(simple_proxy, proxy_name="pop"),
     }
 
     def add_method(self, name, method):
@@ -80,7 +81,7 @@ class Downscaler:
         self.fallback_method = None
         self.intensity_method = None
         self.luc_method = None
-        self.method_choice = None
+        self.method_choice = method_choice
         self.luc_sectors = luc_sectors
 
     @property
@@ -163,7 +164,9 @@ class Downscaler:
                     + ", ".join(missing_years.astype(str))
                 )
 
-    def downscale(self, methods: Optional[Series] = None) -> DataFrame:
+    def downscale(
+        self, methods: Optional[Series] = None, check_result: bool = True
+    ) -> DataFrame:
         """
         Downscale aligned model data from historical data, and socio-economic
         scenario.
@@ -179,6 +182,9 @@ class Downscaler:
         Parameters
         ----------
         methods : Series Methods to apply
+
+        check_result : bool, default True
+            Check whether the downscaled trajectories sum up to the regional totals
         """
 
         if methods is None:
@@ -195,7 +201,29 @@ class Downscaler:
 
             downscaled.append(self._methods[method](model, hist, self.context))
 
-        return self.return_type(concat(downscaled))
+        downscaled = concat(downscaled)
+        if check_result:
+            self.check_downscaled(downscaled)
+
+        return self.return_type(downscaled)
+
+    def check_downscaled(self, downscaled, rtol=1e-05, atol=1e-08):
+        downscaled = (
+            downscaled.groupby(self.model.index.names, dropna=False)
+            .sum()
+            .rename_axis(columns="year")
+            .stack()
+        )
+        model = self.model.rename_axis(columns="year").stack()
+        diff = downscaled - model
+        diff_exceeded = abs(diff) + rtol * abs(model) > atol
+        if diff_exceeded.any():
+            logger().warning(
+                "Difference thresholds exceeded for a few trajectories:\n%s",
+                DataFrame(dict(model=model, downscaled=downscaled, diff=diff))
+                .loc[diff_exceeded]
+                .to_string(),
+            )
 
     def methods(self, method_choice=None, overwrites=None):
         if method_choice is None:
