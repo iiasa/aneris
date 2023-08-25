@@ -50,7 +50,7 @@ def base_year_pattern(
 
     weights = (
         semijoin(hist, context.regionmap_index, how="right")
-        .groupby(list(context.index) + [context.region_level], dropna=False)
+        .groupby(model.index.names, dropna=False)
         .transform(normalize)
     )
 
