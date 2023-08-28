@@ -246,6 +246,17 @@ class Gridder:
 
             yield normalized
 
+    def output_path(self, proxy_cfg, indexes, iter_ids):
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        ids = {dim: index[0] for dim, index in indexes.items() if len(index) == 1}
+        fname = (
+            proxy_cfg.template.format(name=proxy_cfg.name, **ids, **iter_ids).replace(
+                " ", "__"
+            )
+            + ".nc"
+        )
+        return self.output_dir / fname
+
     # TODO: iter_levels was added because some trajectories can have different
     # downscaling methods applied? E.g., for burning emissions, proxy_gdp and
     # ipat are both used, causing the gridding process to be called twice in
@@ -261,6 +272,7 @@ class Gridder:
         write: bool = True,  # TODO: make docs
         share_dims: Sequence[str] = ["sector"],  # TODO: make docs
         verify_output: bool = False,  # TODO: make docs
+        skip_exists: bool = False, # TODO: make docs
     ) -> None:
         """
         Grid data onto configured proxies.
@@ -296,11 +308,16 @@ class Gridder:
 
                 for iter_vals in tabular.idx.unique(iter_levels):
                     iter_ids = dict(zip(iter_levels, iter_vals))
-                    logger().info("Adding tasks for %s", iter_ids)
                     single_tabular = tabular.loc[isin(**iter_ids)].droplevel(
                         iter_levels
                     )
                     data = DataArray.from_series(single_tabular)
+
+                    if skip_exists and self.output_path(proxy_cfg, data.indexes, iter_ids).exists():
+                        logger().info("File exists, skipping tasks for %s", iter_ids)
+                        continue
+
+                    logger().info("Adding tasks for %s", iter_ids)
                     gridded = (data * proxy).sum(self.country_level)
 
                     if verify_output:
@@ -355,15 +372,7 @@ class Gridder:
         comp=dict(zlib=True, complevel=5),
     ):
         # TODO: need to add attr definitions and dimension bounds
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-        ids = {dim: index[0] for dim, index in indexes.items() if len(index) == 1}
-        fname = (
-            proxy_cfg.template.format(name=proxy_cfg.name, **ids, **iter_ids).replace(
-                " ", "__"
-            )
-            + ".nc"
-        )
-        path = self.output_dir / fname
+        path = self.output_path(proxy_cfg, indexes, iter_ids)
         logger().info(f"Writing to {path}")
         if not proxy_cfg.separate_shares:
             gridded = gridded.to_dataset(name=proxy_cfg.name)
