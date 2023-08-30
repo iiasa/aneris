@@ -45,8 +45,9 @@ def base_year_pattern(
     DownscalingContext
     """
 
+    model = model.loc[:, context.year :]
     if isinstance(hist, DataFrame):
-        hist = hist.iloc[:, -1]
+        hist = hist.loc[:, context.year]
 
     weights = (
         semijoin(hist, context.regionmap_index, how="right")
@@ -89,6 +90,8 @@ def simple_proxy(
     --------
     DownscalingContext
     """
+
+    model = model.loc[:, context.year :]
 
     proxy_data = context.additional_data[proxy_name]
     common_levels = [lvl for lvl in model.index.names if lvl in proxy_data.index.names]
@@ -135,8 +138,9 @@ def growth_rate(
     2. region mapping has two indices the first one is fine, the second coarse
     """
 
+    model = model.loc[:, context.year :]
     if isinstance(hist, DataFrame):
-        hist = hist.iloc[:, -1]
+        hist = hist.loc[:, context.year]
 
     cumulative_growth_rates = (model / model.shift(axis=1, fill_value=1)).cumprod(
         axis=1

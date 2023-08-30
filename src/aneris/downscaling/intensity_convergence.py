@@ -383,8 +383,9 @@ def intensity_convergence(
     1443–1475 (2019).
     """
 
+    model = model.loc[:, context.year :]
     if isinstance(hist, DataFrame):
-        hist = hist.iloc[:, -1]
+        hist = hist.loc[:, context.year]
 
     reference = semijoin(context.additional_data[proxy_name], context.regionmap_index)[
         model.columns
