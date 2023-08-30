@@ -12,15 +12,17 @@ class DownscalingContext:
 
     Attributes
     ----------
-    index: sequence of str
+    index : sequence of str
         index levels that differentiate trajectories
-    regionmap: Series
+    year : int
+        base year for downscaling
+    regionmap : Series
         map from countries to regions
-    additional_data: dict, default {}
+    additional_data : dict, default {}
         named `DataFrame`s or `Series` the methods need as proxies
-    country_level: str, default "country"
+    country_level : str, default "country"
         name of the fine index level
-    region_level: str, default "region"
+    region_level : str, default "region"
         name of the coarse index level
 
     Notes
@@ -29,6 +31,7 @@ class DownscalingContext:
     """
 
     index: Sequence[str]
+    year: int
     regionmap: Series
     additional_data: dict[str, Union[Series, DataFrame]] = field(default_factory=dict)
     country_level: str = "country"

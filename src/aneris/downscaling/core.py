@@ -52,10 +52,10 @@ class Downscaler:
     ):
         self.model = model
         self.hist = hist
-        self.year = year
         self.return_type = return_type
         self.context = DownscalingContext(
             index,
+            year,
             region_mapping,
             additional_data,
             country_level=region_mapping.index.name,
@@ -63,7 +63,7 @@ class Downscaler:
         )
 
         assert (
-            hist[year].groupby(list(index) + [self.country_level]).count() <= 1
+            hist[self.year].groupby(list(index) + [self.country_level]).count() <= 1
         ).all(), "Ambiguous history"
 
         missing_hist = (
@@ -87,6 +87,10 @@ class Downscaler:
     @property
     def index(self):
         return self.context.index
+
+    @property
+    def year(self):
+        return self.context.year
 
     @property
     def region_mapping(self):
