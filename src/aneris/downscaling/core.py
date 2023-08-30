@@ -212,22 +212,44 @@ class Downscaler:
         return self.return_type(downscaled)
 
     def check_downscaled(self, downscaled, rtol=1e-05, atol=1e-08):
-        downscaled = (
+        def warn_if_differences(actual, should, message):
+            actual, should = actual.align(should, join="left")
+            diff = actual - should
+            diff_exceeded = abs(diff) > atol + rtol * abs(should)
+            if diff_exceeded.any():
+                logger().warning(
+                    "%s:\n%s",
+                    message,
+                    DataFrame(dict(actual=actual, should=should, diff=diff))
+                    .loc[diff_exceeded]
+                    .to_string(),
+                )
+
+        downscaled_region = (
             downscaled.groupby(self.model.index.names, dropna=False)
             .sum()
             .rename_axis(columns="year")
             .stack()
         )
-        model = self.model.rename_axis(columns="year").stack()
-        diff = downscaled - model
-        diff_exceeded = abs(diff) + rtol * abs(model) > atol
-        if diff_exceeded.any():
-            logger().warning(
-                "Difference thresholds exceeded for a few trajectories:\n%s",
-                DataFrame(dict(model=model, downscaled=downscaled, diff=diff))
-                .loc[diff_exceeded]
-                .to_string(),
-            )
+        model = self.model.loc[:, self.year:].rename_axis(columns="year").stack()
+
+        warn_if_differences(
+            downscaled_region,
+            model,
+            "Downscaled trajectories do not sum up to regional totals",
+        )
+
+        hist = self.hist
+        if isinstance(hist, DataFrame):
+            hist = hist.loc[:, self.year]
+        hist = hist.pix.semijoin(downscaled.index, how="right")
+        downscaled_start = downscaled.loc[:, self.year]
+
+        warn_if_differences(
+            downscaled_start,
+            hist,
+            "Downscaled trajectories do not start from history",
+        )
 
     def methods(self, method_choice=None, overwrites=None):
         if method_choice is None:
