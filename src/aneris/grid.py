@@ -374,33 +374,11 @@ class Gridder:
         # TODO: need to add attr definitions and dimension bounds
         path = self.output_path(proxy_cfg, indexes, iter_ids)
         logger().info(f"Writing to {path}")
-        if not proxy_cfg.separate_shares:
-            gridded = gridded.to_dataset(name=proxy_cfg.name)
-            if write:
-                return gridded.to_netcdf(
-                    path, compute=False, encoding={proxy_cfg.name: comp}
-                )
-            else:
-                return gridded
 
-        shares_fname = (
-            proxy_cfg.template.format(
-                name=f"{proxy_cfg.name}-shares", **ids, **iter_ids
-            ).replace(" ", "__")
-            + ".nc"
-        )
-        shares_path = self.output_dir / shares_fname
-        logger().info(f"Writing to {shares_path}")
-
-        total = gridded.sum(share_dims)
-        shares = gridded / total
-        total = total.to_dataset(name=proxy_cfg.name)
-        shares = shares.to_dataset(name=f"{proxy_cfg.name}-shares")
+        gridded = gridded.to_dataset(name=proxy_cfg.name)
         if write:
-            return total.to_netcdf(
+            return gridded.to_netcdf(
                 path, compute=False, encoding={proxy_cfg.name: comp}
-            ), shares.to_netcdf(
-                shares_path, compute=False, encoding={f"{proxy_cfg.name}-shares": comp}
             )
         else:
-            return total, shares
+            return gridded
