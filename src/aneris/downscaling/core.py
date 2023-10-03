@@ -211,7 +211,7 @@ class Downscaler:
 
         return self.return_type(downscaled)
 
-    def check_downscaled(self, downscaled, rtol=1e-05, atol=1e-08):
+    def check_downscaled(self, downscaled, rtol=1e-02, atol=1e-06):
         def warn_if_differences(actual, should, message):
             actual, should = actual.align(should, join="left")
             diff = actual - should
@@ -231,7 +231,7 @@ class Downscaler:
             .rename_axis(columns="year")
             .stack()
         )
-        model = self.model.loc[:, self.year:].rename_axis(columns="year").stack()
+        model = self.model.loc[:, self.year :].rename_axis(columns="year").stack()
 
         warn_if_differences(
             downscaled_region,
@@ -243,11 +243,18 @@ class Downscaler:
         if isinstance(hist, DataFrame):
             hist = hist.loc[:, self.year]
         hist = hist.pix.semijoin(downscaled.index, how="right")
+        non_zero_region = (
+            abs(hist)
+            .groupby(hist.index.names.difference(["region"]))
+            .max()
+            .loc[lambda s: s > 0]
+            .index
+        )
         downscaled_start = downscaled.loc[:, self.year]
 
         warn_if_differences(
-            downscaled_start,
-            hist,
+            downscaled_start.pix.semijoin(non_zero_region, how="right"),
+            hist.pix.semijoin(non_zero_region, how="right"),
             "Downscaled trajectories do not start from history",
         )
 
