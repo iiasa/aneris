@@ -95,8 +95,6 @@ class Gridder:
                 proxy_cfg["as_flux"] = True
             if "global_only" not in proxy_cfg.columns:
                 proxy_cfg["global_only"] = False
-            if "separate_shares" not in proxy_cfg.columns:
-                proxy_cfg["separate_shares"] = False
         self.proxy_cfg = proxy_cfg
 
         self.index = list(index)
@@ -185,7 +183,7 @@ class Gridder:
                 proxy_missing_dims = {"lat", "lon", *self.index}.difference(proxy.dims)
                 if proxy_missing_dims:
                     raise MissingDimension(
-                        f"Proxy {proxy_cfg.name} missing dimensions: "
+                        f"Proxy {proxy_cfg.path.stem} missing dimensions: "
                         + ", ".join(proxy_missing_dims)
                     )
 
@@ -193,7 +191,7 @@ class Gridder:
                 missing_from_data = index.difference(data_index)
                 if not missing_from_data.empty:
                     msg = (
-                        f"Proxy '{proxy_cfg.name}' has values missing from `data`:\n"
+                        f"Proxy '{proxy_cfg.path.stem}' has values missing from `data`:\n"
                         + missing_from_data.to_frame().to_string(index=False)
                     )
                     if strict_proxy_data:
@@ -214,31 +212,37 @@ class Gridder:
                 + missing_from_proxy.to_frame().to_string(index=False)
             )
 
-    @contextmanager
-    def open_and_normalize_proxy(self, proxy_cfg, chunk_proxy_dims={}):
-        with xr.open_dataarray(
-            proxy_cfg.path,
-            chunks=dict(zip(self.index, repeat(1))) | chunk_proxy_dims,
-        ) as proxy:
-            for idx in self.index:
-                mapping = self.index_mappings.get(idx)
-                if mapping is not None:
-                    proxy[idx] = proxy.indexes[idx].map(mapping)
 
-            # TODO: this maybe isn't needed anymore with 'World' included in idxraster
-            #       but need to confirm 'World' is also in the proxy rasters
-            separate = proxy if proxy_cfg.global_only else self.idxraster * proxy
-            # separate = self.idxraster * proxy
+    def _open_single_proxy(self, path, global_only=False, chunk_proxy_dims={}):
+        proxy = xr.open_dataarray(
+            path,
+            chunks=dict(zip(self.index, repeat(1))) | chunk_proxy_dims,
+        )
+        for idx in self.index:
+            mapping = self.index_mappings.get(idx)
+            if mapping is not None:
+                proxy[idx] = proxy.indexes[idx].map(mapping)
+
+        # TODO: this maybe isn't needed anymore with 'World' included in idxraster
+        #       but need to confirm 'World' is also in the proxy rasters
+        separate = proxy if global_only else self.idxraster * proxy
+        return separate
+
+    @contextmanager
+    def open_and_normalize_proxy(self, cfgs, concat_dim='sector', as_flux=True, chunk_proxy_dims={}):         
+        try:   
+            proxies = [self._open_single_proxy(cfg['path'], cfg['global_only'], chunk_proxy_dims) for cfg in cfgs]
+            proxy = xr.concat(proxies, dim=concat_dim)
 
             # NB: this only preserves seasonality if years and months are
             #     separate dimensions in the proxy raster. If instead they are
             #     combined into a single 'time' dimension, seasonality is lost.
-            sum_spatial_dims = list(set(separate.dims).intersection(self.spatial_dims))
-            normalized = separate / separate.mean(self.mean_time_dims).sum(
+            sum_spatial_dims = list(set(proxy.dims).intersection(self.spatial_dims))
+            normalized = proxy / proxy.mean(self.mean_time_dims).sum(
                 sum_spatial_dims
             )
 
-            if proxy_cfg.as_flux:
+            if as_flux:
                 lat_areas_in_m2 = xr.DataArray.from_series(
                     pt.cell_area_from_file(proxy)
                 )
@@ -246,11 +250,15 @@ class Gridder:
 
             yield normalized
 
-    def output_path(self, proxy_cfg, indexes, iter_ids):
+        finally:
+            for p in proxies:
+                p.close()
+
+    def output_path(self, name, template, indexes, iter_ids):
         self.output_dir.mkdir(parents=True, exist_ok=True)
         ids = {dim: index[0] for dim, index in indexes.items() if len(index) == 1}
         fname = (
-            proxy_cfg.template.format(name=proxy_cfg.name, **ids, **iter_ids).replace(
+            template.format(name=name, **ids, **iter_ids).replace(
                 " ", "__"
             )
             + ".nc"
@@ -293,10 +301,19 @@ class Gridder:
             self.index + [self.country_level]
         )
         ret = []
-        for proxy_cfg in self.proxy_cfg.itertuples():
-            logger().info("Collecting tasks for proxy %s", proxy_cfg.name)
-
-            with self.open_and_normalize_proxy(proxy_cfg, chunk_proxy_dims) as proxy:
+        for name, cfgs in self.proxy_cfg.groupby('name'): # MJG: needs to change to support multiple rows
+            logger().info("Collecting tasks for proxy %s", name)
+            def _get_unique_opt(cfgs, key):
+                assert cfgs[key].unique() == 1
+                return cfgs[key][0]
+            opts = {key: _get_unique_opt(cfgs, key) for key in ['template', 'as_flux', 'concat_dim']}
+            
+            with self.open_and_normalize_proxy(
+                cfgs, 
+                concat_dim=opts["concat_dim"], 
+                as_flux=opts["as_flux"], 
+                chunk_proxy_dims=chunk_proxy_dims,
+                ) as proxy:
                 write_tasks = []
 
                 proxy_index = MultiIndex.from_product(
@@ -313,7 +330,7 @@ class Gridder:
                     )
                     data = DataArray.from_series(single_tabular)
 
-                    if skip_exists and self.output_path(proxy_cfg, data.indexes, iter_ids).exists():
+                    if skip_exists and self.output_path(name, opts["template"], data.indexes, iter_ids).exists():
                         logger().info("File exists, skipping tasks for %s", iter_ids)
                         continue
 
@@ -322,12 +339,13 @@ class Gridder:
 
                     if verify_output:
                         write_tasks.append(
-                            self.verify_output(proxy_cfg, single_tabular, gridded)
+                            self.verify_output(name, single_tabular, gridded, as_flux=opts["as_flux"])
                         )
                     if write:
                         write_tasks.append(
                             self.compute_output(
-                                proxy_cfg,
+                                name, 
+                                opts["template"],
                                 gridded,
                                 data.indexes,
                                 iter_ids,
@@ -341,7 +359,7 @@ class Gridder:
 
         return ret
 
-    def verify_output(self, proxy_cfg, tabular, gridded):
+    def verify_output(self, name, tabular, gridded, as_flux=True):
         # TODO: figure out correct message here
         # ids = {dim: index[0] for dim, index in indexes.items() if len(index) == 1}
         # logger().info(f"Veryifying output for {ids}")
@@ -353,17 +371,18 @@ class Gridder:
         # to confirm that gridded values comport with provided global totals
         sum_spatial_dims = list(set(gridded.dims).intersection(self.spatial_dims))
 
-        if proxy_cfg.as_flux:
+        if as_flux:
             lat_areas_in_m2 = xr.DataArray.from_series(pt.cell_area_from_file(gridded))
             gridded = gridded * lat_areas_in_m2
 
         aggregated = gridded.mean(dim=self.mean_time_dims).sum(dim=sum_spatial_dims)
 
-        return verify_global_values(aggregated, tabular, proxy_cfg.name, self.index)
+        return verify_global_values(aggregated, tabular, name, self.index)
 
     def compute_output(
         self,
-        proxy_cfg,
+        name,
+        template,
         gridded: DataArray,
         indexes,
         iter_ids,
@@ -372,13 +391,13 @@ class Gridder:
         comp=dict(zlib=True, complevel=2),
     ):
         # TODO: need to add attr definitions and dimension bounds
-        path = self.output_path(proxy_cfg, indexes, iter_ids)
+        path = self.output_path(name, template, indexes, iter_ids)
         logger().info(f"Writing to {path}")
 
-        gridded = gridded.to_dataset(name=proxy_cfg.name)
+        gridded = gridded.to_dataset(name=name)
         if write:
             return gridded.to_netcdf(
-                path, compute=False, encoding={proxy_cfg.name: comp}
+                path, compute=False, encoding={name: comp}
             )
         else:
             return gridded
