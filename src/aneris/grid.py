@@ -306,10 +306,11 @@ class Gridder:
             self.index + [self.country_level]
         )
         ret = []
-        for name, cfgs in self.proxy_cfg.groupby('name'): # MJG: needs to change to support multiple rows
+        for name, cfgs in self.proxy_cfg.groupby('name'):
             logger().info("Collecting tasks for proxy %s", name)
             def _get_unique_opt(cfgs, key):
-                assert len(cfgs[key].unique()) == 1, cfgs[key].unique()
+                if len(cfgs[key].unique()) != 1:
+                    raise ValueError(f'Non unique config keys {cfgs[key].unique()}')
                 return cfgs[key].values[0]
             opts = {key: _get_unique_opt(cfgs, key) for key in ['template', 'as_flux', 'concat_dim']}
             
