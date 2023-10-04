@@ -229,12 +229,16 @@ class Gridder:
         return {'to_close': opened, 'proxy': proxy}
 
     @contextmanager
-    def open_and_normalize_proxy(self, cfgs, concat_dim='sector', as_flux=True, chunk_proxy_dims={}):         
-        try:   
-            _proxies = [self._open_single_proxy(cfg['path'], cfg['global_only'], chunk_proxy_dims) for cfg in cfgs]
-            proxies = [_p['proxy'] for _p in proxies]
-            to_close = [_p['to_close'] for _p in _proxies]
-            proxy = xr.concat(proxies, dim=concat_dim)
+    def open_and_normalize_proxy(self, cfgs, concat_dim='sector', as_flux=True, chunk_proxy_dims={}):  
+        proxies = []
+        to_close = []
+        for _, cfg in cfgs.iterrows():
+            _p = self._open_single_proxy(cfg['path'], cfg['global_only'], chunk_proxy_dims)
+            proxies.append(_p['proxy'])
+            to_close.append(_p['to_close'])
+
+        try:
+            proxy = xr.concat(proxies, dim=concat_dim) if len(proxies) > 1 else proxies[0]
 
             # NB: this only preserves seasonality if years and months are
             #     separate dimensions in the proxy raster. If instead they are
@@ -249,7 +253,6 @@ class Gridder:
                     pt.cell_area_from_file(proxy)
                 )
                 normalized = normalized / lat_areas_in_m2
-
             yield normalized
 
         finally:
@@ -306,8 +309,8 @@ class Gridder:
         for name, cfgs in self.proxy_cfg.groupby('name'): # MJG: needs to change to support multiple rows
             logger().info("Collecting tasks for proxy %s", name)
             def _get_unique_opt(cfgs, key):
-                assert cfgs[key].unique() == 1
-                return cfgs[key][0]
+                assert len(cfgs[key].unique()) == 1, cfgs[key].unique()
+                return cfgs[key].values[0]
             opts = {key: _get_unique_opt(cfgs, key) for key in ['template', 'as_flux', 'concat_dim']}
             
             with self.open_and_normalize_proxy(
@@ -381,6 +384,7 @@ class Gridder:
 
         return verify_global_values(aggregated, tabular, name, self.index)
 
+    # MJG: add a callback function here that dresses the dataset in input4MIPS style
     def compute_output(
         self,
         name,
