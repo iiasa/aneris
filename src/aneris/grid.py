@@ -394,7 +394,7 @@ class Gridder:
         iter_ids,
         write=True,
         share_dims=["sector"],
-        comp=dict(zlib=True, complevel=2),
+        comp=dict(zlib=True, complevel=2, _FillValue=1e20),
     ):
         # TODO: need to add attr definitions and dimension bounds
         path = self.output_path(name, template, indexes, iter_ids)
