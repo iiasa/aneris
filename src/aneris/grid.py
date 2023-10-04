@@ -214,24 +214,26 @@ class Gridder:
 
 
     def _open_single_proxy(self, path, global_only=False, chunk_proxy_dims={}):
-        proxy = xr.open_dataarray(
+        opened = xr.open_dataarray(
             path,
             chunks=dict(zip(self.index, repeat(1))) | chunk_proxy_dims,
         )
         for idx in self.index:
             mapping = self.index_mappings.get(idx)
             if mapping is not None:
-                proxy[idx] = proxy.indexes[idx].map(mapping)
+                opened[idx] = opened.indexes[idx].map(mapping)
 
         # TODO: this maybe isn't needed anymore with 'World' included in idxraster
         #       but need to confirm 'World' is also in the proxy rasters
-        separate = proxy if global_only else self.idxraster * proxy
-        return separate
+        proxy = opened if global_only else self.idxraster * opened
+        return {'to_close': opened, 'proxy': proxy}
 
     @contextmanager
     def open_and_normalize_proxy(self, cfgs, concat_dim='sector', as_flux=True, chunk_proxy_dims={}):         
         try:   
-            proxies = [self._open_single_proxy(cfg['path'], cfg['global_only'], chunk_proxy_dims) for cfg in cfgs]
+            _proxies = [self._open_single_proxy(cfg['path'], cfg['global_only'], chunk_proxy_dims) for cfg in cfgs]
+            proxies = [_p['proxy'] for _p in proxies]
+            to_close = [_p['to_close'] for _p in _proxies]
             proxy = xr.concat(proxies, dim=concat_dim)
 
             # NB: this only preserves seasonality if years and months are
@@ -251,8 +253,8 @@ class Gridder:
             yield normalized
 
         finally:
-            for p in proxies:
-                p.close()
+            for f in to_close:
+                f.close()
 
     def output_path(self, name, template, indexes, iter_ids):
         self.output_dir.mkdir(parents=True, exist_ok=True)
