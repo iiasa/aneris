@@ -369,7 +369,7 @@ class Gridder:
         iter_ids,
         write=True,
         share_dims=["sector"],
-        comp=dict(zlib=True, complevel=5),
+        comp=dict(zlib=True, complevel=2),
     ):
         # TODO: need to add attr definitions and dimension bounds
         path = self.output_path(proxy_cfg, indexes, iter_ids)
