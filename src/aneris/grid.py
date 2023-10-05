@@ -427,7 +427,7 @@ class Gridder:
             return gridded.to_netcdf(
                 path,
                 compute=False,
-                encoding={name: encoding_kwargs, "time": dict(calendar="noleap")},
+                encoding={name: encoding_kwargs},
             )
         else:
             return gridded
