@@ -259,12 +259,12 @@ class Gridder:
             for f in to_close:
                 f.close()
 
-    def output_path(self, name, template, indexes, iter_ids, template_kwargs):
+    def output_path(self, name, template, indexes, iter_ids):
         self.output_dir.mkdir(parents=True, exist_ok=True)
         ids = {dim: index[0] for dim, index in indexes.items() if len(index) == 1}
         fname = (
             template.format(
-                name=name.replace('_', '-'), **ids, **iter_ids, **template_kwargs
+                name=name.replace('_', '-'), **ids, **iter_ids,
                 ).replace(
                 " ", "__"
             )
@@ -287,7 +287,6 @@ class Gridder:
         write: bool = True,  # TODO: make docs
         verify_output: bool = False,  # TODO: make docs
         skip_exists: bool = False, # TODO: make docs
-        template_kwargs={},
         dress_up_callback = None,  # TODO: make docs
         encoding_kwargs = {}, # TODO: make docs
     ) -> None:
@@ -340,7 +339,7 @@ class Gridder:
                     )
                     data = DataArray.from_series(single_tabular)
 
-                    if skip_exists and self.output_path(name, opts["template"], data.indexes, iter_ids, template_kwargs).exists():
+                    if skip_exists and self.output_path(name, opts["template"], data.indexes, iter_ids).exists():
                         logger().info("File exists, skipping tasks for %s", iter_ids)
                         continue
 
@@ -359,7 +358,6 @@ class Gridder:
                                 gridded,
                                 data.indexes,
                                 iter_ids,
-                                template_kwargs=template_kwargs,
                                 write=write,
                                 callback=dress_up_callback,
                                 encoding_kwargs=encoding_kwargs,
@@ -401,17 +399,16 @@ class Gridder:
         iter_ids,
         write=True,
         callback=None,
-        template_kwargs={},
         encoding_kwargs={},
     ):
         # TODO: need to add attr definitions and dimension bounds
-        path = self.output_path(name, template, indexes, iter_ids, template_kwargs)
+        path = self.output_path(name, template, indexes, iter_ids)
         logger().info(f"Writing to {path}")
         ids = {dim: index[0] for dim, index in indexes.items() if len(index) == 1}
 
         gridded = gridded.to_dataset(name=name)
         if callback:
-            gridded = callback(gridded, **ids, **iter_ids, **template_kwargs)
+            gridded = callback(gridded, **ids, **iter_ids)
         if write:
             return gridded.to_netcdf(
                 path, compute=False, encoding={name: encoding_kwargs, 'time': dict(calendar='noleap')},
