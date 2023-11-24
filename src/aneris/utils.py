@@ -110,3 +110,7 @@ def normalize(s):
 def country_name(iso: str):
     country_obj = pycountry.countries.get(alpha_3=iso)
     return iso if country_obj is None else country_obj.name
+
+
+def skipempty(*dfs):
+    return [df for df in dfs if not df.empty]

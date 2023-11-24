@@ -8,7 +8,7 @@ from pandas_indexing import isin, semijoin
 from scipy.interpolate import interp1d
 from scipy.optimize import root_scalar
 
-from ..utils import normalize
+from ..utils import normalize, skipempty
 from .data import DownscalingContext
 
 
@@ -454,11 +454,11 @@ def intensity_convergence(
         exponential_intensity_projection = empty_intensity
 
     intensity_projection = concat(
-        [
+        skipempty(
             exponential_intensity_projection,
             negative_intensity_projection,
             intensity_projection_linear,
-        ],
+        ),
         sort=False,
     ).reindex(index=intensity_idx)
 
