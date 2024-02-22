@@ -316,7 +316,9 @@ class Gridder:
 
             def _get_unique_opt(cfgs, key):
                 if len(cfgs[key].unique()) != 1:
-                    raise ValueError(f"Non unique config keys for {name}: {cfgs[key].unique()}")
+                    raise ValueError(
+                        f"Non unique config keys for {name}: {cfgs[key].unique()}"
+                    )
                 return cfgs[key].values[0]
 
             opts = {

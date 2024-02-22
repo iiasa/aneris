@@ -3,6 +3,7 @@ Provides helper functions for reading input data and configuration files.
 
 The default configuration values are provided in aneris.RC_DEFAULTS.
 """
+
 import os
 from collections import abc
 
