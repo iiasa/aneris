@@ -1,5 +1,5 @@
 
-aneris: Harmonization for Integrated Assessment Models 
+aneris: Harmonization for Integrated Assessment Models
 ======================================================
 
 Release v\ |version|.
@@ -34,7 +34,7 @@ Release v\ |version|.
 
 .. |doi| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.802832.svg
    :target: https://doi.org/10.5281/zenodo.802832
-   
+
 The open-source Python package |aneris| :cite:`Gidden:2019:aneris` is a library
 and Command Line Interface (CLI) for harmonization of IAM results with
 historical data sources. Currently, emissions trajectories are supported.

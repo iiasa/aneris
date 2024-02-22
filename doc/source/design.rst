@@ -31,7 +31,7 @@ The `Harmonization` module takes as input
    examples) (optional)
 
 It then harmonizes the IAM data to historical data based either on default logic
-or via user-provided logic. 
+or via user-provided logic.
 
 It provides as output
 
@@ -50,13 +50,13 @@ The module is described in more detail in the following sections
 
 .. todo::
 
-  Add documentaion for logic
+  Add documentation for logic
 
 Downscaling
 ~~~~~~~~~~~
 
 The `Downscaling` module implements different downscaling routines to enhance
-the spatial resolution of data. It reqiures 
+the spatial resolution of data. It reqiures
 
 1. IAM model data at a given region and variable (sector and gas by default)
    resolution - in a standard workflow, this would be the output of the
@@ -75,11 +75,11 @@ the spatial resolution of data. It reqiures
 It provides as output
 
 1. IAM data at a given variable (sector and gas by default) resolution and at
-   the *higher spatial resolution* of the historical data used 
+   the *higher spatial resolution* of the historical data used
 
 .. todo::
 
-  Add documentaion for logic
+  Add documentation for logic
 
 Gridding
 ~~~~~~~~
@@ -87,7 +87,7 @@ Gridding
 The `Gridding` module generates spatial grids of emissions data compliant with
 CMIP/ESGF dataformats
 
-It takes as input 
+It takes as input
 
 1. IAM data at the *country-level* defined by emissions species and sector -
    normally an output of the `Downscaling` module
@@ -101,7 +101,7 @@ It provides as output
 
 .. todo::
 
-  Add documentaion for installing pattern files
+  Add documentation for installing pattern files
 
 Climate
 ~~~~~~~

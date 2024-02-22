@@ -10,4 +10,3 @@ shown below.
 .. program-output:: python -c 'import aneris; print(aneris.RC_DEFAULTS)'
 
 .. _yaml: http://www.yaml.org/
-
