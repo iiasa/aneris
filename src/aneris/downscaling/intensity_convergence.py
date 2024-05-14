@@ -387,11 +387,11 @@ def intensity_convergence(
     if isinstance(hist, DataFrame):
         hist = hist.loc[:, context.year]
 
-    reference = semijoin(context.additional_data[proxy_name], context.regionmap_index)[
+    reference = semijoin(context.additional_data[proxy_name], context.regionmap)[
         model.columns
     ]
     reference_region = reference.groupby(context.region_level).sum()
-    hist = semijoin(hist, context.regionmap_index)
+    hist = semijoin(hist, context.regionmap)
 
     intensity = compute_intensity(model, reference_region, convergence_year)
     intensity_hist = hist / reference.iloc[:, 0]

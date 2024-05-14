@@ -50,7 +50,7 @@ def base_year_pattern(
         hist = hist.loc[:, context.year]
 
     weights = (
-        semijoin(hist, context.regionmap_index, how="right")
+        semijoin(hist, context.regionmap, how="right")
         .groupby(model.index.names, dropna=False)
         .transform(normalize)
     )
@@ -96,7 +96,7 @@ def simple_proxy(
     proxy_data = context.additional_data[proxy_name]
     common_levels = [lvl for lvl in model.index.names if lvl in proxy_data.index.names]
     weights = (
-        semijoin(proxy_data, context.regionmap_index)[model.columns]
+        semijoin(proxy_data, context.regionmap)[model.columns]
         .groupby(common_levels + [context.region_level], dropna=False)
         .transform(normalize)
     )
@@ -148,7 +148,7 @@ def growth_rate(
 
     weights = (
         cumulative_growth_rates.pix.multiply(
-            semijoin(hist, context.regionmap_index, how="right"),
+            semijoin(hist, context.regionmap, how="right"),
             join="left",
         )
         .groupby(model.index.names, dropna=False)

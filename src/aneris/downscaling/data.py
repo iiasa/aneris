@@ -16,10 +16,14 @@ class DownscalingContext:
         index levels that differentiate trajectories
     year : int
         base year for downscaling
-    regionmap : Series
-        map from countries to regions
+    regionmap : MultiIndex
+        map from fine to coarse level
+        (there can be overlapping coarse levels)
     additional_data : dict, default {}
         named `DataFrame`s or `Series` the methods need as proxies
+
+    Derived attributes
+    -------------------
     country_level : str, default "country"
         name of the fine index level
     region_level : str, default "region"
@@ -32,14 +36,23 @@ class DownscalingContext:
 
     index: Sequence[str]
     year: int
-    regionmap: Series
+    regionmap: MultiIndex
     additional_data: dict[str, Union[Series, DataFrame]] = field(default_factory=dict)
-    country_level: str = "country"
-    region_level: str = "region"
 
     @property
-    def regionmap_index(self):
+    def country_level(self) -> str:
+        return self.regionmap.names[0]
+
+    @property
+    def region_level(self) -> str:
+        return self.regionmap.names[1]
+
+    @staticmethod
+    def to_regionmap(region_mapping: Union[Series, MultiIndex]):
+        if isinstance(region_mapping, MultiIndex):
+            return region_mapping
+
         return MultiIndex.from_arrays(
-            [self.regionmap.index, self.regionmap.values],
-            names=[self.country_level, self.region_level],
+            [region_mapping.index, region_mapping.values],
+            names=[region_mapping.index.name, region_mapping.name],
         )

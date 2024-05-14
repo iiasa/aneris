@@ -1,8 +1,8 @@
 from functools import partial
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
 import pandas_indexing.accessors  # noqa: F401
-from pandas import DataFrame, Series
+from pandas import DataFrame, MultiIndex, Series
 from pandas_indexing import concat, semijoin
 
 from ..errors import MissingHistoricalError, MissingProxyError
@@ -43,7 +43,7 @@ class Downscaler:
         model: DataFrame,
         hist: DataFrame,
         year: int,
-        region_mapping: Series,
+        region_mapping: Union[Series, MultiIndex],
         luc_sectors: Sequence[str] = [],
         index: Sequence[str] = DEFAULT_INDEX,
         method_choice: Optional[callable] = None,
@@ -53,13 +53,12 @@ class Downscaler:
         self.model = model
         self.hist = hist
         self.return_type = return_type
+        regionmap = DownscalingContext.to_regionmap(region_mapping)
         self.context = DownscalingContext(
             index,
             year,
-            region_mapping,
+            regionmap,
             additional_data,
-            country_level=region_mapping.index.name,
-            region_level=region_mapping.name,
         )
 
         assert (
@@ -67,7 +66,7 @@ class Downscaler:
         ).all(), "Ambiguous history"
 
         missing_hist = (
-            model.index.join(self.context.regionmap_index, how="left")
+            model.index.join(self.context.regionmap, how="left")
             .pix.project(list(index) + [self.country_level])
             .difference(hist.index.pix.project(list(index) + [self.country_level]))
         )
@@ -93,7 +92,7 @@ class Downscaler:
         return self.context.year
 
     @property
-    def region_mapping(self):
+    def region_mapping(self) -> MultiIndex:
         return self.context.regionmap
 
     @property
@@ -141,7 +140,7 @@ class Downscaler:
             # trajectory index typically has the levels model, scenario, region, sector,
             # gas, while proxy data is expected on country level (and probably no model,
             # scenario dependency, but potentially)
-            proxy = semijoin(proxy, self.context.regionmap_index, how="right")
+            proxy = semijoin(proxy, self.context.regionmap, how="right")
 
             common_levels = [
                 lvl for lvl in trajectory_index.names if lvl in proxy.index.names
@@ -194,7 +193,7 @@ class Downscaler:
         if methods is None:
             methods = self.methods()
 
-        hist_ext = semijoin(self.hist, self.context.regionmap_index, how="right")
+        hist_ext = semijoin(self.hist, self.context.regionmap, how="right")
         self.check_proxies(methods)
 
         downscaled = []
@@ -274,7 +273,7 @@ class Downscaler:
         }
 
         hist_agg = (
-            semijoin(self.hist, self.context.regionmap_index, how="right")
+            semijoin(self.hist, self.context.regionmap, how="right")
             .groupby(list(self.index) + [self.region_level], dropna=False)
             .sum()
         )
