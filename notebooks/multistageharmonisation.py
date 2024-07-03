@@ -113,10 +113,9 @@ def filter_global_only(df, global_sectors, add_regional_totals=True):
 
 model = filter_global_only(model, global_only)
 hist = filter_global_only(hist, global_only)
+
+
 # -
-
-model
-
 
 # # First stage:
 #
@@ -154,15 +153,7 @@ harmonizer.methods_used
 
 harmonized_gas_totals
 
-# # Second-stage
-
-base_year = 2020
-hist_co2 = filter_global_only(
-    hist.loc[isin(gas="CO2"), base_year], global_only, add_regional_totals=False
-)
-model_co2 = filter_global_only(
-    model.loc[isin(gas="CO2"), base_year:], global_only, add_regional_totals=False
-)
+# # Main optimization function
 
 solver = pyo.SolverFactory("ipopt")
 
@@ -174,6 +165,10 @@ def distribute_level(
     level: str,
     base_year: int,
     solver: str | OptSolver = "ipopt",
+    options={},  # yes I know this is wrong
+    converge=True,
+    last_year=True,
+    opt_func="diff",
 ) -> pd.DataFrame:
     if isinstance(solver, str):
         solver = pyo.SolverFactory(solver)
@@ -194,7 +189,7 @@ def distribute_level(
         .unstack(years.name)
     )
 
-    def l2_norm():
+    def l2_norm_diff():
         delta_years = years.diff()[1:]
         delta_x = x.diff(axis=1).iloc[:, 1:]
         delta_m = model.diff(axis=1).iloc[:, 1:]
@@ -202,7 +197,25 @@ def distribute_level(
             np.ravel((delta_m / delta_years - delta_x / delta_years) ** 2)
         )
 
-    opt.obj = pyo.Objective(expr=l2_norm(), sense=pyo.minimize)
+    def l2_norm_growth():
+        delta_x = x.pct_change(axis=1).iloc[:, 1:]
+        delta_m = model.pct_change(axis=1).iloc[:, 1:]
+        return pyo.quicksum(np.ravel((delta_m - delta_x) ** 2))
+
+    def l2_norm_growth_simple():
+        return pyo.quicksum(
+            (x.at[c, yf] * model.at[c, yi] - x.at[c, yi] * model.at[c, yf]) ** 2
+            / model.at[c, yi] ** 4
+            for yf, yi in zip(years[1:], years[:-1])
+            for c in components
+        )
+
+    if opt_func == "growth":
+        opt.obj = pyo.Objective(expr=l2_norm_growth(), sense=pyo.minimize)
+    elif opt_func == "growth_simple":
+        opt.obj = pyo.Objective(expr=l2_norm_growth_simple(), sense=pyo.minimize)
+    elif opt_func == "diff":
+        opt.obj = pyo.Objective(expr=l2_norm_diff(), sense=pyo.minimize)
 
     opt.hist_val = pyo.Constraint(
         components, rule=lambda m, c: x.at[c, base_year] == hist.at[c]
@@ -210,7 +223,26 @@ def distribute_level(
     opt.total_val = pyo.Constraint(
         years, rule=lambda m, y: pyo.quicksum(x[y]) == total.at[y]
     )
-    results = solver.solve(opt)
+
+    # harmonization can only progressively get better. TODO this is currently causing failures
+    if converge:
+        yidx = range(len(years) - 1)
+        opt.converge = pyo.Constraint(
+            components,
+            yidx,
+            rule=lambda m, c, yi: np.abs(
+                model.at[c, years[yi + 1]] - x.at[c, years[yi + 1]]
+            )
+            <= np.abs(model.at[c, years[yi]] - x.at[c, years[yi]]),
+        )
+
+    # the last year must be "close" (currently exactly equal)
+    if last_year:
+        yf = years[-1]
+        opt.last_year = pyo.Constraint(
+            components, rule=lambda m, c: x.at[c, yf] == model.at[c, yf]
+        )
+    results = solver.solve(opt, options=options)
     assert (results.solver.status == pyo.SolverStatus.ok) and (
         results.solver.termination_condition == pyo.TerminationCondition.optimal
     ), (
@@ -219,6 +251,10 @@ def distribute_level(
     )
     return x.map(pyo.value)
 
+
+# # Second-stage
+#
+# Take global totals per gas species as input and harmonize regional totals such that they add up to this total.
 
 # +
 model_sel = filter_global_only(
@@ -234,6 +270,9 @@ harmonized_region_totals = concat(
         level="region",
         base_year=base_year,
         solver=solver,
+        converge=True,
+        last_year=True,
+        opt_func="diff",
     ).pix.assign(gas=gas)
     for gas in model.pix.unique("gas")
 )
@@ -249,6 +288,10 @@ harmonized = concat(
         level="sector",
         base_year=base_year,
         solver=solver,
+        options=dict(max_iter=5000),  # , tol=1e-2),
+        converge=False,
+        last_year=False,
+        opt_func="diff",
     ).pix.assign(gas=gas, region=region, order=["gas", "region", "sector"])
     for gas, region in model.pix.unique(["gas", "region"])
 ).sort_index()
