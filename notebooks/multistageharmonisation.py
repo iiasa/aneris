@@ -6,7 +6,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.16.2
+#       jupytext_version: 1.16.1
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -37,6 +37,9 @@ from pyomo.opt.base.solvers import OptSolver
 from tqdm.auto import tqdm
 
 from aneris import Harmonizer
+
+
+px = None  # replace with plotly import
 # -
 
 base_year = 2020
@@ -95,25 +98,30 @@ global_only = ["International Transport", "AFOLU"]
 def filter_global_only(df, global_sectors, add_regional_totals=True):
     global_ = df.loc[isin(region="World", sector=global_sectors)]
     regional = df.loc[~isin(region="World") & ~isin(sector=global_sectors)]
-    regional_agg = (
-        regional.groupby(df.index.names.difference(["region"]))
-        .sum()
-        .pix.assign(region="World")
-        if add_regional_totals
-        else None
-    )
-    return concat(skipnone(global_, regional, regional_agg))
+    if add_regional_totals:
+        regional_agg = (
+            regional.groupby(df.index.names.difference(["region"]))
+            .sum()
+            .pix.assign(region="World")
+            if add_regional_totals
+            else None
+        )
+        return concat(skipnone(global_, regional, regional_agg))
+    else:
+        return concat(skipnone(global_, regional))
 
 
 model = filter_global_only(model, global_only)
 hist = filter_global_only(hist, global_only)
-
-
 # -
+
+model
+
 
 # # First stage:
 #
 # Global gas-totals
+
 
 # +
 def gas_totals(df):
@@ -123,6 +131,7 @@ def gas_totals(df):
         .sum()
         .pix.assign(sector="Total")
     )
+
 
 model_gas_totals = gas_totals(model)
 hist_gas_totals = gas_totals(hist)
@@ -140,6 +149,8 @@ harmonized_gas_totals = harmonized_gas_totals.pix.assign(
     if isinstance(harmonizer.methods_used, pd.Series)
     else harmonizer.methods_used["method"]
 )
+
+harmonizer.methods_used
 
 harmonized_gas_totals
 
@@ -242,21 +253,29 @@ harmonized = concat(
     for gas, region in model.pix.unique(["gas", "region"])
 ).sort_index()
 
-harmonized = (
-    harmonized.pix.semijoin(model.index) # hack the unit definitions back :)
-)
+harmonized = harmonized.pix.semijoin(model.index)  # hack the unit definitions back :)
 
 # # Plotting
 
 # +
-model = add_totals(model)
-hist = add_totals(hist)
+model = add_totals(filter_global_only(model, global_only, add_regional_totals=False))
+hist = add_totals(filter_global_only(hist, global_only, add_regional_totals=False))
 
 # TODO possibly some double counting happening here, should be debugged
 harmonized = add_totals(harmonized)
-
-
 # -
+
+gas = "CO2"
+ax = model.loc[ismatch(gas=gas, region="World", sector="Total")].T.plot.line(
+    linestyle="-"
+)
+hist.loc[ismatch(gas=gas, region="World", sector="Total")].T.plot.line(
+    linestyle="--", ax=ax
+)
+harmonized.loc[ismatch(gas=gas, region="World", sector="Total")].T.plot.line(
+    linestyle=":", ax=ax
+)
+
 
 def plot_harm(sel, scenario=None, levels=["gas", "sector", "region"], useplotly=False):
     model_sel = sel if scenario is None else sel & ismatch(scenario=scenario)
@@ -302,7 +321,7 @@ def plot_harm(sel, scenario=None, levels=["gas", "sector", "region"], useplotly=
         hue="pathway",
         facet_kws=dict(sharey=False),
         legend=True,
-        **multirow_args
+        **multirow_args,
     ).set(ylabel=data.pix.unique("unit").item())
     for label, ax in g.axes_dict.items():
         ax.set_title(f"{non_unique} = {label}", fontsize=9)
@@ -317,6 +336,7 @@ def what_changed(next, prev):
     for i in range(length):
         if prev[i] != next[i]:
             return range(i, length)
+
 
 def make_doc(order, compact=False, useplotly=False):
     index = harmonized.index.pix.unique(order).sort_values()
@@ -358,13 +378,14 @@ def make_scenario_facets(useplotly=False):
     suffix = "-plotly" if useplotly else ""
     fn = out_path / f"harmonization-facet{suffix}.html"
 
-    #lock = FileLock(out_path / ".lock")
+    # lock = FileLock(out_path / ".lock")
     doc = make_doc(order=["gas", "sector"], useplotly=useplotly)
 
-    #with lock:
+    # with lock:
     with open(fn, "w", encoding="utf-8") as f:
         print(doc, file=f)
     return fn
+
 
 make_scenario_facets()
 # -
