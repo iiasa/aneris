@@ -1,0 +1,53 @@
+name: aneris
+channels:
+- conda-forge
+dependencies:
+- attrs
+- cattrs
+- pandas >=1.1
+- numpy <2  # pyomo is not keen on the new numpy
+- pandas-indexing
+- openscm-units
+- pyyaml
+- xlrd >=2.0
+- openpyxl
+- matplotlib
+- seaborn
+- plotly
+- pyomo
+- filelock
+- deprecated
+- pycountry
+- dominate
+- python-slugify
+- seaborn
+- tqdm
+- colorlog
+- ipopt
+
+# dev things
+- ipykernel
+- ruff
+- jupytext
+- pytest
+
+# ptolemy dependencies
+- netcdf4
+- h5netcdf
+- dask
+- xarray
+- pooch
+- zarr
+- flox
+- pyogrio
+- geopandas
+- bottleneck
+- cf_xarray
+
+- pip
+- pip:
+  - git+https://github.com/IAMconsortium/concordia.git#egg=concordia
+  
+  # one of the two
+  #- git+https://github.com/iiasa/aneris.git@workflow#egg=aneris-iamc
+  - -e ..
