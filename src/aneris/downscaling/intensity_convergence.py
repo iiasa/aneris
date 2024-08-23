@@ -246,6 +246,8 @@ def negative_exponential_intensity_model(
     gammas_conv = semijoin(gammas, intensity_conv.index, how="right")
 
     def ts(s):
+        if isinstance(s, (DataFrame, Series)):
+            s = s.to_numpy()
         return np.asarray(s)[:, np.newaxis]
 
     f, inv_f = make_affine_transform_pair(
@@ -257,8 +259,8 @@ def negative_exponential_intensity_model(
     intensity_projection = DataFrame(
         inv_f(
             (
-                (f(ts(intensity_conv.values[:, -1])) / f(ts(intensity_hist_conv)))
-                ** alpha.values
+                (f(ts(intensity_conv.to_numpy()[:, -1])) / f(ts(intensity_hist_conv)))
+                ** alpha.to_numpy()
             )
             * f(ts(intensity_hist_conv))
         ),
@@ -289,9 +291,9 @@ def exponential_intensity_model(
 
     intensity_projection = inv_f(
         DataFrame(
-            (f(intensity.iloc[:, -1]) / f(intensity_hist)).values[:, np.newaxis]
-            ** alpha.values
-            * f(intensity_hist).values[:, np.newaxis],
+            (f(intensity.iloc[:, -1]) / f(intensity_hist)).to_numpy()[:, np.newaxis]
+            ** alpha.to_numpy()
+            * f(intensity_hist).to_numpy()[:, np.newaxis],
             index=intensity_hist.index,
             columns=intensity.columns,
         ),
@@ -307,8 +309,8 @@ def linear_intensity_model(
         intensity_hist, join="left", copy=False, axis=0
     )
     intensity_projection = DataFrame(
-        (1 - alpha).values * intensity_hist.values[:, np.newaxis]
-        + alpha.values * intensity.values[:, -1:],
+        (1 - alpha).to_numpy() * (intensity_hist).to_numpy()[:, np.newaxis]
+        + alpha.to_numpy() * intensity.to_numpy()[:, -1:],
         index=intensity.index,
         columns=intensity.columns,
     )
@@ -330,9 +332,9 @@ def intensity_growth_rate_model(
             1
             + (intensity.iloc[:, -1] / intensity_hist - 1)
             / (years_downscaling[-1] - years_downscaling[0])
-        ).values[:, np.newaxis]
+        ).to_numpy()[:, np.newaxis]
         ** np.arange(0, len(years_downscaling))
-        * intensity_hist.values[:, np.newaxis],
+        * intensity_hist.to_numpy()[:, np.newaxis],
         index=intensity_hist.index,
         columns=years_downscaling.rename("year"),
     ).where(intensity_hist != 0, 0.0)

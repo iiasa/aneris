@@ -287,7 +287,7 @@ def test_harmonize_budget():
     def _carbon_budget(emissions):
         # trapezoid rule
         dyears = np.diff(emissions.columns.astype(int))
-        emissions = emissions.values
+        emissions = emissions.to_numpy()
         demissions = np.diff(emissions, axis=1)
 
         budget = (dyears * (emissions[:, :-1] + demissions / 2)).sum(axis=1)

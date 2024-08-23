@@ -26,7 +26,7 @@ def convert_units(fr, to, flabel="from", tlabel="to"):
     units = xform(to).join(xform(fr), how="left", lsuffix="_to", rsuffix="_fr")
     # can get duplicates if multiple regions with same conversion
     units = units[~units.index.duplicated(keep="first")]
-    assert not units.isnull().values.any()
+    assert not units.isnull().any(axis=None)
     # downselect to non-comparable
     units = units[units.unit_to != units.unit_fr]
     # combine units that don't need changing with those that do
@@ -61,7 +61,7 @@ def _knead_overrides(overrides, scen, harm_idx):
     # check if no index and single value - this should be the override for everything
     if overrides.index.names == [None] and len(overrides["method"]) == 1:
         _overrides = pd.Series(
-            overrides["method"].values[0],
+            overrides["method"].iloc[0],
             index=pd.Index(scen.region, name=harm_idx[-1]),  # only need to match 1 dim
             name="method",
         )
@@ -78,12 +78,12 @@ def _knead_overrides(overrides, scen, harm_idx):
         _overrides = overrides
 
     # do checks
-    if _overrides.isnull().values.any():
-        missing = _overrides[_overrides.isnull().any(axis=1)]
+    if isinstance(_overrides, pd.DataFrame) and _overrides.isnull().any(axis=None):
+        missing = _overrides.loc[_overrides.isnull().any(axis=1)]
         raise AmbiguousHarmonisationMethod(
             f"Overrides are missing for provided data:\n" f"{missing}"
         )
-    if _overrides.index.to_frame().isnull().values.any():
+    if _overrides.index.to_frame().isnull().any(axis=None):
         missing = _overrides[_overrides.index.to_frame().isnull().any(axis=1)]
         raise AmbiguousHarmonisationMethod(
             f"Defined overrides are missing data:\n" f"{missing}"

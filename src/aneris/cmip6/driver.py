@@ -421,7 +421,7 @@ def _harmonize_regions(
             model, mapping=mapping, rfrom="Native Region Code", rto="5_region"
         )
         model = pd.concat([model, aggdf])
-        assert not model.isnull().values.any()
+        assert not model.isnull().any(axis=None)
 
     # duplicates come in from World and World being translated
     duplicates = model.index.duplicated(keep="first")

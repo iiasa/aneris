@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Union
 
@@ -37,7 +37,7 @@ class DownscalingContext:
     index: Sequence[str]
     year: int
     regionmap: MultiIndex
-    additional_data: dict[str, Union[Series, DataFrame]] = field(default_factory=dict)
+    additional_data: Mapping[str, Union[Series, DataFrame]] = field(default_factory=dict)
 
     @property
     def country_level(self) -> str:

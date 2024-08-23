@@ -385,7 +385,7 @@ def coeff_of_var(s):
     c_v : float
         coefficient of variation
     """
-    x = np.diff(s.values)
+    x = np.diff(s.to_numpy())
     with np.errstate(invalid="ignore"):
         return np.abs(np.std(x) / np.mean(x))
 
