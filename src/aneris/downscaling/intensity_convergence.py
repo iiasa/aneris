@@ -39,7 +39,7 @@ def make_affine_transform_pair(x1, x2, y1, y2):
 def compute_intensity(
     model: DataFrame, reference: DataFrame, convergence_year: int
 ) -> DataFrame:
-    intensity = model.idx.divide(reference, join="left")
+    intensity = model.pix.divide(reference, join="left")
 
     model_years = model.columns
     if convergence_year > model_years[-1]:
@@ -474,7 +474,7 @@ def intensity_convergence(
         )
 
     weights = (
-        intensity_projection.idx.multiply(reference, join="left")
+        intensity_projection.pix.multiply(reference, join="left")
         .groupby(model.index.names, dropna=False)
         .transform(normalize)
     )
