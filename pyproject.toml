@@ -7,7 +7,7 @@ description = "Harmonize Integrated Assessment Model Emissions Trajectories"
 license = {text = "Apache License 2.0"}
 name = "aneris-iamc"
 readme = "README.rst"
-requires-python = ">=3.6"
+requires-python = ">=3.10"
 
 # Add here all kinds of additional classifiers as defined under
 # https://pypi.org/classifiers/
@@ -25,7 +25,6 @@ dependencies = [
   "pyomo>=5",
   "pandas-indexing>=0.4.0",
   "pycountry",
-  "typing-extensions",
 ]
 dynamic = ["version"]
 
