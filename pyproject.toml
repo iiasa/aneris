@@ -25,6 +25,7 @@ dependencies = [
   "pyomo>=5",
   "pandas-indexing>=0.4.0",
   "pycountry",
+  "typing-extensions",
 ]
 dynamic = ["version"]
 
