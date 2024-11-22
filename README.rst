@@ -1,4 +1,4 @@
-`aneris` - Harmonization for IAMs
+`aneris` - Operations library for harmonizing, downscaling, and gridding IAM emissions data
 =================================
 
 **To reproduce harmonization routines from [Gidden et al.
