@@ -13,7 +13,7 @@ jobs:
       # fail-fast: false
       matrix:
         platform: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: [3.8, 3.11] # to minimise complexity we only test a min and a max version
+        python-version: [3.10, 3.12] # to minimise complexity we only test a min and a max version
         include:
           # on all platforms and versions do everything
           - tox-envs: [lint, test, docs, build]
