@@ -37,7 +37,9 @@ class DownscalingContext:
     index: Sequence[str]
     year: int
     regionmap: MultiIndex
-    additional_data: Mapping[str, Union[Series, DataFrame]] = field(default_factory=dict)
+    additional_data: Mapping[str, Union[Series, DataFrame]] = field(
+        default_factory=dict
+    )
 
     @property
     def country_level(self) -> str:
