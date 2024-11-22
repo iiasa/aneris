@@ -1,5 +1,5 @@
 `aneris` - Operations library for harmonizing, downscaling, and gridding IAM emissions data
-=================================
+===========================================================================================
 
 **To reproduce harmonization routines from [Gidden et al.
 (2019)](https://gmd.copernicus.org/articles/12/1443/2019/), use `v0.3.2` (or
