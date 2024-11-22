@@ -11,7 +11,7 @@ All harmonization is based on the following equations.
 :math:`\beta`: the harmonization convergence parameter
 
 .. math::
-    
+
     \begin{equation}\label{eqs:factor}
       \beta(t, t_i, t_f) =
       \begin{cases}
@@ -31,7 +31,7 @@ All harmonization is based on the following equations.
 :math:`m^{off}`: offset-based harmoniation
 
 .. math::
-    
+
     \begin{equation}\label{eqs:offset}
       m^{off}(t, m, h, t_i, t_f) = \beta(t, t_i, t_f) (h(t_i) - m(t_i)) + m(t)
     \end{equation}
@@ -39,7 +39,7 @@ All harmonization is based on the following equations.
 :math:`m^{int}`: linear-interoplation-based harmoniation
 
 .. math::
-      
+
     \begin{equation}\label{eqs:interpolate}
       m^{int}(t, m, h, t_i, t_f) =
       \begin{cases}
@@ -54,7 +54,7 @@ selection. Available names are listed below:
 
 .. list-table:: All Harmonization Methods Provided in :code:`aneris`
    :header-rows: 1
-  
+
    * - Method Name
      - Harmonization Family
      - Convergence Year
@@ -73,13 +73,13 @@ selection. Available names are listed below:
    * - :code:`linear_inerpolate_<year>`
      - interpolation
      - :math:`t_f = \texttt{<year>}`
-     
+
 
 Default Decision Tree
 ~~~~~~~~~~~~~~~~~~~~~
 
 While any method can be used to harmonize a given trajectory, intelligent
-defaults are made available to the user. These default methods are deteremined
+defaults are made available to the user. These default methods are determined
 by use of a *decision tree*, which analyzes the historical trajectory, model
 trajectory, and relative difference between trajectories in the harmonization
 year. The decision tree as implemented is provided below:

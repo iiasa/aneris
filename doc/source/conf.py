@@ -16,7 +16,6 @@ import sys
 
 import aneris
 
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -43,6 +42,7 @@ extensions = [
     "nbsphinx",
     "sphinxcontrib.bibtex",
     "sphinxcontrib.programoutput",
+    "sphinxcontrib.exceltable",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -302,6 +302,6 @@ texinfo_documents = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {"https://docs.python.org/": None}
+intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 
-bibtex_bibfiles = "./_bib/index.bib"
+bibtex_bibfiles = ["./_bib/index.bib"]

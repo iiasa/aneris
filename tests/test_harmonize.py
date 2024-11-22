@@ -60,7 +60,9 @@ _methods = (
 def test_factors():
     df = _df.copy()
     hist = _hist.copy()
-    obsoffset, obsratio = harmonize.harmonize_factors(df.copy(), hist.copy())
+    obsoffset, obsratio = harmonize.harmonize_factors(
+        df.copy(), hist.copy(), harmonize_year="2015"
+    )
     # im lazy; test initially written when these were of length 2
     exp = np.array([0.01 - 3, -1.0])
     npt.assert_array_almost_equal(exp, obsoffset[-2:])
@@ -89,7 +91,9 @@ def test_harmonize_constant_offset():
 def test_no_model():
     df = pd.DataFrame({"2015": [0]})
     hist = pd.DataFrame({"2015": [1.5]})
-    obsoffset, obsratio = harmonize.harmonize_factors(df.copy(), hist.copy())
+    obsoffset, obsratio = harmonize.harmonize_factors(
+        df.copy(), hist.copy(), harmonize_year="2015"
+    )
     exp = np.array([1.5])
     npt.assert_array_almost_equal(exp, obsoffset)
     exp = np.array([0])
@@ -283,7 +287,7 @@ def test_harmonize_budget():
     def _carbon_budget(emissions):
         # trapezoid rule
         dyears = np.diff(emissions.columns.astype(int))
-        emissions = emissions.values
+        emissions = emissions.to_numpy()
         demissions = np.diff(emissions, axis=1)
 
         budget = (dyears * (emissions[:, :-1] + demissions / 2)).sum(axis=1)

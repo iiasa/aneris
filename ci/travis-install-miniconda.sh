@@ -19,4 +19,3 @@ fi
 
 # update conda
 conda update --yes conda
-

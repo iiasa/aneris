@@ -1,10 +1,11 @@
 import numpy as np
 import pandas as pd
+from pandas_indexing import assignlevel, isin
 
 import aneris.cmip6.cmip6_utils as cmip6_utils
 import aneris.utils as utils
 from aneris.harmonize import Harmonizer, _log, _warn
-from aneris.utils import isin, pd_read
+from aneris.utils import pd_read
 
 
 class _TrajectoryPreprocessor:
@@ -276,10 +277,7 @@ class HarmonizationDriver:
         )
 
         # collect metadata
-        self._meta = self._meta.reset_index()
-        self._meta["model"] = self.model_name
-        self._meta["scenario"] = scenario
-        self._meta = self._meta.set_index(["model", "scenario"])
+        self._meta = assignlevel(self._meta, model=self.model_name, scenario=scenario)
         self._postprocess_trajectories(scenario)
 
         # store results
@@ -423,7 +421,7 @@ def _harmonize_regions(
             model, mapping=mapping, rfrom="Native Region Code", rto="5_region"
         )
         model = pd.concat([model, aggdf])
-        assert not model.isnull().values.any()
+        assert not model.isnull().any(axis=None)
 
     # duplicates come in from World and World being translated
     duplicates = model.index.duplicated(keep="first")

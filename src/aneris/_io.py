@@ -3,6 +3,7 @@ Provides helper functions for reading input data and configuration files.
 
 The default configuration values are provided in aneris.RC_DEFAULTS.
 """
+
 import os
 from collections import abc
 
@@ -89,7 +90,7 @@ def read_excel(f):
 
     # a single row of nans implies only configs provided,
     # if so, only return the empty df
-    if len(overrides) == 1 and overrides.isnull().values.all():
+    if len(overrides) == 1 and overrides.isnull().all(axis=None):
         overrides = pd.DataFrame([], columns=iamc_idx + ["Unit"])
 
     return model, overrides, config

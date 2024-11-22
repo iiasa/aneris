@@ -331,8 +331,7 @@ def test_raise_if_incompatible_unit(hist_df, scenarios_df):
     scenarios_df = scenarios_df.set_index("unit", append=True)
 
     error_msg = re.escape(
-        "Cannot convert from 'megatCH4 / a' ([mass] * [methane] / [time]) to "
-        "'CO2 * megametric_ton / a' ([carbon] * [mass] / [time])"
+        "Cannot convert from 'megatCH4 / yr' ([mass] * [methane] / [time]) to 'megametric_ton * CO2 / yr' ([mass] * [carbon] / [time])"
     )
     with pytest.raises(pint.errors.DimensionalityError, match=error_msg):
         harmonise_all(

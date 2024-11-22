@@ -1,11 +1,13 @@
 import logging
 import os
-from functools import reduce
-from operator import and_
+from pathlib import Path
+from typing import TypeAlias
 
-import numpy as np
 import pandas as pd
+import pycountry
 
+
+Pathy: TypeAlias = str | Path
 
 _logger = None
 
@@ -40,24 +42,6 @@ def numcols(df):
     """
     dtypes = df.dtypes
     return [i for i in dtypes.index if dtypes.loc[i].name.startswith(("float", "int"))]
-
-
-def isin(df=None, **filters):
-    """
-    Constructs a MultiIndex selector.
-
-    Usage
-    -----
-    > df.loc[isin(region="World", gas=["CO2", "N2O"])]
-    or with explicit df to get boolean mask
-    > isin(df, region="World", gas=["CO2", "N2O"])
-    """
-
-    def tester(df):
-        tests = (df.index.isin(np.atleast_1d(v), level=k) for k, v in filters.items())
-        return reduce(and_, tests, next(tests))
-
-    return tester if df is None else tester(df)
 
 
 def isstr(x):
@@ -119,6 +103,18 @@ def pd_write(df, f, *args, **kwargs):
     if f.endswith("csv"):
         df.to_csv(f, index=index, *args, **kwargs)
     else:
-        writer = pd.ExcelWriter(f)
-        df.to_excel(writer, index=index, *args, **kwargs)
-        writer.save()
+        with pd.ExcelWriter(f) as writer:
+            df.to_excel(writer, index=index, *args, **kwargs)
+
+
+def normalize(s):
+    return s / s.sum()
+
+
+def country_name(iso: str):
+    country_obj = pycountry.countries.get(alpha_3=iso)
+    return iso if country_obj is None else country_obj.name
+
+
+def skipempty(*dfs):
+    return [df for df in dfs if not df.empty]

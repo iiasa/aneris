@@ -3,8 +3,8 @@
 Install
 *******
 
-Via Conda (installs depedencies for you)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Via Conda (installs dependencies for you)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
@@ -24,9 +24,9 @@ From Source
 
     pip install git+https://github.com/iiasa/aneris.git
 
-Depedencies
-~~~~~~~~~~~
+Dependencies
+~~~~~~~~~~~~
 
-The depedencies for :code:`aneris` are:
+The dependencies for :code:`aneris` are:
 
   .. program-output:: python -c 'import sys, os; sys.path.append("../.."); import setup; print("\n".join([r for r in setup.REQUIREMENTS]))'

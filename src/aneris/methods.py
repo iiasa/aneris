@@ -12,7 +12,7 @@ import pyomo.environ as pyo
 from aneris import utils
 
 
-def harmonize_factors(df, hist, harmonize_year="2015"):
+def harmonize_factors(df, hist, harmonize_year=2015):
     """
     Calculate offset and ratio values between data and history.
 
@@ -40,7 +40,7 @@ def harmonize_factors(df, hist, harmonize_year="2015"):
     return offset, ratios
 
 
-def constant_offset(df, offset, harmonize_year="2015"):
+def constant_offset(df, offset, harmonize_year=2015):
     """
     Calculate constant offset harmonized trajectory.
 
@@ -65,7 +65,7 @@ def constant_offset(df, offset, harmonize_year="2015"):
     return df
 
 
-def constant_ratio(df, ratios, harmonize_year="2015"):
+def constant_ratio(df, ratios, harmonize_year=2015):
     """
     Calculate constant ratio harmonized trajectory.
 
@@ -90,7 +90,7 @@ def constant_ratio(df, ratios, harmonize_year="2015"):
     return df
 
 
-def linear_interpolate(df, offset, final_year="2050", harmonize_year="2015"):
+def linear_interpolate(df, offset, final_year=2050, harmonize_year=2015):
     """
     Calculate linearly interpolated convergence harmonized trajectory.
 
@@ -122,7 +122,7 @@ def linear_interpolate(df, offset, final_year="2050", harmonize_year="2015"):
     return df
 
 
-def reduce_offset(df, offset, final_year="2050", harmonize_year="2015"):
+def reduce_offset(df, offset, final_year=2050, harmonize_year=2015):
     """
     Calculate offset convergence harmonized trajectory.
 
@@ -157,7 +157,7 @@ def reduce_offset(df, offset, final_year="2050", harmonize_year="2015"):
     return df
 
 
-def reduce_ratio(df, ratios, final_year="2050", harmonize_year="2015"):
+def reduce_ratio(df, ratios, final_year=2050, harmonize_year=2015):
     """
     Calculate ratio convergence harmonized trajectory.
 
@@ -197,7 +197,7 @@ def reduce_ratio(df, ratios, final_year="2050", harmonize_year="2015"):
     return df
 
 
-def budget(df, df_hist, harmonize_year="2015"):
+def budget(df, df_hist, harmonize_year=2015):
     r"""
     Calculate budget harmonized trajectory.
 
@@ -253,8 +253,8 @@ def budget(df, df_hist, harmonize_year="2015"):
 
     harmonize_year = int(harmonize_year)
 
-    df = df.set_axis(df.columns.astype(int), axis="columns")
-    df_hist = df_hist.set_axis(df_hist.columns.astype(int), axis="columns")
+    # df = df.set_axis(df.columns.astype(int), axis="columns")
+    # df_hist = df_hist.set_axis(df_hist.columns.astype(int), axis="columns")
 
     data_years = df.columns
     hist_years = df_hist.columns
@@ -344,13 +344,13 @@ def budget(df, df_hist, harmonize_year="2015"):
     df_harm = pd.DataFrame(
         harmonized,
         index=df.index,
-        columns=years.astype(str),
+        columns=years,
     )
 
     return df_harm
 
 
-def model_zero(df, offset, harmonize_year="2015"):
+def model_zero(df, offset, harmonize_year=2015):
     """
     Returns result of aneris.methods.constant_offset()
     """
@@ -385,12 +385,17 @@ def coeff_of_var(s):
     c_v : float
         coefficient of variation
     """
-    x = np.diff(s.values)
-    return np.abs(np.std(x) / np.mean(x))
+    x = np.diff(s.to_numpy())
+    with np.errstate(invalid="ignore"):
+        return np.abs(np.std(x) / np.mean(x))
 
 
 def default_method_choice(
-    row, ratio_method, offset_method, luc_method, luc_cov_threshold
+    row,
+    ratio_method="reduce_ratio_2080",
+    offset_method="reduce_offset_2080",
+    luc_method="reduce_offset_2150_cov",
+    luc_cov_threshold=10,
 ):
     """
     Default decision tree as documented at.
@@ -439,7 +444,7 @@ def default_method_choice(
 
 def default_methods(hist, model, base_year, method_choice=None, **kwargs):
     """
-    Determine default harmonization methods to use.
+    Determine default harmonization or downscaling methods to use.
 
     See http://mattgidden.com/aneris/theory.html#default-decision-tree for a
     graphical description of the decision tree.
@@ -455,16 +460,23 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
     method_choice : function, optional
         codified decision tree, see `default_method_choice` function
     **kwargs :
-        Additional parameters passed on to the choice function:
+        Additional parameters passed on to the choice functions.
 
-        ratio_method : string, optional
+        Harmonization functions might depend on the following method names:
+        ratio_method : string
             method to use for ratio harmonization, default: reduce_ratio_2080
-        offset_method : string, optional
+        offset_method : string
             method to use for offset harmonization, default: reduce_offset_2080
-        luc_method : string, optional
+        luc_method : string
             method to use for high coefficient of variation, reduce_offset_2150_cov
         luc_cov_threshold : float
             cov threshold above which to use `luc_method`
+
+        Downscaling functions require the following choices:
+        intensity_method : string
+            method to use for intensity convergence, default ipat_gdp_2100
+        luc_method : string
+            method to use for agriculture and luc emissions, default base_year_pattern
 
     Returns
     -------
@@ -477,15 +489,6 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
     --------
     `default_method_choice`
     """
-
-    if kwargs.get("ratio_method") is None:
-        kwargs["ratio_method"] = "reduce_ratio_2080"
-    if kwargs.get("offset_method") is None:
-        kwargs["offset_method"] = "reduce_offset_2080"
-    if kwargs.get("luc_method") is None:
-        kwargs["luc_method"] = "reduce_offset_2150_cov"
-    if kwargs.get("luc_cov_threshold") is None:
-        kwargs["luc_cov_threshold"] = 10
 
     y = str(base_year)
     try:

@@ -7,7 +7,7 @@ description = "Harmonize Integrated Assessment Model Emissions Trajectories"
 license = {text = "Apache License 2.0"}
 name = "aneris-iamc"
 readme = "README.rst"
-requires-python = ">=3.6"
+requires-python = ">=3.10"
 
 # Add here all kinds of additional classifiers as defined under
 # https://pypi.org/classifiers/
@@ -23,7 +23,8 @@ dependencies = [
   "openpyxl",
   "matplotlib",
   "pyomo>=5",
-  "pandas-indexing",
+  "pandas-indexing>=0.4.0",
+  "pycountry",
 ]
 dynamic = ["version"]
 
@@ -44,22 +45,27 @@ docs = [
         "sphinx",
         "sphinxcontrib-bibtex",
         "sphinxcontrib-programoutput",
+        "sphinxcontrib-exceltable",
         "sphinx-gallery",
         "nbsphinx",
         "numpydoc",
         "nbformat",
-        "ipython",
-        "jupyter",
-        "jupyter_contrib_nbextensions",
         "pillow",
     ]
 lint = [
     "black",
     "ruff"
 ]
+geo = [
+  "ptolemy-iamc @ git+https://github.com/gidden/ptolemy.git",
+  "pycountry",
+  "xarray",
+  "dask",
+]
 
 [project.scripts]
 aneris = "aneris.cli:main"
+
 
 [tool.setuptools_scm]
 fallback_version = "999"
@@ -81,6 +87,8 @@ exclude = [
     "doc",
     "_typed_ops.pyi",
 ]
+
+[tool.ruff.lint]
 # E402: module level import not at top of file
 # E501: line too long - let black worry about that
 # E731: do not assign a lambda expression, use a def
@@ -103,11 +111,11 @@ select = [
     "UP",
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 # F401: imported but unsued
 "__init__.py" = ["F401"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 lines-after-imports = 2
 known-first-party = ["aneris"]
 

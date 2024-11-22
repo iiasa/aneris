@@ -32,7 +32,7 @@ Methods: :code:`aneris.methods`
 
 .. automodule:: aneris.methods
    :members:
-   
+
 
 Tools/Utilities: :code:`aneris.utils`
 -------------------------------------

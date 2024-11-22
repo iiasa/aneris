@@ -1,6 +1,7 @@
 """
 Harmonization CLI for aneris.
 """
+
 import argparse
 import os
 
