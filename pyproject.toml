@@ -57,7 +57,7 @@ lint = [
     "ruff"
 ]
 geo = [
-  "ptolemy-iamc @ git+https://github.com/gidden/ptolemy.git",
+  "ptolemy-iamc",
   "pycountry",
   "xarray",
   "dask",
