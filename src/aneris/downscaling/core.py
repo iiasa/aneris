@@ -25,6 +25,9 @@ class Downscaler:
         "ipat_2100_gdp": partial(
             intensity_convergence, convergence_year=2100, proxy_name="gdp"
         ),
+        "ipat_2150_gdp": partial(
+            intensity_convergence, convergence_year=2150, proxy_name="gdp"
+        ),
         "ipat_2150_pop": partial(
             intensity_convergence, convergence_year=2150, proxy_name="pop"
         ),
@@ -43,6 +46,9 @@ class Downscaler:
         hist: DataFrame,
         year: int,
         region_mapping: Union[Series, MultiIndex],
+        intensity_method: str | None = None,
+        fallback_method: str | None = None,
+        luc_method: str | None = None,
         luc_sectors: Sequence[str] = [],
         index: Sequence[str] = DEFAULT_INDEX,
         method_choice: Optional[callable] = None,
@@ -75,10 +81,9 @@ class Downscaler:
                 + missing_hist.to_frame().to_string(index=False, max_rows=100)
             )
 
-        # TODO Make configurable by re-using config just as in harmonizer
-        self.fallback_method = None
-        self.intensity_method = None
-        self.luc_method = None
+        self.fallback_method = fallback_method
+        self.intensity_method = intensity_method
+        self.luc_method = luc_method
         self.method_choice = method_choice
         self.luc_sectors = luc_sectors
 
@@ -167,7 +172,10 @@ class Downscaler:
                 )
 
     def downscale(
-        self, methods: Optional[Series] = None, check_result: bool = True
+        self,
+        methods: Optional[Series] = None,
+        check_result: bool = True,
+        ipat_diagnostics=None,
     ) -> DataFrame:
         """
         Downscale aligned model data from historical data, and socio-economic
@@ -201,7 +209,17 @@ class Downscaler:
             hist = semijoin(hist_ext, trajectory_index, how="right")
             model = semijoin(self.model, trajectory_index, how="right")
 
-            downscaled.append(self._methods[method](model, hist, self.context))
+            func = self._methods[method]
+            if ipat_diagnostics is not None and method.startswith("ipat_"):
+                res = func(
+                    model,
+                    hist,
+                    self.context,
+                    diagnostics=ipat_diagnostics.setdefault(method, {}),
+                )
+            else:
+                res = func(model, hist, self.context)
+            downscaled.append(res)
 
         downscaled = concat(downscaled)
         if check_result:
