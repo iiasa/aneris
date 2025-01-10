@@ -7,10 +7,15 @@ from bisect import bisect
 
 import numpy as np
 import pandas as pd
+from pandas import IndexSlice as idx
 import pyomo.environ as pyo
+import pandas_indexing as pix
+
 
 from aneris import utils
 
+def _log(msg, *args, **kwargs):
+    utils.logger().info(msg, *args, **kwargs)
 
 def harmonize_factors(df, hist, harmonize_year=2015):
     """
@@ -405,7 +410,7 @@ def default_method_choice(
     for arguments available in row and their definition
     """
     # special cases
-    if row.h == 0:
+    if np.isclose(row.h, 0, atol=1e-3): 
         return "hist_zero"
     if row.zero_m:
         return "model_zero"
@@ -432,7 +437,9 @@ def default_method_choice(
             return luc_method
         else:
             # dH small?
-            if row.dH < 0.5:
+            # Defined at the relative difference is less than 50% of historical data
+            # or under the absolute threshold
+            if (row.dH < 0.5) or (row.dH_abs < row.dH_abs_thresh):
                 return ratio_method
             else:
                 # goes negative?
@@ -440,6 +447,60 @@ def default_method_choice(
                     return "reduce_ratio_2100"
                 else:
                     return "constant_ratio"
+
+
+def calc_dh_abs_threshold(df, model, base_year):
+    """
+    Calculates a value of dH_abs_threshold, which is a threshold used to help determine methods choice
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame produced by default_methods function
+    model : pd.DataFrame
+        model data
+    base_year : string, int
+        harmonization year
+
+    
+    Returns
+    -------
+    df : pd.DataFrame
+       Modified dataframe with the dH_abs_threshold added
+
+    """
+     #Calculate the dH_abs_threshold (for use in methods choice)
+
+    # Find parent variable, which is defined as the next level up in the hiearchy.
+    # E.g. parent variable of FE|Industry|Liquids = FE|Industry
+    # Or parent variable of Emissions|CO2|Demand|Industry = Emissions|CO2|Demand
+    df = (
+        df.pix.assign(
+            parent_var = df.variable.map(
+                lambda s: '|'.join(s.split('|')[:-1])
+                # if len(s.split('|')[:-1])>1 else s
+                )
+                )
+        )
+
+    for ix in df.index[:]:
+
+        #Find the index with the same model/scenario/region/unit, 
+        #But looking for the parent variable
+        sel_slice = idx[ix[0],ix[1],ix[2],ix[5],ix[4]] 
+
+        # In line with the relative threshold, the absolute threshold is set as
+        # Default as 50% of the parent variable in the model data
+
+        try:
+            df.loc[ix,'dH_abs_thresh'] = model.loc[sel_slice,base_year] *0.5
+        except:
+            _log(f"No data in the model dataframe for {sel_slice}, dH_abs_thresh not calculated")
+            df.loc[ix,'dH_abs_thresh'] = np.nan
+
+    df = df.droplevel('parent_var')
+
+    return(df)
 
 
 def default_methods(hist, model, base_year, method_choice=None, **kwargs):
@@ -498,6 +559,7 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
         h = hist[y]
         m = model[y]
     dH = (h - m).abs() / h
+    dH_abs = (h - m).abs()
     f = h / m
     dM = (model.max(axis=1) - model.min(axis=1)).abs() / model.max(axis=1)
     neg_m = (model < 0).any(axis=1)
@@ -509,6 +571,7 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
     df = pd.DataFrame(
         {
             "dH": dH,
+            "dH_abs": dH_abs,
             "f": f,
             "dM": dM,
             "neg_m": neg_m,
@@ -520,6 +583,8 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
             "m": m,
         }
     ).join(model.index.to_frame())
+
+    df = calc_dh_abs_threshold(df,model,base_year)
 
     if method_choice is None:
         method_choice = default_method_choice
