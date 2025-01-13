@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from pandas import IndexSlice as idx
 import pyomo.environ as pyo
-import pandas_indexing as pix
+from pandas_indexing import assignlevel
 
 
 from aneris import utils
@@ -475,7 +475,8 @@ def calc_dh_abs_threshold(df, model, base_year):
     # E.g. parent variable of FE|Industry|Liquids = FE|Industry
     # Or parent variable of Emissions|CO2|Demand|Industry = Emissions|CO2|Demand
     df = (
-        df.pix.assign(
+        assignlevel(
+            df,
             parent_var = df.variable.map(
                 lambda s: '|'.join(s.split('|')[:-1])
                 # if len(s.split('|')[:-1])>1 else s
