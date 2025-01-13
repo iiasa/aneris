@@ -14,8 +14,10 @@ from pandas_indexing import assignlevel
 
 from aneris import utils
 
+
 def _log(msg, *args, **kwargs):
     utils.logger().info(msg, *args, **kwargs)
+
 
 def harmonize_factors(df, hist, harmonize_year=2015):
     """
@@ -339,10 +341,7 @@ def budget(df, df_hist, harmonize_year=2015):
 
         assert (results.solver.status == pyo.SolverStatus.ok) and (
             results.solver.termination_condition == pyo.TerminationCondition.optimal
-        ), (
-            f"ipopt terminated budget optimization with status: "
-            f"{results.solver.status}, {results.solver.termination_condition}"
-        )
+        ), f"ipopt terminated budget optimization with status: {results.solver.status}, {results.solver.termination_condition}"
 
         harmonized.append([pyo.value(model.x[y]) for y in years])
 
@@ -410,7 +409,7 @@ def default_method_choice(
     for arguments available in row and their definition
     """
     # special cases
-    if np.isclose(row.h, 0, atol=1e-3): 
+    if np.isclose(row.h, 0, atol=1e-3):
         return "hist_zero"
     if row.zero_m:
         return "model_zero"
@@ -462,46 +461,46 @@ def calc_dh_abs_threshold(df, model, base_year):
     base_year : string, int
         harmonization year
 
-    
+
     Returns
     -------
     df : pd.DataFrame
        Modified dataframe with the dH_abs_threshold added
 
     """
-     #Calculate the dH_abs_threshold (for use in methods choice)
+    # Calculate the dH_abs_threshold (for use in methods choice)
 
     # Find parent variable, which is defined as the next level up in the hiearchy.
     # E.g. parent variable of FE|Industry|Liquids = FE|Industry
     # Or parent variable of Emissions|CO2|Demand|Industry = Emissions|CO2|Demand
-    df = (
-        assignlevel(
-            df,
-            parent_var = df.variable.map(
-                lambda s: '|'.join(s.split('|')[:-1])
-                # if len(s.split('|')[:-1])>1 else s
-                )
-                )
-        )
+    df = assignlevel(
+        df,
+        parent_var=df.variable.map(
+            lambda s: "|".join(s.split("|")[:-1])
+            # if len(s.split('|')[:-1])>1 else s
+        ),
+    )
 
     for ix in df.index[:]:
 
-        #Find the index with the same model/scenario/region/unit, 
-        #But looking for the parent variable
-        sel_slice = idx[ix[0],ix[1],ix[2],ix[5],ix[4]] 
+        # Find the index with the same model/scenario/region/unit,
+        # But looking for the parent variable
+        sel_slice = idx[ix[0], ix[1], ix[2], ix[5], ix[4]]
 
         # In line with the relative threshold, the absolute threshold is set as
         # Default as 50% of the parent variable in the model data
 
         try:
-            df.loc[ix,'dH_abs_thresh'] = model.loc[sel_slice,base_year] *0.5
+            df.loc[ix, "dH_abs_thresh"] = model.loc[sel_slice, base_year] * 0.5
         except:
-            _log(f"No data in the model dataframe for {sel_slice}, dH_abs_thresh not calculated")
-            df.loc[ix,'dH_abs_thresh'] = np.nan
+            _log(
+                f"No data in the model dataframe for {sel_slice}, dH_abs_thresh not calculated"
+            )
+            df.loc[ix, "dH_abs_thresh"] = np.nan
 
-    df = df.droplevel('parent_var')
+    df = df.droplevel("parent_var")
 
-    return(df)
+    return df
 
 
 def default_methods(hist, model, base_year, method_choice=None, **kwargs):
@@ -585,7 +584,7 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
         }
     ).join(model.index.to_frame())
 
-    df = calc_dh_abs_threshold(df,model,base_year)
+    df = calc_dh_abs_threshold(df, model, base_year)
 
     if method_choice is None:
         method_choice = default_method_choice
