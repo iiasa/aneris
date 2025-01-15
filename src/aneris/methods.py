@@ -7,10 +7,9 @@ from bisect import bisect
 
 import numpy as np
 import pandas as pd
-from pandas import IndexSlice as idx
 import pyomo.environ as pyo
+from pandas import IndexSlice as idx
 from pandas_indexing import assignlevel
-
 
 from aneris import utils
 
