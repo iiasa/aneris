@@ -397,8 +397,8 @@ def default_method_choice(
     row,
     ratio_method="reduce_ratio_2080",
     offset_method="reduce_offset_2080",
-    luc_method="reduce_offset_2150_cov",
-    luc_cov_threshold=10,
+    luc_method="reduce_ratio_2150_cov",
+    luc_cov_threshold=20,
 ):
     """
     Default decision tree as documented at.
@@ -408,7 +408,7 @@ def default_method_choice(
     for arguments available in row and their definition
     """
     # special cases
-    if np.isclose(row.h, 0, atol=1e-3):
+    if np.isclose(row.h, 1e-6, atol=1e-3):
         return "hist_zero"
     if row.zero_m:
         return "model_zero"
@@ -437,8 +437,17 @@ def default_method_choice(
             # dH small?
             # Defined at the relative difference is less than 50% of historical data
             # or under the absolute threshold
-            if (row.dH < 0.5) or (row.dH_abs < row.dH_abs_thresh):
-                return ratio_method
+            if (row.dH.abs() < 0.5) or (row.dH_abs < row.dH_abs_thresh):
+                if row.dH < 0:
+                    # If dH is negative (model data > historical data)
+                    # Then we can use the ratio method
+                    # Applying a negative offset could return negative values
+                    return ratio_method
+                else:
+                    # If dH is positive (model data < historical data)
+                    # Then we use the offset method, as the ratio method can substantially
+                    # Increase the values and lead to strange pathways
+                    return offset_method
             else:
                 # goes negative?
                 if row.neg_m:
@@ -557,7 +566,7 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
     except KeyError:
         h = hist[y]
         m = model[y]
-    dH = (h - m).abs() / h
+    dH = (h - m) / h
     dH_abs = (h - m).abs()
     f = h / m
     dM = (model.max(axis=1) - model.min(axis=1)).abs() / model.max(axis=1)
