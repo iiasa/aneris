@@ -481,28 +481,33 @@ def calc_dh_abs_threshold(df, model, base_year):
     # Find parent variable, which is defined as the next level up in the hiearchy.
     # E.g. parent variable of FE|Industry|Liquids = FE|Industry
     # Or parent variable of Emissions|CO2|Demand|Industry = Emissions|CO2|Demand
-    df = assignlevel(
-        df,
-        parent_var=df.variable.map(
-            lambda s: "|".join(s.split("|")[:-1])
-            # if len(s.split('|')[:-1])>1 else s
-        ),
-    )
+    try:
+        df = assignlevel(
+            df,
+            parent_var=df.variable.map(
+                lambda s: "|".join(s.split("|")[:-1])
+                # if len(s.split('|')[:-1])>1 else s
+            ),
+        )
+    except:
+        _log(f"Dataframe has no attribute 'variable', dH abs cannot be calculated")
+        df.loc[:, "dH_abs_thresh"] = np.nan
 
-    for ix in df.index[:]:
+        return df
 
-        # Find the index with the same model/scenario/region/unit,
-        # But looking for the parent variable
-        sel_slice = idx[ix[0], ix[1], ix[2], ix[5], ix[4]]
+    # Find the index with the same indices, but switch the parent_variable in for the variable
+    select_ix = df.index.swaplevel("variable", "parent_var").droplevel("variable")
+    select_ix.names = df.index.droplevel("parent_var").names
 
+    for ix, sel_ix in zip(df.index, select_ix):
         # In line with the relative threshold, the absolute threshold is set as
         # Default as 50% of the parent variable in the model data
 
         try:
-            df.loc[ix, "dH_abs_thresh"] = model.loc[sel_slice, base_year] * 0.5
+            df.loc[ix, "dH_abs_thresh"] = model.loc[sel_ix, base_year] * 0.5
         except:
             _log(
-                f"No data in the model dataframe for {sel_slice}, dH_abs_thresh not calculated"
+                f"No data in the model dataframe for {sel_ix}, dH_abs_thresh not calculated"
             )
             df.loc[ix, "dH_abs_thresh"] = np.nan
 
