@@ -437,7 +437,7 @@ def default_method_choice(
             # dH small?
             # Defined at the relative difference is less than 50% of historical data
             # or under the absolute threshold
-            if (row.dH.abs() < 0.5) or (row.dH_abs < row.dH_abs_thresh):
+            if (abs(row.dH) < 0.5) or (row.dH_abs < row.dH_abs_thresh):
                 if row.dH < 0:
                     # If dH is negative (model data > historical data)
                     # Then we can use the ratio method
