@@ -397,8 +397,8 @@ def default_method_choice(
     row,
     ratio_method="reduce_ratio_2080",
     offset_method="reduce_offset_2080",
-    luc_method="reduce_ratio_2150_cov",
-    luc_cov_threshold=20,
+    luc_method="reduce_offset_2150_cov",
+    luc_cov_threshold=10,
 ):
     """
     Default decision tree as documented at.
@@ -406,6 +406,8 @@ def default_method_choice(
     Refer to choice flow chart at
     https://drive.google.com/drive/folders/0B6_Oqvcg8eP9QXVKX2lFVUJiZHc
     for arguments available in row and their definition
+
+    Neil Grant: Have made changes which would amend this flow-chart
     """
     # special cases
     if np.isclose(row.h, 1e-6, atol=1e-3):
@@ -437,17 +439,26 @@ def default_method_choice(
             # dH small?
             # Defined at the relative difference is less than 50% of historical data
             # or under the absolute threshold
-            if (abs(row.dH) < 0.5) or (row.dH_abs < row.dH_abs_thresh):
+            if row.dH_abs < row.dH_abs_thresh:
+                # If dH_abs is small, this suggests
+                # The data being harmonised is a small ~near zero component
                 if row.dH < 0:
                     # If dH is negative (model data > historical data)
                     # Then we can use the ratio method
                     # Applying a negative offset could return negative values
+                    # Which might not be always physically possible (outside of CO2)
                     return ratio_method
                 else:
                     # If dH is positive (model data < historical data)
                     # Then we use the offset method, as the ratio method can substantially
-                    # Increase the values and lead to strange pathways
+                    # Increase the values and lead to strange pathways, e.g. 
+                    # When the variable is small in historical data but growing rapidly (e.g. synfuels)
                     return offset_method
+            
+            # If dH_abs is large, this suggests that the component being harmonised is not ~near zero
+            # In this context we can just rely on the ratio method throughout
+            if abs(row.dH) < 0.5:
+                return ratio_method
             else:
                 # goes negative?
                 if row.neg_m:
@@ -500,11 +511,10 @@ def calc_dh_abs_threshold(df, model, base_year):
     select_ix.names = df.index.droplevel("parent_var").names
 
     for ix, sel_ix in zip(df.index, select_ix):
-        # In line with the relative threshold, the absolute threshold is set as
-        # Default as 50% of the parent variable in the model data
-
+        # Currently, the absolute threshold is set as 10% of the parent variable in the model data
+        # Under 10% is counted as "small"
         try:
-            df.loc[ix, "dH_abs_thresh"] = model.loc[sel_ix, base_year] * 0.5
+            df.loc[ix, "dH_abs_thresh"] = model.loc[sel_ix, base_year] * 0.1
         except:
             _log(
                 f"No data in the model dataframe for {sel_ix}, dH_abs_thresh not calculated"
