@@ -441,7 +441,7 @@ def default_method_choice(
             # or under the absolute threshold
             if (abs(row.dH) > 0.5) & (row.dH_abs < row.dH_abs_thresh):
                 # If dH is large, but dH_abs is small, this suggests
-                # The data being harmonised is a small ~near zero component 
+                # The data being harmonised is a small ~near zero component
                 # (under 20% of the parent variable)
                 if row.dH < 0:
                     # If dH is negative (model data > historical data)
@@ -452,10 +452,10 @@ def default_method_choice(
                 else:
                     # If dH is positive (model data < historical data)
                     # Then we use the offset method, as the ratio method can substantially
-                    # Increase the values and lead to strange pathways, e.g. 
+                    # Increase the values and lead to strange pathways, e.g.
                     # When the variable is small in historical data but growing rapidly (e.g. synfuels)
                     return offset_method
-            
+
             # If dH_abs is large, this suggests that the component being harmonised is not ~near zero
             # In this context we can just rely on the ratio method throughout
             elif abs(row.dH) < 0.5:
