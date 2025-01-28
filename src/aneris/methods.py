@@ -439,9 +439,10 @@ def default_method_choice(
             # dH small?
             # Defined at the relative difference is less than 50% of historical data
             # or under the absolute threshold
-            if row.dH_abs < row.dH_abs_thresh:
-                # If dH_abs is small, this suggests
-                # The data being harmonised is a small ~near zero component
+            if (abs(row.dH) > 0.5) & (row.dH_abs < row.dH_abs_thresh):
+                # If dH is large, but dH_abs is small, this suggests
+                # The data being harmonised is a small ~near zero component 
+                # (under 20% of the parent variable)
                 if row.dH < 0:
                     # If dH is negative (model data > historical data)
                     # Then we can use the ratio method
@@ -457,7 +458,7 @@ def default_method_choice(
             
             # If dH_abs is large, this suggests that the component being harmonised is not ~near zero
             # In this context we can just rely on the ratio method throughout
-            if abs(row.dH) < 0.5:
+            elif abs(row.dH) < 0.5:
                 return ratio_method
             else:
                 # goes negative?
