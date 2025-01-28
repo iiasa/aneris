@@ -8,7 +8,6 @@ from bisect import bisect
 import numpy as np
 import pandas as pd
 import pyomo.environ as pyo
-from pandas import IndexSlice as idx
 from pandas_indexing import assignlevel
 
 from aneris import utils
@@ -502,7 +501,7 @@ def calc_dh_abs_threshold(df, model, base_year):
             ),
         )
     except:
-        _log(f"Dataframe has no attribute 'variable', dH abs cannot be calculated")
+        _log("Dataframe has no attribute 'variable', dH abs cannot be calculated")
         df.loc[:, "dH_abs_thresh"] = np.nan
 
         return df
