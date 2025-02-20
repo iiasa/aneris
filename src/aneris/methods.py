@@ -467,7 +467,7 @@ def default_method_choice(
                     return "constant_ratio"
 
 
-def calc_dh_abs_threshold(df, model, base_year):
+def calc_dh_abs_threshold(df, hist, base_year):
     """
     Calculates a value of dH_abs_threshold, which is a threshold used to help determine methods choice
 
@@ -475,8 +475,8 @@ def calc_dh_abs_threshold(df, model, base_year):
     ----------
     df : pd.DataFrame
         DataFrame produced by default_methods function
-    model : pd.DataFrame
-        model data
+    hist : pd.DataFrame
+        Historical data
     base_year : string, int
         harmonization year
 
@@ -511,10 +511,11 @@ def calc_dh_abs_threshold(df, model, base_year):
     select_ix.names = df.index.droplevel("parent_var").names
 
     for ix, sel_ix in zip(df.index, select_ix):
-        # Currently, the absolute threshold is set as 10% of the parent variable in the model data
-        # Under 10% is counted as "small"
+        # Currently, the absolute threshold is set as 10% of the parent variable in the historical data
+        # Under 10% is counted as "small". We don't use model data here, as the model data could
+        # also be in need of harmonisation.
         try:
-            df.loc[ix, "dH_abs_thresh"] = model.loc[sel_ix, base_year] * 0.1
+            df.loc[ix, "dH_abs_thresh"] = hist.loc[sel_ix, base_year] * 0.1
         except:
             _log(
                 f"No data in the model dataframe for {sel_ix}, dH_abs_thresh not calculated"
@@ -607,7 +608,7 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
         }
     ).join(model.index.to_frame())
 
-    df = calc_dh_abs_threshold(df, model, base_year)
+    df = calc_dh_abs_threshold(df, hist, base_year)
 
     if method_choice is None:
         method_choice = default_method_choice

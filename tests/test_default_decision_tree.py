@@ -22,6 +22,20 @@ def index1_co2():
     return make_index(1, gas="CO2")
 
 
+@pytest.fixture
+def index_two_var():
+    return pd.MultiIndex.from_product(
+        [
+            ["region"],
+            [
+                "Emissions|CO2|Energy|Supply|Transportation",
+                "Emissions|CO2|Energy|Supply",
+            ],
+        ],
+        names=["region", "variable"],
+    )
+
+
 def test_hist_zero(index1):
     hist = pd.DataFrame({"2015": [0]}, index1)
     df = pd.DataFrame({"2015": [1.0]}, index1)
@@ -123,6 +137,62 @@ def test_branch6(index1):
     print(diags)
 
     exp = pd.Series(["reduce_offset_2150_cov"], index1, name="methods")
+    pdt.assert_series_equal(exp, obs, check_names=False)
+
+
+def test_branch7(index_two_var):
+    hist = pd.DataFrame(
+        {
+            "2000": [1.0, 20.0],
+            "2005": [2.0, 40.0],
+            "2010": [3.0, 50.0],
+            "2015": [2.0, 50.0],
+        },
+        index_two_var,
+    )
+
+    df = pd.DataFrame(
+        {
+            "2015": [3.5, 45.0],
+            "2020": [5.0, 60.0],
+        },
+        index_two_var,
+    )
+
+    obs, diags = harmonize.default_methods(hist, df, "2015")
+    print(diags)
+
+    exp = pd.Series(
+        ["reduce_ratio_2080", "reduce_ratio_2080"], index_two_var, name="methods"
+    )
+    pdt.assert_series_equal(exp, obs, check_names=False)
+
+
+def test_branch8(index_two_var):
+    hist = pd.DataFrame(
+        {
+            "2000": [1.0, 20.0],
+            "2005": [2.0, 40.0],
+            "2010": [3.0, 50.0],
+            "2015": [2.0, 50.0],
+        },
+        index_two_var,
+    )
+
+    df = pd.DataFrame(
+        {
+            "2015": [0.2, 30.0],
+            "2020": [0.1, 20.0],
+        },
+        index_two_var,
+    )
+
+    obs, diags = harmonize.default_methods(hist, df, "2015")
+    print(diags)
+
+    exp = pd.Series(
+        ["reduce_offset_2080", "reduce_ratio_2080"], index_two_var, name="methods"
+    )
     pdt.assert_series_equal(exp, obs, check_names=False)
 
 
