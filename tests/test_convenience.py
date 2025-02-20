@@ -627,7 +627,7 @@ def test_defaults(hist_df, scenarios_df):
             [
                 {"variable": "Emissions|CO2", "method": "reduce_ratio_2080"},
                 {"variable": "Emissions|CH4", "method": "reduce_ratio_2080"},
-                {"variable": "Emissions|CO2|AFOLU", "method": "reduce_ratio_2100"},
+                {"variable": "Emissions|CO2|AFOLU", "method": "reduce_offset_2080"},
                 {"variable": "Emissions|BC|AFOLU", "method": "constant_ratio"},
             ]
         ),
