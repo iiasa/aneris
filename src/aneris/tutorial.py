@@ -1,13 +1,11 @@
 import os
 
-
 try:
     from urllib.request import urlretrieve  # py3
 except ImportError:
     from urllib import urlretrieve  # py2
 
 import aneris
-
 
 _default_cache_dir = os.path.join("~", ".aneris_tutorial_data")
 

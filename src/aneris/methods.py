@@ -500,7 +500,7 @@ def calc_dh_abs_threshold(df, hist, base_year):
                 # if len(s.split('|')[:-1])>1 else s
             ),
         )
-    except:
+    except Exception:
         _log("Dataframe has no attribute 'variable', dH abs cannot be calculated")
         df.loc[:, "dH_abs_thresh"] = np.nan
 
@@ -516,7 +516,7 @@ def calc_dh_abs_threshold(df, hist, base_year):
         # also be in need of harmonisation.
         try:
             df.loc[ix, "dH_abs_thresh"] = hist.loc[sel_ix, base_year] * 0.1
-        except:
+        except Exception:
             _log(
                 f"No data in the model dataframe for {sel_ix}, dH_abs_thresh not calculated"
             )

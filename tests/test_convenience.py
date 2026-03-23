@@ -13,7 +13,6 @@ from aneris.errors import (
     MissingHistoricalError,
 )
 
-
 pytest.importorskip("pint")
 import pint.errors
 

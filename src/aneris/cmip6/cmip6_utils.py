@@ -13,7 +13,6 @@ from aneris.utils import (
     region_path,
 )
 
-
 # gases reported in kt of species
 kt_gases = [
     "N2O",

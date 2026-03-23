@@ -5,7 +5,6 @@ import pytest
 
 from aneris import harmonize, utils
 
-
 nvals = 6
 
 
@@ -232,10 +231,10 @@ def test_harmonize_mix():
     npt.assert_array_almost_equal(obs, exp)
 
     # future year
-    obs = res["2060"][:2]
+    obs = res["2060"].iloc[:2]
     exp = [
-        _df["2060"][0] + (_hist["2015"][0] - _df["2015"][0]),
-        _df["2060"][1] * (_hist["2015"][1] / _df["2015"][1]),
+        _df["2060"].iloc[0] + (_hist["2015"].iloc[0] - _df["2015"].iloc[0]),
+        _df["2060"].iloc[1] * (_hist["2015"].iloc[1] / _df["2015"].iloc[1]),
     ]
     npt.assert_array_almost_equal(obs, exp)
 

@@ -12,7 +12,6 @@ import yaml
 
 from aneris.utils import iamc_idx, isnum, isstr, pd_read
 
-
 RC_DEFAULTS = """
 config:
     default_luc_method: reduce_ratio_2150_cov

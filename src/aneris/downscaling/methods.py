@@ -9,7 +9,6 @@ from ..utils import normalize
 from .data import DownscalingContext
 from .intensity_convergence import intensity_convergence  # noqa: F401
 
-
 logger = logging.getLogger(__name__)
 
 

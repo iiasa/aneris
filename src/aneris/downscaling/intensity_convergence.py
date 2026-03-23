@@ -11,7 +11,6 @@ from scipy.optimize import root_scalar
 from ..utils import normalize, skipempty
 from .data import DownscalingContext
 
-
 logger = logging.getLogger(__name__)
 
 
