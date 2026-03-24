@@ -163,7 +163,7 @@ def test_branch7(index_two_var):
     print(diags)
 
     exp = pd.Series(
-        ["reduce_ratio_2080", "reduce_ratio_2080"], index_two_var, name="methods"
+        ["reduce_offset_2080", "reduce_ratio_2080"], index_two_var, name="methods"
     )
     pdt.assert_series_equal(exp, obs, check_names=False)
 

@@ -426,6 +426,10 @@ def default_method_choice(
         else:
             return "constant_offset"
     else:
+        # variable going to zero (phase-out)? Always use ratio to avoid
+        # an offset driving values below zero as the variable approaches zero.
+        if np.isclose(row.variable_min, 0, atol=1e-6):
+            return ratio_method
         # is this co2?
         # ZN: This gas dependence isn't documented in the default
         # decision tree
@@ -441,18 +445,20 @@ def default_method_choice(
             if (abs(row.dH) > 0.5) & (row.dH_abs < row.dH_abs_thresh):
                 # If dH is large, but dH_abs is small, this suggests
                 # The data being harmonised is a small ~near zero component
-                # (under 20% of the parent variable)
-                if row.dH < 0:
-                    # If dH is negative (model data > historical data)
-                    # Then we can use the ratio method
-                    # Applying a negative offset could return negative values
-                    # Which might not be always physically possible (outside of CO2)
+                # (under 10% of the parent variable)
+                if row.dH < 0 and row.dH_abs > row.variable_min:
+                    # dH < 0: model > hist, so offset would be negative.
+                    # dH_abs > variable_min: the offset magnitude exceeds the
+                    # variable's minimum future value, so applying an offset
+                    # would push values below zero. Use ratio based method instead.
+                    # This also captures the "shrinking variable" case: if the
+                    # variable is growing, variable_min will be large and the
+                    # offset is safe, falling through to offset_method below.
                     return ratio_method
                 else:
-                    # If dH is positive (model data < historical data)
-                    # Then we use the offset method, as the ratio method can substantially
-                    # Increase the values and lead to strange pathways, e.g.
-                    # When the variable is small in historical data but growing rapidly (e.g. synfuels)
+                    # Either the offset is positive (model < hist), or the offset
+                    # is negative but small enough not to cause negative values
+                    # (variable is growing or large enough to absorb the offset).
                     return offset_method
 
             # If dH_abs is large, this suggests that the component being harmonised is not ~near zero
@@ -591,6 +597,8 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
     zero_m = (model == 0).all(axis=1)
     go_neg = ((model.min(axis=1) - h) < 0).any()
     cov = hist.apply(coeff_of_var, axis=1)
+    future_cols = [c for c in model.columns if int(c) >= int(base_year)]
+    variable_min = model[future_cols].min(axis=1)
 
     df = pd.DataFrame(
         {
@@ -605,6 +613,7 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
             "cov": cov,
             "h": h,
             "m": m,
+            "variable_min": variable_min,
         }
     ).join(model.index.to_frame())
 
