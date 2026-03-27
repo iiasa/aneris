@@ -13,7 +13,6 @@ from pandas_indexing import isin
 
 from .utils import Pathy, logger
 
-
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 

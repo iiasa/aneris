@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 plt.style.use("seaborn-deep")
 
 xmax = 5

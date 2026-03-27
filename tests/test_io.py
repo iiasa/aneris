@@ -4,7 +4,6 @@ import pytest
 
 from aneris import _io
 
-
 _defaults = {
     "config": {
         "default_luc_method": "reduce_ratio_2150_cov",

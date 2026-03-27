@@ -5,7 +5,6 @@ import pytest
 
 from aneris import harmonize, utils
 
-
 nvals = 6
 
 
@@ -232,10 +231,10 @@ def test_harmonize_mix():
     npt.assert_array_almost_equal(obs, exp)
 
     # future year
-    obs = res["2060"][:2]
+    obs = res["2060"].iloc[:2]
     exp = [
-        _df["2060"][0] + (_hist["2015"][0] - _df["2015"][0]),
-        _df["2060"][1] * (_hist["2015"][1] / _df["2015"][1]),
+        _df["2060"].iloc[0] + (_hist["2015"].iloc[0] - _df["2015"].iloc[0]),
+        _df["2060"].iloc[1] * (_hist["2015"].iloc[1] / _df["2015"].iloc[1]),
     ]
     npt.assert_array_almost_equal(obs, exp)
 
@@ -271,16 +270,19 @@ def test_harmonize_linear_interpolation():
 @pytest.mark.ipopt
 def test_harmonize_budget():
     df = _df.copy()
+    df.columns = df.columns.astype(int)
     hist = _hist.copy()
+    hist.columns = hist.columns.astype(int)
+
     methods = _methods.copy()
 
     h = harmonize.Harmonizer(df, hist)
     methods["method"] = "budget"
-    res = h.harmonize(year="2015", overrides=methods["method"])
+    res = h.harmonize(year=2015, overrides=methods["method"])
 
     # base year
-    obs = res["2015"]
-    exp = _hist["2015"]
+    obs = res[2015]
+    exp = hist[2015]
     npt.assert_array_almost_equal(obs, exp)
 
     # carbon budget conserved
@@ -295,5 +297,5 @@ def test_harmonize_budget():
 
     npt.assert_array_almost_equal(
         _carbon_budget(res),
-        _carbon_budget(df) - _carbon_budget(hist.loc[:, "2010":"2015"]),
+        _carbon_budget(df) - _carbon_budget(hist.loc[:, 2010:2015]),
     )

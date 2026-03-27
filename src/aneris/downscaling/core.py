@@ -16,7 +16,6 @@ from .methods import (
     simple_proxy,
 )
 
-
 DEFAULT_INDEX = ("sector", "gas")
 
 

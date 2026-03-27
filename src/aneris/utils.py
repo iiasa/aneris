@@ -6,7 +6,6 @@ from typing import TypeAlias
 import pandas as pd
 import pycountry
 
-
 Pathy: TypeAlias = str | Path
 
 _logger = None

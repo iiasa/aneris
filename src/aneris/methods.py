@@ -8,8 +8,13 @@ from bisect import bisect
 import numpy as np
 import pandas as pd
 import pyomo.environ as pyo
+from pandas_indexing import assignlevel
 
 from aneris import utils
+
+
+def _log(msg, *args, **kwargs):
+    utils.logger().info(msg, *args, **kwargs)
 
 
 def harmonize_factors(df, hist, harmonize_year=2015):
@@ -334,10 +339,7 @@ def budget(df, df_hist, harmonize_year=2015):
 
         assert (results.solver.status == pyo.SolverStatus.ok) and (
             results.solver.termination_condition == pyo.TerminationCondition.optimal
-        ), (
-            f"ipopt terminated budget optimization with status: "
-            f"{results.solver.status}, {results.solver.termination_condition}"
-        )
+        ), f"ipopt terminated budget optimization with status: {results.solver.status}, {results.solver.termination_condition}"
 
         harmonized.append([pyo.value(model.x[y]) for y in years])
 
@@ -403,9 +405,11 @@ def default_method_choice(
     Refer to choice flow chart at
     https://drive.google.com/drive/folders/0B6_Oqvcg8eP9QXVKX2lFVUJiZHc
     for arguments available in row and their definition
+
+    Neil Grant: Have made changes which would amend this flow-chart
     """
     # special cases
-    if row.h == 0:
+    if np.isclose(row.h, 1e-6, atol=1e-3):
         return "hist_zero"
     if row.zero_m:
         return "model_zero"
@@ -422,6 +426,10 @@ def default_method_choice(
         else:
             return "constant_offset"
     else:
+        # variable going to zero (phase-out)? Always use ratio to avoid
+        # an offset driving values below zero as the variable approaches zero.
+        if np.isclose(row.variable_min, 0, atol=1e-6):
+            return ratio_method
         # is this co2?
         # ZN: This gas dependence isn't documented in the default
         # decision tree
@@ -432,7 +440,30 @@ def default_method_choice(
             return luc_method
         else:
             # dH small?
-            if row.dH < 0.5:
+            # Defined at the relative difference is less than 50% of historical data
+            # or under the absolute threshold
+            if (abs(row.dH) > 0.5) & (row.dH_abs < row.dH_abs_thresh):
+                # If dH is large, but dH_abs is small, this suggests
+                # The data being harmonised is a small ~near zero component
+                # (under 10% of the parent variable)
+                if row.dH < 0 and row.dH_abs > row.variable_min:
+                    # dH < 0: model > hist, so offset would be negative.
+                    # dH_abs > variable_min: the offset magnitude exceeds the
+                    # variable's minimum future value, so applying an offset
+                    # would push values below zero. Use ratio based method instead.
+                    # This also captures the "shrinking variable" case: if the
+                    # variable is growing, variable_min will be large and the
+                    # offset is safe, falling through to offset_method below.
+                    return ratio_method
+                else:
+                    # Either the offset is positive (model < hist), or the offset
+                    # is negative but small enough not to cause negative values
+                    # (variable is growing or large enough to absorb the offset).
+                    return offset_method
+
+            # If dH_abs is large, this suggests that the component being harmonised is not ~near zero
+            # In this context we can just rely on the ratio method throughout
+            elif abs(row.dH) < 0.5:
                 return ratio_method
             else:
                 # goes negative?
@@ -440,6 +471,66 @@ def default_method_choice(
                     return "reduce_ratio_2100"
                 else:
                     return "constant_ratio"
+
+
+def calc_dh_abs_threshold(df, hist, base_year):
+    """
+    Calculates a value of dH_abs_threshold, which is a threshold used to help determine methods choice
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame produced by default_methods function
+    hist : pd.DataFrame
+        Historical data
+    base_year : string, int
+        harmonization year
+
+
+    Returns
+    -------
+    df : pd.DataFrame
+       Modified dataframe with the dH_abs_threshold added
+
+    """
+    # Calculate the dH_abs_threshold (for use in methods choice)
+
+    # Find parent variable, which is defined as the next level up in the hiearchy.
+    # E.g. parent variable of FE|Industry|Liquids = FE|Industry
+    # Or parent variable of Emissions|CO2|Demand|Industry = Emissions|CO2|Demand
+    try:
+        df = assignlevel(
+            df,
+            parent_var=df.variable.map(
+                lambda s: "|".join(s.split("|")[:-1])
+                # if len(s.split('|')[:-1])>1 else s
+            ),
+        )
+    except Exception:
+        _log("Dataframe has no attribute 'variable', dH abs cannot be calculated")
+        df.loc[:, "dH_abs_thresh"] = np.nan
+
+        return df
+
+    # Find the index with the same indices, but switch the parent_variable in for the variable
+    select_ix = df.index.swaplevel("variable", "parent_var").droplevel("variable")
+    select_ix.names = df.index.droplevel("parent_var").names
+
+    for ix, sel_ix in zip(df.index, select_ix):
+        # Currently, the absolute threshold is set as 10% of the parent variable in the historical data
+        # Under 10% is counted as "small". We don't use model data here, as the model data could
+        # also be in need of harmonisation.
+        try:
+            df.loc[ix, "dH_abs_thresh"] = hist.loc[sel_ix, base_year] * 0.1
+        except Exception:
+            _log(
+                f"No data in the model dataframe for {sel_ix}, dH_abs_thresh not calculated"
+            )
+            df.loc[ix, "dH_abs_thresh"] = np.nan
+
+    df = df.droplevel("parent_var")
+
+    return df
 
 
 def default_methods(hist, model, base_year, method_choice=None, **kwargs):
@@ -497,7 +588,8 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
     except KeyError:
         h = hist[y]
         m = model[y]
-    dH = (h - m).abs() / h
+    dH = (h - m) / h
+    dH_abs = (h - m).abs()
     f = h / m
     dM = (model.max(axis=1) - model.min(axis=1)).abs() / model.max(axis=1)
     neg_m = (model < 0).any(axis=1)
@@ -505,10 +597,13 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
     zero_m = (model == 0).all(axis=1)
     go_neg = ((model.min(axis=1) - h) < 0).any()
     cov = hist.apply(coeff_of_var, axis=1)
+    future_cols = [c for c in model.columns if int(c) >= int(base_year)]
+    variable_min = model[future_cols].min(axis=1)
 
     df = pd.DataFrame(
         {
             "dH": dH,
+            "dH_abs": dH_abs,
             "f": f,
             "dM": dM,
             "neg_m": neg_m,
@@ -518,8 +613,11 @@ def default_methods(hist, model, base_year, method_choice=None, **kwargs):
             "cov": cov,
             "h": h,
             "m": m,
+            "variable_min": variable_min,
         }
     ).join(model.index.to_frame())
+
+    df = calc_dh_abs_threshold(df, hist, base_year)
 
     if method_choice is None:
         method_choice = default_method_choice

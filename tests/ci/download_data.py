@@ -3,7 +3,6 @@ import tarfile
 
 import requests
 
-
 username = os.environ["ANERIS_CI_USER"]
 password = os.environ["ANERIS_CI_PW"]
 

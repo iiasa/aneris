@@ -8,7 +8,6 @@ from pandas.testing import assert_frame_equal
 
 from aneris import cli
 
-
 # This is a class that runs all tests through the harmonize CLI Note that it
 # uses the actual harmonize API rather than subprocessing the CLI because
 # coveralls does not pick up the lines covered in CLI calls when in a docker

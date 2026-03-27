@@ -42,7 +42,7 @@ test = [
 ]
 units = ["openscm-units"]
 docs = [
-        "sphinx",
+        "sphinx<8",
         "sphinxcontrib-bibtex",
         "sphinxcontrib-programoutput",
         "sphinxcontrib-exceltable",
@@ -105,8 +105,6 @@ select = [
     # Pycodestyle
     "E",
     "W",
-    # isort
-    "I",
     # Pyupgrade
     "UP",
 ]
